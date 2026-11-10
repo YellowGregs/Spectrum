@@ -1,4 +1,4 @@
-local BASE = "https://raw.githubusercontent.com/AdvanceFTeam/Our-Scripts/refs/heads/main/UI/Spectrum/"
+local BASE = "https://raw.githubusercontent.com/YellowGregs/Spectrum/"
 local MODULES = {
 	"src/core/env",
 	"src/core/style",
