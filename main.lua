@@ -5,7 +5,9 @@ local MODULES = {
 	"src/core/util",
 	"src/core/icons",
 	"src/core/modal",
+	"src/core/options",
 	"src/core/config",
+	"src/core/launcher",
 	"src/core/notify",
 	"src/ui/window",
 	"src/ui/inputs",
@@ -13,7 +15,7 @@ local MODULES = {
 	"src/ui/text",
 	"src/init",
 }
-local CACHE_VERSION = "4"
+local CACHE_VERSION = "6"
 
 if not game:IsLoaded() then
 	game.Loaded:Wait()
@@ -64,18 +66,18 @@ local function ensure(folder)
 end
 
 local pinned = Caches() and commit() or nil
-local cacheRoot = pinned and ("spectrum/modules/" .. CACHE_VERSION .. "/" .. pinned .. "/") or nil
-local caching = cacheRoot ~= nil
+local cache_root = pinned and ("spectrum/modules/" .. CACHE_VERSION .. "/" .. pinned .. "/") or nil
+local caching = cache_root ~= nil
 
 shared.SpectrumCache = {
 	commit = pinned,
-	root = cacheRoot,
+	root = cache_root,
 	enabled = caching,
 }
 
 local function fetch(path)
 	local url = BASE .. path .. ".lua"
-	local file = cacheRoot and (cacheRoot .. path .. ".lua")
+	local file = cache_root and (cache_root .. path .. ".lua")
 	if caching and isfile(file) then
 		local ok, body = pcall(readfile, file)
 		if ok and type(body) == "string" and body ~= "" and body ~= "404: Not Found" then
@@ -90,7 +92,7 @@ local function fetch(path)
 
 	if caching then
 		local folder = string.match(path, "^(.*)/")
-		ensure(cacheRoot .. (folder or ""))
+		ensure(cache_root .. (folder or ""))
 		pcall(writefile, file, body)
 	end
 	return body

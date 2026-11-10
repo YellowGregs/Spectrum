@@ -28,9 +28,28 @@ local function label(parent, text, y, height)
 	})
 end
 
+local function row_emblem(parent, icon, size, color, y)
+	if type(icon) ~= "string" or icon == "" then
+		return nil
+	end
+	local emblem = icons.image(parent, icon, size or 14, color or values().muted)
+	if not emblem then
+		return nil
+	end
+	if y then
+		emblem.AnchorPoint = Vector2.new(0, 0)
+		emblem.Position = UDim2.fromOffset(10, y)
+	else
+		emblem.AnchorPoint = Vector2.new(0, 0.5)
+		emblem.Position = UDim2.new(0, 10, 0.5, 0)
+	end
+	icons.layer(emblem, 4)
+	return emblem
+end
+
 function inputs.button(win, text, callback, icon)
 	local mobile = win._mobile
-	local holder = win._slot(mobile and 44 or 37)
+	local holder = win._slot(mobile and 46 or 32)
 	local btn = util.new("TextButton", {
 		Name = "button",
 		BackgroundColor3 = values().accent,
@@ -38,21 +57,22 @@ function inputs.button(win, text, callback, icon)
 		AutoButtonColor = false,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -16, 0, mobile and 34 or 27),
+		Size = UDim2.new(1, -16, 0, mobile and 36 or 24),
 		Font = bold,
 		Text = tostring(text or "Button"),
 		TextColor3 = style.on(values().accent),
-		TextSize = util.size(11),
+		TextSize = util.size(mobile and 11 or 9),
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Parent = holder,
 	})
 	util.corner(btn)
 	local emblem
 	if type(icon) == "string" and icon ~= "" then
-		emblem = icons.image(btn, icon, 12, style.on(values().accent))
+		emblem = icons.image(btn, icon, 14, style.on(values().accent))
 		if emblem then
 			emblem.AnchorPoint = Vector2.new(0, 0.5)
 			emblem.Position = UDim2.new(0, 10, 0.5, 0)
+			icons.layer(emblem, 4)
 		end
 	end
 	local pop = util.new("UIScale", { Parent = btn })
@@ -93,11 +113,17 @@ function inputs.button(win, text, callback, icon)
 		end
 	end)
 
+	win._options(holder, text, function()
+		return {
+			{ label = "Run action", icon = "arrow", accent = true, run = callback },
+		}
+	end)
+
 	win._fit(true)
 	return btn
 end
 
-function inputs.toggle(win, text, a, b)
+function inputs.toggle(win, text, a, b, opts)
 	local mobile = win._mobile
 	local state, changed
 	if type(a) == "function" then
@@ -107,48 +133,23 @@ function inputs.toggle(win, text, a, b)
 		state = a == true
 		changed = b
 	end
-
+	if type(opts) == "string" then
+		opts = { style = opts }
+	elseif type(opts) ~= "table" then
+		opts = {}
+	end
+	local kind = tostring(opts.style or "switch"):lower()
+	local checkbox = kind == "checkbox" or kind == "check"
 	local row = win._row()
-	local size = mobile and 20 or 16
-	local box = util.new("Frame", {
-		BackgroundColor3 = values().raised,
-		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -10, 0.5, 0),
-		Size = UDim2.fromOffset(size, size),
-		ZIndex = 3,
-		Parent = row,
-	})
-	util.corner(box, 3)
-	local edge = util.stroke(box, values().line, 0.15)
-	local pop = util.new("UIScale", { Parent = box })
-
-	local check = util.new("Frame", {
-		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = 4,
-		Parent = box,
-	})
-	local short = util.new("Frame", {
-		BackgroundColor3 = values().ink,
-		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.34, 0.6),
-		Rotation = 45,
-		Size = UDim2.new(0, size * 0.3, 0, math.max(1, size * 0.11)),
-		Parent = check,
-	})
-	local long = util.new("Frame", {
-		BackgroundColor3 = values().ink,
-		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.59, 0.51),
-		Rotation = -45,
-		Size = UDim2.new(0, size * 0.52, 0, math.max(1, size * 0.11)),
-		Parent = check,
-	})
-
-	label(row, text, 0).Size = UDim2.new(1, -46, 1, 0)
+	local initial = state
+	local heading = label(row, text, 0)
+	local emblem = row_emblem(row, opts.icon, 14, values().muted)
+	local inset = checkbox and 44 or 64
+	if emblem then
+		inset = inset + 18
+		heading.Position = UDim2.fromOffset(28, 0)
+	end
+	heading.Size = UDim2.new(1, -inset, 1, 0)
 
 	local hit = util.new("TextButton", {
 		BackgroundColor3 = values().hover,
@@ -162,23 +163,107 @@ function inputs.toggle(win, text, a, b)
 	})
 	util.hover(hit)
 
-	local function sync()
-		check.Visible = state
-		local tint = state and values().accent or values().raised
-		util.tween(box, 0.12, { BackgroundColor3 = tint })
-		edge.Color = state and values().accent or values().line
-		edge.Transparency = state and 1 or 0.15
-		local ink = state and style.on(values().accent) or values().ink
-		short.BackgroundColor3 = ink
-		long.BackgroundColor3 = ink
+	local pop
+	local sync
+	if checkbox then
+		local size = mobile and 20 or 16
+		local box = util.new("Frame", {
+			Name = "checkbox",
+			BackgroundColor3 = values().raised,
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -10, 0.5, 0),
+			Size = UDim2.fromOffset(size, size),
+			ZIndex = 3,
+			Parent = row,
+		})
+		util.corner(box, 3)
+		local edge = util.stroke(box, values().line, 0.15)
+		pop = util.new("UIScale", { Parent = box })
+		local check = util.new("Frame", {
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 4,
+			Parent = box,
+		})
+		local short = util.new("Frame", {
+			BackgroundColor3 = values().ink,
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.34, 0.6),
+			Rotation = 45,
+			Size = UDim2.new(0, size * 0.3, 0, math.max(1, size * 0.11)),
+			ZIndex = 5,
+			Parent = check,
+		})
+		local long = util.new("Frame", {
+			BackgroundColor3 = values().ink,
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.59, 0.51),
+			Rotation = -45,
+			Size = UDim2.new(0, size * 0.52, 0, math.max(1, size * 0.11)),
+			ZIndex = 5,
+			Parent = check,
+		})
+
+		sync = function()
+			check.Visible = state
+			local tint = state and values().accent or values().raised
+			util.tween(box, 0.12, { BackgroundColor3 = tint })
+			edge.Color = state and values().accent or values().line
+			edge.Transparency = state and 1 or 0.15
+			local ink = state and style.on(values().accent) or values().ink
+			short.BackgroundColor3 = ink
+			long.BackgroundColor3 = ink
+		end
+	else
+		local width = mobile and 40 or 36
+		local height = mobile and 20 or 18
+		local thumb_size = height - 4
+		local track = util.new("Frame", {
+			Name = "switch_track",
+			BackgroundColor3 = state and values().accent or values().raised,
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -10, 0.5, 0),
+			Size = UDim2.fromOffset(width, height),
+			ZIndex = 3,
+			Parent = row,
+		})
+		util.corner(track, height / 2)
+		local edge = util.stroke(track, state and values().accent or values().line, state and 1 or 0.2)
+		local thumb = util.new("Frame", {
+			Name = "switch_thumb",
+			BackgroundColor3 = state and Color3.new(1, 1, 1) or values().muted,
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, state and (width - thumb_size - 2) or 2, 0.5, 0),
+			Size = UDim2.fromOffset(thumb_size, thumb_size),
+			ZIndex = 4,
+			Parent = track,
+		})
+		util.corner(thumb, thumb_size / 2)
+		pop = util.new("UIScale", { Parent = track })
+
+		sync = function()
+			local x = state and (width - thumb_size - 2) or 2
+			util.tween(thumb, 0.16, {
+				Position = UDim2.new(0, x, 0.5, 0),
+				BackgroundColor3 = state and Color3.new(1, 1, 1) or values().muted,
+			}, Enum.EasingStyle.Quart)
+			util.tween(track, 0.14, { BackgroundColor3 = state and values().accent or values().raised })
+			edge.Color = state and values().accent or values().line
+			edge.Transparency = state and 1 or 0.2
+		end
 	end
 
 	local key
 	local function set(value, fire)
 		state = value == true
 		sync()
-		pop.Scale = 0.86
-		util.tween(pop, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
+		pop.Scale = 0.9
+		util.tween(pop, 0.2, { Scale = 1 }, Enum.EasingStyle.Back)
 		if fire then
 			win._store(key, state)
 			if changed then
@@ -194,6 +279,10 @@ function inputs.toggle(win, text, a, b)
 	style.paint(function()
 		row.BackgroundColor3 = values().hover
 		hit.BackgroundColor3 = values().hover
+		heading.TextColor3 = values().text
+		if emblem then
+			icons.tint(emblem, values().muted)
+		end
 		sync()
 	end)
 
@@ -203,6 +292,12 @@ function inputs.toggle(win, text, a, b)
 			set(value, false)
 		end,
 	})
+	win._options(row, text, function()
+		return {
+			{ label = state and "Turn off" or "Turn on", icon = "sliders", accent = true, run = function() set(not state, true) end },
+			{ label = "Reset to default", icon = "arrow", run = function() set(initial, true) end },
+		}
+	end)
 	win._fit(true)
 
 	return {
@@ -219,7 +314,7 @@ function inputs.toggle(win, text, a, b)
 	}
 end
 
-function inputs.slider(win, text, min, max, default, callback, step)
+function inputs.slider(win, text, min, max, default, callback, step, icon)
 	local mobile = win._mobile
 	local row = win._row(mobile and 46 or 40)
 	local low = tonumber(min) or 0
@@ -231,11 +326,18 @@ function inputs.slider(win, text, min, max, default, callback, step)
 	if notch <= 0 then
 		notch = 1
 	end
-	local value = math.clamp(tonumber(default) or low, low, high)
+	local initial = math.clamp(tonumber(default) or low, low, high)
+	local value = initial
 	local decimals = notch >= 1 and 0 or (notch >= 0.1 and 1 or 2)
 
+	local emblem = row_emblem(row, icon, 14, values().muted, mobile and 7 or 5)
 	local name = label(row, text, mobile and 7 or 5, 14)
-	name.Size = UDim2.new(1, -80, 0, 14)
+	if emblem then
+		name.Position = UDim2.fromOffset(28, mobile and 7 or 5)
+		name.Size = UDim2.new(1, -100, 0, 14)
+	else
+		name.Size = UDim2.new(1, -80, 0, 14)
+	end
 
 	local readout = util.new("TextLabel", {
 		BackgroundTransparency = 1,
@@ -294,7 +396,7 @@ function inputs.slider(win, text, min, max, default, callback, step)
 
 	local dragging = false
 	local key
-	local function paintValue(fire)
+	local function paint_value(fire)
 		local alpha = (value - low) / (high - low)
 		fill.Size = UDim2.fromScale(alpha, 1)
 		thumb.Position = UDim2.new(alpha, 0, 0.5, 0)
@@ -310,7 +412,7 @@ function inputs.slider(win, text, min, max, default, callback, step)
 
 	local function apply(next, fire)
 		value = math.clamp(tonumber(next) or value, low, high)
-		paintValue(fire)
+		paint_value(fire)
 	end
 
 	local function snap(x)
@@ -325,7 +427,7 @@ function inputs.slider(win, text, min, max, default, callback, step)
 		win._scroll.ScrollingEnabled = false
 		thumb.Size = UDim2.fromOffset(7, mobile and 18 or 15)
 		value = snap(input.Position.X)
-		paintValue(true)
+		paint_value(true)
 	end
 
 	hit.InputBegan:Connect(function(input)
@@ -342,7 +444,7 @@ function inputs.slider(win, text, min, max, default, callback, step)
 		local kind = input.UserInputType
 		if kind == Enum.UserInputType.MouseMovement or kind == Enum.UserInputType.Touch then
 			value = snap(input.Position.X)
-			paintValue(true)
+			paint_value(true)
 		end
 	end)
 
@@ -352,7 +454,7 @@ function inputs.slider(win, text, min, max, default, callback, step)
 			dragging = false
 			win._scroll.ScrollingEnabled = true
 			thumb.Size = UDim2.fromOffset(6, mobile and 16 or 13)
-			paintValue(false)
+			paint_value(false)
 		end
 	end)
 
@@ -360,15 +462,26 @@ function inputs.slider(win, text, min, max, default, callback, step)
 		track.BackgroundColor3 = values().raised
 		fill.BackgroundColor3 = values().accent
 		thumb.BackgroundColor3 = values().accent
+		name.TextColor3 = values().text
 		readout.TextColor3 = dragging and values().accent or values().muted
+		if emblem then
+			icons.tint(emblem, values().muted)
+		end
 	end)
 
-	paintValue(false)
+	paint_value(false)
 	key = win._bind("slider", text, {
 		set = function(value)
 			apply(value, false)
 		end,
 	})
+	win._options(row, text, function()
+		return { -- you can change this if you want
+			{ label = "Reset to default", icon = "arrow", run = function() apply(initial, true) end },
+			{ label = "Set minimum", run = function() apply(low, true) end },
+			{ label = "Set maximum", run = function() apply(high, true) end },
+		}
+	end)
 	win._fit(true)
 
 	return {
@@ -382,22 +495,35 @@ function inputs.slider(win, text, min, max, default, callback, step)
 	}
 end
 
-function inputs.keybind(win, text, default, callback)
+function inputs.keybind(win, text, default, callback, icon)
 	local mobile = win._mobile
 	local row = win._row(mobile and 40 or 34)
-	label(row, text, 0).Size = UDim2.new(1, -100, 1, 0)
+	row.ClipsDescendants = true
+	local initial = default
+	local emblem = row_emblem(row, icon, 14, values().muted)
+	local caption = label(row, text, 0)
+	if emblem then
+		caption.Position = UDim2.fromOffset(28, 0)
+		caption.Size = UDim2.new(1, -136, 1, 0)
+	else
+		caption.Size = UDim2.new(1, -128, 1, 0)
+	end
 
 	local pill = util.new("TextButton", {
 		BackgroundColor3 = values().raised,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
+		ClipsDescendants = true,
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -10, 0.5, 0),
-		Size = UDim2.fromOffset(mobile and 74 or 62, mobile and 26 or 21),
+		Size = UDim2.fromOffset(mobile and 96 or 84, mobile and 30 or 22),
 		Font = bold,
 		Text = default or "None",
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextWrapped = false,
+		TextXAlignment = Enum.TextXAlignment.Center,
 		ZIndex = 3,
 		Parent = row,
 	})
@@ -410,8 +536,27 @@ function inputs.keybind(win, text, default, callback)
 	local held = {}
 	local stored
 
+	local function display(value)
+		if value == nil or value == "" then
+			return "None"
+		end
+		local label = tostring(value)
+		label = label:gsub("RightControl", "RCtrl")
+		label = label:gsub("LeftControl", "LCtrl")
+		label = label:gsub("RightShift", "RShift")
+		label = label:gsub("LeftShift", "LShift")
+		label = label:gsub("RightAlt", "RAlt")
+		label = label:gsub("LeftAlt", "LAlt")
+		label = label:gsub("Backspace", "Bksp")
+		label = label:gsub("Escape", "Esc")
+		if #label > 14 then
+			label = string.sub(label, 1, 12) .. "..."
+		end
+		return label
+	end
+
 	local function sync()
-		pill.Text = listening and "..." or (key and tostring(key) or "None")
+		pill.Text = listening and "..." or display(key)
 		pill.TextColor3 = listening and values().accent or (key and values().text or values().muted)
 		edge.Color = listening and values().accent or values().line
 	end
@@ -471,6 +616,10 @@ function inputs.keybind(win, text, default, callback)
 	style.paint(function()
 		edge.Color = listening and values().accent or values().line
 		pill.BackgroundColor3 = values().raised
+		caption.TextColor3 = values().text
+		if emblem then
+			icons.tint(emblem, values().muted)
+		end
 		sync()
 	end)
 
@@ -481,6 +630,23 @@ function inputs.keybind(win, text, default, callback)
 			sync()
 		end,
 	})
+	win._options(row, text, function()
+		return {
+			{ label = "Clear key", icon = "close", run = function()
+				key = nil
+				sync()
+				win._store(stored, key)
+				if callback then
+					callback(key, false)
+				end
+			end },
+			{ label = "Reset to default", icon = "arrow", run = function()
+				key = initial
+				sync()
+				win._store(stored, key)
+			end },
+		}
+	end)
 	win._fit(true)
 
 	return {

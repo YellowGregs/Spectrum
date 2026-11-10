@@ -7,8 +7,8 @@ local profile = "default"
 local data = {}
 local windows = {}
 local registry = {}
-local windowCounts = {}
-local valueCounts = {}
+local window_counts = {}
+local value_counts = {}
 local scheduled = false
 
 local http
@@ -32,7 +32,7 @@ end
 
 data = fresh()
 
-local function nameOf(value)
+local function name_of(value)
 	local out = tostring(value or "default"):gsub("[^%w_%- ]", "_")
 	if out == "" then
 		out = "default"
@@ -44,11 +44,11 @@ local function path(name)
 	return ROOT .. "/" .. name .. ".json"
 end
 
-local function canRead()
+local function can_read()
 	return type(isfile) == "function" and type(readfile) == "function"
 end
 
-local function canWrite()
+local function can_write()
 	return type(writefile) == "function" and type(makefolder) == "function"
 end
 
@@ -65,10 +65,30 @@ local function ensure(folder)
 	end
 end
 
+local function snake_key(key)
+	return string.lower(string.gsub(key, "(%l)(%u)", "%1_%2"))
+end
+
 local function normalize()
 	data.windows = type(data.windows) == "table" and data.windows or {}
 	data.values = type(data.values) == "table" and data.values or {}
 	data.settings = type(data.settings) == "table" and data.settings or {}
+	local keys = {}
+	for key in pairs(data.settings) do
+		keys[#keys + 1] = key
+	end
+	for _, key in ipairs(keys) do
+		if type(key) == "string" then
+			local normalized = snake_key(key)
+			if normalized ~= key then
+				if data.settings[normalized] == nil then
+					data.settings[normalized] = data.settings[key]
+				end
+				data.settings[key] = nil
+			end
+		end
+	end
+
 end
 
 local function copy(value)
@@ -107,10 +127,10 @@ end
 
 function config.load(name)
 	if name then
-		profile = nameOf(name)
+		profile = name_of(name)
 	end
 	data = fresh()
-	if canRead() and isfile(path(profile)) then
+	if can_read() and isfile(path(profile)) then
 		local ok, body = pcall(readfile, path(profile))
 		if ok and type(body) == "string" and body ~= "" then
 			decode(body)
@@ -124,11 +144,11 @@ end
 
 function config.save(name)
 	if name then
-		profile = nameOf(name)
+		profile = name_of(name)
 	end
 	normalize()
 	local body = encode()
-	if body and canWrite() then
+	if body and can_write() then
 		ensure(ROOT)
 		pcall(writefile, path(profile), body)
 	end
@@ -148,17 +168,17 @@ function config.touch()
 	end)
 end
 
-function config.windowKey(title)
+function config.window_key(title)
 	local name = tostring(title or "Window")
-	local count = (windowCounts[name] or 0) + 1
-	windowCounts[name] = count
+	local count = (window_counts[name] or 0) + 1
+	window_counts[name] = count
 	if count == 1 then
 		return name
 	end
 	return name .. "#" .. count
 end
 
-function config.windowState(key)
+function config.window_state(key)
 	return data.windows[key]
 end
 
@@ -167,7 +187,7 @@ function config.place(key, state)
 	config.touch()
 end
 
-function config.attachWindow(key, api)
+function config.attach_window(key, api)
 	windows[key] = api
 	local saved = data.windows[key]
 	if saved and api.restore then
@@ -177,12 +197,15 @@ end
 
 function config.bind(win, kind, label, api)
 	local base = kind .. ":" .. tostring(label or "")
-	valueCounts[win] = valueCounts[win] or {}
-	local count = (valueCounts[win][base] or 0) + 1
-	valueCounts[win][base] = count
+	value_counts[win] = value_counts[win] or {}
+
+	local count = (value_counts[win][base] or 0) + 1
+	value_counts[win][base] = count
+
 	local key = count == 1 and base or (base .. "#" .. count)
 	registry[win] = registry[win] or {}
 	registry[win][key] = api
+
 	local saved = data.values[win] and data.values[win][key]
 	if saved ~= nil and api.set then
 		pcall(api.set, saved)
@@ -217,12 +240,28 @@ function config.apply()
 	return true
 end
 
-function config.toggleKey(value)
+function config.toggle_key(value)
 	if value ~= nil then
-		data.settings.toggleKey = tostring(value)
+		data.settings.toggle_key = tostring(value)
 		config.touch()
 	end
-	return data.settings and data.settings.toggleKey
+	return data.settings and data.settings.toggle_key
+end
+
+function config.launcher_state()
+	return data.settings and data.settings.launcher
+end
+
+function config.place_launcher(state)
+	if type(state) ~= "table" then
+		return
+	end
+	data.settings.launcher = {
+		v = 2,
+		x = tonumber(state.x) or 12,
+		y = tonumber(state.y) or 720,
+	}
+	config.touch()
 end
 
 function config.flush()

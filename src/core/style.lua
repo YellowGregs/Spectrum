@@ -24,7 +24,7 @@ for key, value in pairs(defaults) do
 end
 
 local painters = {}
-local colorKeys = {
+local color_keys = {
 	"accent",
 	"background",
 	"panel",
@@ -56,7 +56,7 @@ function style.apply(props)
 	if type(props) ~= "table" then
 		return style.copy()
 	end
-	for _, key in ipairs(colorKeys) do
+	for _, key in ipairs(color_keys) do
 		if typeof(props[key]) == "Color3" then
 			values[key] = props[key]
 		end

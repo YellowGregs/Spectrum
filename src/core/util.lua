@@ -54,19 +54,43 @@ function util.shadow(object, blur, transparency)
 	if built or not object.Parent then
 		return
 	end
-	util.new("ImageLabel", {
+	local shade = util.new("ImageLabel", {
 		Name = "shade",
+		Active = false,
 		BackgroundTransparency = 1,
 		Image = "rbxassetid://5554236805",
 		ScaleType = Enum.ScaleType.Slice,
 		SliceCenter = Rect.new(23, 23, 277, 277),
 		ImageColor3 = Color3.new(0, 0, 0),
 		ImageTransparency = (transparency or 0.55) - 0.05,
-		Position = UDim2.fromOffset(-10, -8),
-		Size = UDim2.new(1, 20, 1, 22),
-		ZIndex = math.max(object.ZIndex - 1, 0),
+		Visible = object.Visible,
 		Parent = object.Parent,
 	})
+	local function sync_shade()
+		shade.Position = UDim2.new(
+			object.Position.X.Scale,
+			object.Position.X.Offset - 10,
+			object.Position.Y.Scale,
+			object.Position.Y.Offset - 8
+		)
+		shade.Size = UDim2.new(
+			object.Size.X.Scale,
+			object.Size.X.Offset + 20,
+			object.Size.Y.Scale,
+			object.Size.Y.Offset + 22
+		)
+		shade.ZIndex = math.max(object.ZIndex - 1, 0)
+		shade.Visible = object.Visible
+	end
+	sync_shade()
+	for _, property in ipairs({ "Position", "Size", "ZIndex", "Visible" }) do
+		object:GetPropertyChangedSignal(property):Connect(sync_shade)
+	end
+	object.Destroying:Connect(function()
+		if shade.Parent then
+			shade:Destroy()
+		end
+	end)
 end
 
 function util.tween(object, time, props, ease, direction)

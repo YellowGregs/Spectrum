@@ -10,7 +10,24 @@ local env = {}
 env.tws = tws
 env.uis = uis
 env.mobile = uis.TouchEnabled and not uis.KeyboardEnabled
-env.playerGui = Players.LocalPlayer and Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local function player_gui()
+	if env.player_gui and env.player_gui.Parent then
+		return env.player_gui
+	end
+	local player = Players.LocalPlayer
+	if not player then
+		return env.player_gui
+	end
+	local gui = player:FindFirstChildOfClass("PlayerGui")
+	if not gui then
+		gui = player:WaitForChild("PlayerGui")
+	end
+	env.player_gui = gui
+	return gui
+end
+
+env.player_gui = Players.LocalPlayer and Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
 
 local function sweep(holder)
 	if not holder then
@@ -26,18 +43,26 @@ local function sweep(holder)
 end
 
 sweep(CoreGui)
-sweep(env.playerGui)
+sweep(player_gui())
 
-local holder = CoreGui
+local holder = nil
 do
 	local probe = Instance.new("ScreenGui")
 	local placed = pcall(function()
 		probe.Parent = CoreGui
 	end)
-	if not placed then
-		holder = env.playerGui
+	if placed then
+		holder = CoreGui
+	else
+		holder = player_gui()
 	end
 	probe:Destroy()
+end
+if not holder then
+	holder = player_gui()
+end
+if not holder then
+	error("[Spectrum] no PlayerGui available for the interface", 0)
 end
 
 local function layer(name, order)
@@ -48,7 +73,7 @@ local function layer(name, order)
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.DisplayOrder = order
 	pcall(function()
-		gui.ScreenInsets = Enum.ScreenInsets.None
+		gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 	end)
 	gui.Parent = holder
 	return gui
@@ -57,10 +82,15 @@ end
 env.windows = layer("Spectrum", 10)
 env.notes = layer("SpectrumNotes", 15)
 env.modal = layer("SpectrumModal", 20)
+env.launcher = layer("SpectrumLauncher", 30)
 
 function env.viewport()
 	local camera = Workspace.CurrentCamera
-	return camera and camera.ViewportSize or Vector2.new(1280, 720)
+	local size = camera and camera.ViewportSize
+	if not size or size.X < 64 or size.Y < 64 then
+		return Vector2.new(1280, 720)
+	end
+	return size
 end
 
 S.env = env

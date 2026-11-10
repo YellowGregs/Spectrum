@@ -29,7 +29,8 @@ end
 
 function text.section(win, title, icon)
 	local height = win._mobile and 32 or 28
-	local holder = win._slot(height)
+	local holder = win._slot(height, true)
+	local record = win._new_section()
 	local band = util.new("Frame", {
 		BackgroundColor3 = values().panel,
 		BorderSizePixel = 0,
@@ -48,7 +49,7 @@ function text.section(win, title, icon)
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(20, 0),
-		Size = UDim2.new(1, -28, 1, 0),
+		Size = UDim2.new(1, -44, 1, 0),
 		Font = bold,
 		Text = tostring(title or "Section"),
 		TextColor3 = values().text,
@@ -60,13 +61,13 @@ function text.section(win, title, icon)
 	})
 	local emblem
 	if type(icon) == "string" and icon ~= "" then
-		emblem = icons.image(band, icon, 12, values().accent)
+		emblem = icons.image(band, icon, 14, values().accent)
 		if emblem then
 			tick.Visible = false
-			emblem.Position = UDim2.fromOffset(10, height / 2 - 6)
+			emblem.Position = UDim2.fromOffset(10, height / 2 - 7)
 			emblem.ZIndex = 3
-			caption.Position = UDim2.fromOffset(28, 0)
-			caption.Size = UDim2.new(1, -36, 1, 0)
+			caption.Position = UDim2.fromOffset(29, 0)
+			caption.Size = UDim2.new(1, -53, 1, 0)
 		end
 	end
 	local bottom = util.new("Frame", {
@@ -78,19 +79,89 @@ function text.section(win, title, icon)
 		ZIndex = 3,
 		Parent = band,
 	})
+	local chevron = util.chevron(band, 8, values().muted)
+	chevron.AnchorPoint = Vector2.new(0.5, 0.5)
+	chevron.Position = UDim2.new(1, -14, 0.5, 0)
+	chevron.ZIndex = 4
+	chevron.Rotation = 180
+
+	local hit = util.new("TextButton", {
+		BackgroundColor3 = values().hover,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Size = UDim2.fromScale(1, 1),
+		Text = "",
+		ZIndex = 7,
+		Parent = band,
+	})
+	local hovered = false
+	local function tint_band(on)
+		hovered = on
+		util.tween(band, 0.1, { BackgroundColor3 = on and values().hover or values().panel })
+	end
+	hit.MouseEnter:Connect(function()
+		tint_band(true)
+	end)
+	hit.MouseLeave:Connect(function()
+		tint_band(false)
+	end)
+	hit.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			tint_band(true)
+		end
+	end)
+	hit.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			tint_band(false)
+		end
+	end)
+
+	local function set_open(state, animate)
+		if state == nil then
+			state = not record.open
+		end
+		win._toggle_section(record, state)
+		if animate then
+			util.tween(chevron, 0.15, { Rotation = state and 180 or 0 })
+		else
+			chevron.Rotation = state and 180 or 0
+		end
+	end
+
+	hit.Activated:Connect(function()
+		set_open(nil, true)
+	end)
 
 	style.paint(function()
 		band.BackgroundColor3 = values().panel
 		tick.BackgroundColor3 = values().accent
 		caption.TextColor3 = values().text
 		bottom.BackgroundColor3 = values().line
+		band.BackgroundColor3 = hovered and values().hover or values().panel
 		if emblem then
 			icons.tint(emblem, values().accent)
 		end
 	end)
 
+	win._focus_section(record)
 	win._fit(true)
-	return caption
+
+	return {
+		Header = caption,
+		Toggle = function(_, state)
+			set_open(state, true)
+		end,
+		Open = function()
+			set_open(true, true)
+		end,
+		Close = function()
+			set_open(false, true)
+		end,
+		IsOpen = function()
+			return record.open
+		end,
+	}
 end
 
 function text.label(win, body)
@@ -146,18 +217,37 @@ function text.separator(win)
 	return bar
 end
 
-function text.textbox(win, title, default, callback)
+function text.textbox(win, title, default, callback, icon)
 	local mobile = win._mobile
 	local row = win._row(mobile and 58 or 34)
+	row.ClipsDescendants = true
+	local initial = default
 	local name = label(row, title)
-	if not mobile then
-		name.Size = UDim2.new(0.4, -16, 1, 0)
+	local emblem
+	if type(icon) == "string" and icon ~= "" then
+		emblem = icons.image(row, icon, 14, values().muted)
+		if emblem then
+			icons.layer(emblem, 4)
+			if mobile then
+				emblem.AnchorPoint = Vector2.new(0, 0)
+				emblem.Position = UDim2.fromOffset(10, 7)
+			else
+				emblem.AnchorPoint = Vector2.new(0, 0.5)
+				emblem.Position = UDim2.new(0, 10, 0.5, 0)
+			end
+		end
+	end
+	if mobile then
+		name.Position = UDim2.fromOffset(emblem and 28 or 10, 7)
+		name.Size = UDim2.new(1, emblem and -46 or -20, 0, 14)
+	else
+		name.Position = UDim2.fromOffset(emblem and 28 or 10, 0)
+		name.Size = UDim2.new(0.4, emblem and -34 or -16, 1, 0)
 	end
 	local box
 	if mobile then
-		name.Position = UDim2.fromOffset(10, 7)
-		name.Size = UDim2.new(1, -20, 0, 14)
 		box = util.new("TextBox", {
+			Name = "textbox",
 			BackgroundColor3 = values().raised,
 			BorderSizePixel = 0,
 			ClearTextOnFocus = false,
@@ -176,6 +266,7 @@ function text.textbox(win, title, default, callback)
 		})
 	else
 		box = util.new("TextBox", {
+			Name = "textbox",
 			BackgroundColor3 = values().raised,
 			BorderSizePixel = 0,
 			ClearTextOnFocus = false,
@@ -202,19 +293,6 @@ function text.textbox(win, title, default, callback)
 	})
 	local edge = util.stroke(box, values().line, 0.2)
 	local stored
-	local hotspot = util.new("TextButton", {
-		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(1, 1),
-		Text = "",
-		AutoButtonColor = false,
-		ZIndex = 1,
-		Parent = row,
-	})
-	util.hover(hotspot)
-
-	hotspot.Activated:Connect(function()
-		box:CaptureFocus()
-	end)
 
 	box.Focused:Connect(function()
 		edge.Color = values().accent
@@ -235,6 +313,9 @@ function text.textbox(win, title, default, callback)
 		box.PlaceholderColor3 = values().muted
 		edge.Color = values().line
 		name.TextColor3 = values().text
+		if emblem then
+			icons.tint(emblem, values().muted)
+		end
 	end)
 
 	stored = win._bind("text", title, {
@@ -242,6 +323,24 @@ function text.textbox(win, title, default, callback)
 			box.Text = tostring(value)
 		end,
 	})
+	win._options(row, title, function()
+		return {
+			{ label = "Clear text", icon = "close", run = function()
+				box.Text = ""
+				win._store(stored, "")
+				if callback then
+					callback("")
+				end
+			end },
+			{ label = "Reset to default", icon = "arrow", run = function()
+				box.Text = tostring(initial or "")
+				win._store(stored, box.Text)
+				if callback then
+					callback(box.Text)
+				end
+			end },
+		}
+	end)
 	win._fit(true)
 
 	return {
