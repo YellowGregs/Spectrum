@@ -270,12 +270,6 @@ if env.mobile then
 	if mobile_launcher then
 		mobile_launcher.set_open(menu_open)
 	end
-end	task.defer(function()
-	if env.mobile then
-		S.notify("Spectrum", "Tap the menu button to toggle. Drag it to move it.", 3.5, "info")
-	else
-		S.notify("Spectrum", "Press " .. combo_label(menu_key) .. " to toggle. Right-click rows for options.", 3.5, "info")
-	end
-end)
+end
 
 S.library = Library
