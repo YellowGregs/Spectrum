@@ -80,7 +80,7 @@ function selects.dropdown(win, title, options, default, callback, multi)
 	local panel = util.new("Frame", {
 		Name = "dropdown",
 		Active = true,
-		BackgroundColor3 = values().background,
+		BackgroundColor3 = values().panel,
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
 		Size = UDim2.fromOffset(200, 0),
@@ -88,8 +88,8 @@ function selects.dropdown(win, title, options, default, callback, multi)
 		ZIndex = 2,
 		Parent = env.modal,
 	})
-	local edge = util.stroke(panel, values().line, 0.2)
-	util.shadow(panel, 14, 0.55)
+	local edge = util.stroke(panel, values().line, 0.05)
+	util.shadow(panel, 18, 0.4)
 	win._popover(panel)
 
 	local area = util.new("ScrollingFrame", {
@@ -113,6 +113,7 @@ function selects.dropdown(win, title, options, default, callback, multi)
 
 	local marks = {}
 	local items = {}
+	local key
 
 	local function current()
 		if not multi then
@@ -160,6 +161,18 @@ function selects.dropdown(win, title, options, default, callback, multi)
 		end
 	end
 
+	local function apply(value)
+		if multi then
+			picks = {}
+			for _, option in ipairs(type(value) == "table" and value or {}) do
+				picks[tostring(option)] = true
+			end
+		else
+			single = value ~= nil and tostring(value) or nil
+		end
+		refresh()
+	end
+
 	local open = false
 	local setOpen
 
@@ -176,9 +189,9 @@ function selects.dropdown(win, title, options, default, callback, multi)
 			modal.claim(close)
 			local view = env.viewport()
 			local pos, size = row.AbsolutePosition, row.AbsoluteSize
-			local width = math.min(math.max(size.X, 180), view.X - 12)
-			local x = math.clamp(pos.X, 6, math.max(6, view.X - width - 6))
-			local y = pos.Y + size.Y + 1
+			local width = math.min(math.max(size.X + 8, 180), view.X - 12)
+			local x = math.clamp(pos.X - 4, 6, math.max(6, view.X - width - 6))
+			local y = pos.Y + size.Y + 3
 			if y + panelHeight > view.Y - 6 then
 				y = pos.Y - panelHeight - 1
 			end
@@ -243,13 +256,16 @@ function selects.dropdown(win, title, options, default, callback, multi)
 					picks[option] = true
 				end
 				refresh()
+				local picked = current()
+				win._store(key, picked)
 				if callback then
-					callback(current())
+					callback(picked)
 				end
 			else
 				single = option
 				refresh()
 				setOpen(false)
+				win._store(key, single)
 				if callback then
 					callback(option)
 				end
@@ -272,6 +288,10 @@ function selects.dropdown(win, title, options, default, callback, multi)
 		util.new("UIPadding", { PaddingLeft = UDim.new(0, 12), Parent = empty })
 	end
 
+	key = win._bind(multi and "multi" or "dropdown", title, {
+		set = apply,
+	})
+
 	local hit = util.new("TextButton", {
 		BackgroundColor3 = values().hover,
 		BackgroundTransparency = 1,
@@ -288,7 +308,7 @@ function selects.dropdown(win, title, options, default, callback, multi)
 	end)
 
 	style.paint(function()
-		panel.BackgroundColor3 = values().background
+		panel.BackgroundColor3 = values().panel
 		edge.Color = values().line
 		area.ScrollBarImageColor3 = values().muted
 		hit.BackgroundColor3 = values().hover
@@ -304,15 +324,7 @@ function selects.dropdown(win, title, options, default, callback, multi)
 
 	return {
 		Set = function(_, value)
-			if multi then
-				picks = {}
-				for _, option in ipairs(type(value) == "table" and value or {}) do
-					picks[tostring(option)] = true
-				end
-			else
-				single = value ~= nil and tostring(value) or nil
-			end
-			refresh()
+			apply(value)
 		end,
 		Get = function()
 			return current()
@@ -366,15 +378,15 @@ function selects.colorpicker(win, title, default, callback)
 	local panel = util.new("Frame", {
 		Name = "colorpicker",
 		Active = true,
-		BackgroundColor3 = values().background,
+		BackgroundColor3 = values().panel,
 		BorderSizePixel = 0,
 		Size = UDim2.fromOffset(panelW, panelH),
 		Visible = false,
 		ZIndex = 2,
 		Parent = env.modal,
 	})
-	local edge = util.stroke(panel, values().line, 0.2)
-	util.shadow(panel, 16, 0.5)
+	local edge = util.stroke(panel, values().line, 0.05)
+	util.shadow(panel, 18, 0.4)
 	win._popover(panel)
 	local pop = util.new("UIScale", { Parent = panel })
 
@@ -447,24 +459,23 @@ function selects.colorpicker(win, title, default, callback)
 	local hueBar = util.new("Frame", {
 		BackgroundColor3 = Color3.fromRGB(255, 0, 0),
 		BorderSizePixel = 0,
+		ClipsDescendants = true,
 		Position = UDim2.new(0, pad, 0, pad + fieldH + 8),
 		Size = UDim2.new(1, -pad * 2, 0, 12),
 		ZIndex = 3,
 		Parent = panel,
 	})
 	util.corner(hueBar, 2)
-	util.new("UIGradient", {
-		Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-			ColorSequenceKeypoint.new(1 / 6, Color3.fromRGB(255, 255, 0)),
-			ColorSequenceKeypoint.new(2 / 6, Color3.fromRGB(0, 255, 0)),
-			ColorSequenceKeypoint.new(3 / 6, Color3.fromRGB(0, 255, 255)),
-			ColorSequenceKeypoint.new(4 / 6, Color3.fromRGB(0, 0, 255)),
-			ColorSequenceKeypoint.new(5 / 6, Color3.fromRGB(255, 0, 255)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)),
-		}),
-		Parent = hueBar,
-	})
+	for index = 0, 47 do
+		util.new("Frame", {
+			BackgroundColor3 = Color3.fromHSV(index / 48, 1, 1),
+			BorderSizePixel = 0,
+			Position = UDim2.fromScale(index / 48, 0),
+			Size = UDim2.new(1 / 48 + 0.004, 0, 1, 0),
+			ZIndex = 3,
+			Parent = hueBar,
+		})
+	end
 
 	local knob = util.new("Frame", {
 		BackgroundColor3 = Color3.new(1, 1, 1),
@@ -525,6 +536,7 @@ function selects.colorpicker(win, title, default, callback)
 		return Color3.fromHSV(hue, sat, val)
 	end
 
+	local key
 	local function refresh(fire)
 		cursor.Position = UDim2.fromScale(sat, 1 - val)
 		knob.Position = UDim2.new(hue, 0, 0.5, 0)
@@ -534,8 +546,32 @@ function selects.colorpicker(win, title, default, callback)
 		if not hex:IsFocused() then
 			hex.Text = "#" .. string.upper(color():ToHex())
 		end
-		if fire and callback then
-			callback(color())
+		if fire then
+			win._store(key, "#" .. string.upper(color():ToHex()))
+			if callback then
+				callback(color())
+			end
+		end
+	end
+
+	local function apply(value)
+		local picked
+		if typeof(value) == "Color3" then
+			picked = value
+		elseif type(value) == "string" then
+			local raw = string.gsub(tostring(value), "#", "")
+			if #raw == 3 then
+				raw = string.sub(raw, 1, 1) .. string.sub(raw, 1, 1)
+					.. string.sub(raw, 2, 2) .. string.sub(raw, 2, 2)
+					.. string.sub(raw, 3, 3) .. string.sub(raw, 3, 3)
+			end
+			if #raw == 6 and tonumber(raw, 16) then
+				picked = Color3.fromHex("#" .. raw)
+			end
+		end
+		if picked then
+			hue, sat, val = Color3.toHSV(picked)
+			refresh(false)
 		end
 	end
 
@@ -667,7 +703,7 @@ function selects.colorpicker(win, title, default, callback)
 	end)
 
 	style.paint(function()
-		panel.BackgroundColor3 = values().background
+		panel.BackgroundColor3 = values().panel
 		edge.Color = values().line
 		hex.BackgroundColor3 = values().raised
 		hex.TextColor3 = values().text
@@ -677,14 +713,14 @@ function selects.colorpicker(win, title, default, callback)
 	end)
 
 	refresh(false)
+	key = win._bind("color", title, {
+		set = apply,
+	})
 	win._fit(true)
 
 	return {
 		Set = function(_, value)
-			if typeof(value) == "Color3" then
-				hue, sat, val = Color3.toHSV(value)
-				refresh(false)
-			end
+			apply(value)
 		end,
 		Get = function()
 			return color()

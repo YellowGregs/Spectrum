@@ -28,6 +28,18 @@ end
 sweep(CoreGui)
 sweep(env.playerGui)
 
+local holder = CoreGui
+do
+	local probe = Instance.new("ScreenGui")
+	local placed = pcall(function()
+		probe.Parent = CoreGui
+	end)
+	if not placed then
+		holder = env.playerGui
+	end
+	probe:Destroy()
+end
+
 local function layer(name, order)
 	local gui = Instance.new("ScreenGui")
 	gui.Name = name
@@ -38,12 +50,7 @@ local function layer(name, order)
 	pcall(function()
 		gui.ScreenInsets = Enum.ScreenInsets.None
 	end)
-	local placed = pcall(function()
-		gui.Parent = CoreGui
-	end)
-	if not placed then
-		gui.Parent = env.playerGui
-	end
+	gui.Parent = holder
 	return gui
 end
 

@@ -4,6 +4,8 @@ local env = S.env
 local util = S.util
 local style = S.style
 local modal = S.modal
+local icons = S.icons
+local config = S.config
 local bold = Enum.Font.GothamBold
 local font = Enum.Font.GothamMedium
 
@@ -35,15 +37,25 @@ end
 
 function Window.new(title, opts)
 	opts = opts or {}
+	title = title or "Window"
 	local mobile = env.mobile
 	local vp = env.viewport()
+	local key = config.windowKey(title)
+	local saved = config.windowState(key)
 	local width = opts.width or (mobile and math.min(272, vp.X - 20) or 276)
+	if saved and type(saved.width) == "number" then
+		width = saved.width
+	end
 	width = math.clamp(width, math.min(210, vp.X - 20), math.max(210, vp.X - 20))
 	local head = mobile and 38 or 34
 	local rowBase = mobile and 40 or 32
 	local cap = math.max(140, math.floor(vp.Y * 0.62))
 	local order = 0
-	local open = true
+	local open = not (saved and saved.open == false)
+	local start = spot(width)
+	if saved and type(saved.x) == "number" and type(saved.y) == "number" then
+		start = UDim2.fromOffset(math.clamp(saved.x, -(width - 70), vp.X - 70), math.clamp(saved.y, 0, vp.Y - head - 4))
+	end
 	local links = {}
 	local panels = {}
 	local dragging = false
@@ -54,6 +66,7 @@ function Window.new(title, opts)
 	w._mobile = mobile
 	w._rowBase = rowBase
 	w._scroll = nil
+	w._key = key
 
 	top = top + 1
 	local root = util.new("Frame", {
@@ -61,7 +74,7 @@ function Window.new(title, opts)
 		Active = true,
 		BackgroundTransparency = 1,
 		Size = UDim2.fromOffset(width, head + 60),
-		Position = spot(width),
+		Position = start,
 		ZIndex = top,
 		Parent = env.windows,
 	})
@@ -118,6 +131,29 @@ function Window.new(title, opts)
 		ZIndex = 4,
 		Parent = header,
 	})
+
+	if type(opts.icon) == "string" and opts.icon ~= "" then
+		local emblem = icons.image(header, opts.icon, 13, values().accent)
+		if emblem then
+			mark.Visible = false
+			emblem.Position = UDim2.fromOffset(10, head / 2 - 6)
+			emblem.ZIndex = 4
+			caption.Position = UDim2.fromOffset(29, 0)
+			caption.Size = UDim2.new(1, -102, 1, 0)
+			style.paint(function()
+				icons.tint(emblem, values().accent)
+			end)
+		end
+	end
+
+	local function remember()
+		config.place(key, {
+			x = root.Position.X.Offset,
+			y = root.Position.Y.Offset,
+			width = width,
+			open = open,
+		})
+	end
 
 	local function ghost(offset)
 		local hit = util.new("TextButton", {
@@ -247,7 +283,7 @@ function Window.new(title, opts)
 		root.ZIndex = top
 	end
 
-	local function fold(state)
+	local function fold(state, save)
 		if state == nil then
 			state = not open
 		end
@@ -265,9 +301,13 @@ function Window.new(title, opts)
 				end
 			end)
 		end
+		if save ~= false then
+			remember()
+		end
 	end
 
 	local function close()
+		remember()
 		modal.dismiss()
 		root:Destroy()
 	end
@@ -331,8 +371,12 @@ function Window.new(title, opts)
 	local stop = env.uis.InputEnded:Connect(function(input)
 		local kind = input.UserInputType
 		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+			local moved = dragging or resizing
 			dragging = false
 			resizing = false
+			if moved then
+				remember()
+			end
 		end
 	end)
 	links[#links + 1] = stop
@@ -380,6 +424,14 @@ function Window.new(title, opts)
 	w._fit = fit
 	w._modal = modal
 
+	function w._bind(kind, label, api)
+		return config.bind(key, kind, label, api)
+	end
+
+	function w._store(id, value)
+		config.put(key, id, value)
+	end
+
 	function w:SetTitle(text)
 		caption.Text = tostring(text)
 	end
@@ -389,6 +441,7 @@ function Window.new(title, opts)
 	end
 
 	function w:Destroy()
+		remember()
 		root:Destroy()
 	end
 
@@ -396,7 +449,28 @@ function Window.new(title, opts)
 		close()
 	end
 
+	config.attachWindow(key, {
+		restore = function(state)
+			local view = env.viewport()
+			if type(state.width) == "number" then
+				width = math.clamp(state.width, math.min(210, view.X - 20), math.max(210, view.X - 20))
+				root.Size = UDim2.fromOffset(width, root.Size.Y.Offset)
+			end
+			if type(state.x) == "number" and type(state.y) == "number" then
+				root.Position = UDim2.fromOffset(math.clamp(state.x, -(width - 70), view.X - 70), math.clamp(state.y, 0, view.Y - head - 4)
+				)
+			end
+			if state.open ~= nil then
+				open = state.open ~= false
+				scroll.Visible = open
+				foldBarV.Size = UDim2.fromOffset(1, open and 9 or 0)
+			end
+			fit(false)
+		end,
+	})
+
 	root.Destroying:Connect(function()
+		remember()
 		modal.dismiss()
 		for _, conn in ipairs(links) do
 			conn:Disconnect()

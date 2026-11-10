@@ -2,6 +2,7 @@ local S = ...
 
 local util = S.util
 local style = S.style
+local icons = S.icons
 local bold = Enum.Font.GothamBold
 local font = Enum.Font.GothamMedium
 local text = {}
@@ -26,8 +27,9 @@ local function label(parent, title)
 	})
 end
 
-function text.section(win, title)
-	local holder = win._slot(win._mobile and 32 or 28)
+function text.section(win, title, icon)
+	local height = win._mobile and 32 or 28
+	local holder = win._slot(height)
 	local band = util.new("Frame", {
 		BackgroundColor3 = values().panel,
 		BorderSizePixel = 0,
@@ -38,7 +40,7 @@ function text.section(win, title)
 	local tick = util.new("Frame", {
 		BackgroundColor3 = values().accent,
 		BorderSizePixel = 0,
-		Position = UDim2.fromOffset(10, (win._mobile and 32 or 28) / 2 - 6),
+		Position = UDim2.fromOffset(10, height / 2 - 6),
 		Size = UDim2.fromOffset(2, 12),
 		ZIndex = 3,
 		Parent = band,
@@ -56,6 +58,17 @@ function text.section(win, title)
 		ZIndex = 3,
 		Parent = band,
 	})
+	local emblem
+	if type(icon) == "string" and icon ~= "" then
+		emblem = icons.image(band, icon, 12, values().accent)
+		if emblem then
+			tick.Visible = false
+			emblem.Position = UDim2.fromOffset(10, height / 2 - 6)
+			emblem.ZIndex = 3
+			caption.Position = UDim2.fromOffset(28, 0)
+			caption.Size = UDim2.new(1, -36, 1, 0)
+		end
+	end
 	local bottom = util.new("Frame", {
 		BackgroundColor3 = values().line,
 		BackgroundTransparency = 0.3,
@@ -71,6 +84,9 @@ function text.section(win, title)
 		tick.BackgroundColor3 = values().accent
 		caption.TextColor3 = values().text
 		bottom.BackgroundColor3 = values().line
+		if emblem then
+			icons.tint(emblem, values().accent)
+		end
 	end)
 
 	win._fit(true)
@@ -185,6 +201,7 @@ function text.textbox(win, title, default, callback)
 		Parent = box,
 	})
 	local edge = util.stroke(box, values().line, 0.2)
+	local stored
 	local hotspot = util.new("TextButton", {
 		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
@@ -206,6 +223,7 @@ function text.textbox(win, title, default, callback)
 	box.FocusLost:Connect(function()
 		edge.Color = values().line
 		edge.Transparency = 0.2
+		win._store(stored, box.Text)
 		if callback then
 			callback(box.Text)
 		end
@@ -219,6 +237,11 @@ function text.textbox(win, title, default, callback)
 		name.TextColor3 = values().text
 	end)
 
+	stored = win._bind("text", title, {
+		set = function(value)
+			box.Text = tostring(value)
+		end,
+	})
 	win._fit(true)
 
 	return {

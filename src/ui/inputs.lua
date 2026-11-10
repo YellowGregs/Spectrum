@@ -3,6 +3,7 @@ local S = ...
 local env = S.env
 local util = S.util
 local style = S.style
+local icons = S.icons
 local bold = Enum.Font.GothamBold
 local font = Enum.Font.GothamMedium
 local inputs = {}
@@ -27,7 +28,7 @@ local function label(parent, text, y, height)
 	})
 end
 
-function inputs.button(win, text, callback)
+function inputs.button(win, text, callback, icon)
 	local mobile = win._mobile
 	local holder = win._slot(mobile and 44 or 37)
 	local btn = util.new("TextButton", {
@@ -46,6 +47,14 @@ function inputs.button(win, text, callback)
 		Parent = holder,
 	})
 	util.corner(btn)
+	local emblem
+	if type(icon) == "string" and icon ~= "" then
+		emblem = icons.image(btn, icon, 12, style.on(values().accent))
+		if emblem then
+			emblem.AnchorPoint = Vector2.new(0, 0.5)
+			emblem.Position = UDim2.new(0, 10, 0.5, 0)
+		end
+	end
 	local pop = util.new("UIScale", { Parent = btn })
 	local held = false
 
@@ -79,6 +88,9 @@ function inputs.button(win, text, callback)
 	style.paint(function()
 		btn.BackgroundColor3 = face()
 		btn.TextColor3 = style.on(values().accent)
+		if emblem then
+			icons.tint(emblem, style.on(values().accent))
+		end
 	end)
 
 	win._fit(true)
@@ -161,13 +173,17 @@ function inputs.toggle(win, text, a, b)
 		long.BackgroundColor3 = ink
 	end
 
+	local key
 	local function set(value, fire)
 		state = value == true
 		sync()
 		pop.Scale = 0.86
 		util.tween(pop, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
-		if fire and changed then
-			changed(state)
+		if fire then
+			win._store(key, state)
+			if changed then
+				changed(state)
+			end
 		end
 	end
 
@@ -182,6 +198,11 @@ function inputs.toggle(win, text, a, b)
 	end)
 
 	sync()
+	key = win._bind("toggle", text, {
+		set = function(value)
+			set(value, false)
+		end,
+	})
 	win._fit(true)
 
 	return {
@@ -272,15 +293,24 @@ function inputs.slider(win, text, min, max, default, callback, step)
 	})
 
 	local dragging = false
+	local key
 	local function paintValue(fire)
 		local alpha = (value - low) / (high - low)
 		fill.Size = UDim2.fromScale(alpha, 1)
 		thumb.Position = UDim2.new(alpha, 0, 0.5, 0)
 		readout.Text = string.format("%." .. decimals .. "f", value)
 		readout.TextColor3 = dragging and values().accent or values().muted
-		if fire and callback then
-			callback(value)
+		if fire then
+			win._store(key, value)
+			if callback then
+				callback(value)
+			end
 		end
+	end
+
+	local function apply(next, fire)
+		value = math.clamp(tonumber(next) or value, low, high)
+		paintValue(fire)
 	end
 
 	local function snap(x)
@@ -334,12 +364,16 @@ function inputs.slider(win, text, min, max, default, callback, step)
 	end)
 
 	paintValue(false)
+	key = win._bind("slider", text, {
+		set = function(value)
+			apply(value, false)
+		end,
+	})
 	win._fit(true)
 
 	return {
 		Set = function(_, next)
-			value = math.clamp(tonumber(next) or value, low, high)
-			paintValue(true)
+			apply(next, false)
 		end,
 		Get = function()
 			return value
@@ -374,6 +408,7 @@ function inputs.keybind(win, text, default, callback)
 	local key = default
 	local listening = false
 	local held = {}
+	local stored
 
 	local function sync()
 		pill.Text = listening and "..." or (key and tostring(key) or "None")
@@ -383,7 +418,15 @@ function inputs.keybind(win, text, default, callback)
 
 	pill.Activated:Connect(function()
 		listening = not listening
+		S.binding = listening
 		sync()
+	end)
+
+	row.Destroying:Connect(function()
+		if listening then
+			listening = false
+			S.binding = false
+		end
 	end)
 
 	win._link(env.uis.InputBegan, function(input)
@@ -392,12 +435,15 @@ function inputs.keybind(win, text, default, callback)
 				local code = input.KeyCode
 				if code == Enum.KeyCode.Escape then
 					listening = false
+					S.binding = false
 					sync()
 					return
 				end
 				key = code.Name
 				listening = false
+				S.binding = false
 				sync()
+				win._store(stored, key)
 				held[code] = true
 				if callback then
 					callback(key, true)
@@ -429,6 +475,12 @@ function inputs.keybind(win, text, default, callback)
 	end)
 
 	sync()
+	stored = win._bind("key", text, {
+		set = function(value)
+			key = value
+			sync()
+		end,
+	})
 	win._fit(true)
 
 	return {

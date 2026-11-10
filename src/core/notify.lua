@@ -3,6 +3,7 @@ local S = ...
 local env = S.env
 local util = S.util
 local style = S.style
+local icons = S.icons
 local bold = Enum.Font.GothamBold
 local font = Enum.Font.GothamMedium
 
@@ -69,10 +70,15 @@ local function notify(title, body, duration, kind)
 		Parent = face,
 	})
 
+	local badge = icons.kind(kind, face, 14, tint)
+	badge.AnchorPoint = Vector2.new(0, 0.5)
+	badge.Position = UDim2.new(0, 12, 0.5, 0)
+	badge.ZIndex = 2
+
 	local heading = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(12, 7),
-		Size = UDim2.new(1, -22, 0, 14),
+		Position = UDim2.fromOffset(32, 7),
+		Size = UDim2.new(1, -42, 0, 14),
 		Font = bold,
 		Text = title or "Spectrum",
 		TextColor3 = style.values.text,
@@ -85,8 +91,8 @@ local function notify(title, body, duration, kind)
 
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(12, 23),
-		Size = UDim2.new(1, -22, 0, 14),
+		Position = UDim2.fromOffset(32, 23),
+		Size = UDim2.new(1, -42, 0, 14),
 		Font = font,
 		Text = body or "",
 		TextColor3 = style.values.muted,
@@ -126,6 +132,11 @@ local function notify(title, body, duration, kind)
 		util.tween(stripe, 0.14, { BackgroundTransparency = 1 })
 		util.tween(rail, 0.14, { BackgroundTransparency = 1 })
 		util.tween(line, 0.14, { BackgroundTransparency = 1 })
+		for _, child in ipairs(badge:GetDescendants()) do
+			if child:IsA("Frame") then
+				util.tween(child, 0.14, { BackgroundTransparency = 1 })
+			end
+		end
 		task.delay(0.18, function()
 			wrap:Destroy()
 		end)
