@@ -2002,6 +2002,10 @@ local function content_cap(view, header_height)
 	return math.max(120, math.floor(math.min(view.Y * 0.56, view.Y - safe_top - header_height - 16)))
 end
 
+local function max_body_height(view, header_height)
+	return math.max(60, math.floor(view.Y - safe_top - header_height - 12))
+end
+
 local function values()
 	return style.values
 end
@@ -2030,14 +2034,19 @@ function Window.new(title, opts)
 	local vp = env.viewport()
 	local key = config.window_key(title)
 	local saved = config.window_state(key)
-	local preferred = opts.width or (mobile and math.min(272, vp.X - 20) or 276)
+	local preferred = opts.width or (mobile and math.min(272, vp.X - 20) or 320)
 	if saved and type(saved.width) == "number" then
 		preferred = saved.width
 	end
-	local width = math.clamp(preferred, math.min(210, vp.X - 20), math.max(210, vp.X - 20))
 	local head = mobile and 38 or 34
 	local row_base = mobile and 40 or 32
+	local min_width = math.min(mobile and 210 or 252, math.max(160, vp.X - 20))
+	local width = math.clamp(preferred, min_width, math.max(min_width, vp.X - 20))
 	local cap = content_cap(vp, head)
+	local height_override
+	if saved and type(saved.height) == "number" then
+		height_override = math.clamp(saved.height, 34, max_body_height(vp, head))
+	end
 	local order = 0
 	local open = not (saved and saved.open == false)
 	local start = spot(width)
@@ -2049,7 +2058,8 @@ function Window.new(title, opts)
 	local section_cursor
 	local dragging = false
 	local resizing = false
-	local drag_from, drag_at, resize_from, resize_at
+	local drag_from, drag_at
+	local resize_from, resize_from_height, resize_at, resize_at_y
 
 	local w = {}
 	w._mobile = mobile
@@ -2141,6 +2151,7 @@ function Window.new(title, opts)
 			x = root.Position.X.Offset,
 			y = root.Position.Y.Offset,
 			width = width,
+			height = height_override,
 			open = open,
 		})
 	end
@@ -2239,7 +2250,7 @@ function Window.new(title, opts)
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, 0, 1, 0),
-		Size = UDim2.fromOffset(mobile and 34 or 24, mobile and 12 or 10),
+		Size = UDim2.fromOffset(mobile and 34 or 26, mobile and 14 or 16),
 		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 8,
@@ -2276,7 +2287,12 @@ function Window.new(title, opts)
 
 	local function fit(animate)
 		local content_height = math.max(0, list.AbsoluteContentSize.Y + 2)
-		local height = math.clamp(content_height, 34, cap)
+		local height
+		if height_override then
+			height = math.clamp(height_override, 34, max_body_height(env.viewport(), head))
+		else
+			height = math.clamp(content_height, 34, cap)
+		end
 		scroll.CanvasSize = UDim2.fromOffset(0, content_height)
 		scroll.Size = UDim2.new(1, 0, 0, height)
 		grip.Visible = open
@@ -2344,7 +2360,9 @@ function Window.new(title, opts)
 		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 			resizing = true
 			resize_from = width
+			resize_from_height = root.Size.Y.Offset - head
 			resize_at = input.Position.X
+			resize_at_y = input.Position.Y
 			front()
 			modal.dismiss()
 		end
@@ -2370,11 +2388,15 @@ function Window.new(title, opts)
 			local y = math.clamp(drag_at.Y.Offset + delta.Y, safe_top, view.Y - head - 4)
 			root.Position = UDim2.fromOffset(x, y)
 		elseif resizing then
-			local next_width = math.clamp(resize_from + (input.Position.X - resize_at), math.min(210, view.X - 20), view.X - 20)
-			if math.abs(next_width - width) >= 1 then
+			local min_width = math.min(mobile and 210 or 252, math.max(160, view.X - 20))
+			local next_width = math.clamp(resize_from + (input.Position.X - resize_at), min_width, math.max(min_width, view.X - 20))
+			local delta_y = input.Position.Y - resize_at_y
+			if math.abs(next_width - width) >= 1 or math.abs(delta_y) >= 1 then
 				width = next_width
 				preferred = width
-				root.Size = UDim2.fromOffset(width, root.Size.Y.Offset)
+				if math.abs(delta_y) >= 1 then
+					height_override = math.clamp(resize_from_height + delta_y, 34, max_body_height(view, head))
+				end
 				fit(false)
 			end
 		end
@@ -2412,8 +2434,12 @@ function Window.new(title, opts)
 		if view.X <= 0 or view.Y <= 0 then
 			return
 		end
-		width = math.clamp(preferred, math.min(210, view.X - 20), math.max(210, view.X - 20))
+		local min_width = math.min(mobile and 210 or 252, math.max(160, view.X - 20))
+		width = math.clamp(preferred, min_width, math.max(min_width, view.X - 20))
 		cap = content_cap(view, head)
+		if height_override then
+			height_override = math.clamp(height_override, 34, max_body_height(view, head))
+		end
 		root.Position = UDim2.fromOffset(
 			math.clamp(root.Position.X.Offset, -math.max(0, width - 70), math.max(0, view.X - 70)),
 			math.clamp(root.Position.Y.Offset, safe_top, math.max(safe_top, view.Y - head - 4))
@@ -2544,8 +2570,12 @@ function Window.new(title, opts)
 		restore = function(state)
 			local view = env.viewport()
 			if type(state.width) == "number" then
-				width = math.clamp(state.width, math.min(210, view.X - 20), math.max(210, view.X - 20))
+				local min_width = math.min(mobile and 210 or 252, math.max(160, view.X - 20))
+				width = math.clamp(state.width, min_width, math.max(min_width, view.X - 20))
 				root.Size = UDim2.fromOffset(width, root.Size.Y.Offset)
+			end
+			if type(state.height) == "number" then
+				height_override = math.clamp(state.height, 34, max_body_height(view, head))
 			end
 			if type(state.x) == "number" and type(state.y) == "number" then
 				root.Position = UDim2.fromOffset(math.clamp(state.x, -(width - 70), view.X - 70), math.clamp(state.y, safe_top, math.max(safe_top, view.Y - head - 4))
@@ -3324,9 +3354,10 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			initial[#initial + 1] = option
 		end
 	end
-	local row = win._row(mobile and 40 or 34)
+	local row = win._row(mobile and 40 or 38)
 	local name = caption(row, title)
 	name.Size = UDim2.new(0.48, -20, 1, 0)
+	name.TextSize = util.size(mobile and 11 or 12)
 	local emblem
 	if type(icon) == "string" and icon ~= "" then
 		emblem = icons.image(row, icon, 14, values().muted)
@@ -3347,14 +3378,14 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		Font = font,
 		Text = "None",
 		TextColor3 = values().muted,
-		TextSize = util.size(10),
+		TextSize = util.size(mobile and 10 or 11),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
 		Parent = row,
 	})
 
-	local chevron = util.chevron(row, 8, values().muted)
+	local chevron = util.chevron(row, mobile and 8 or 9, values().muted)
 	chevron.AnchorPoint = Vector2.new(0.5, 0.5)
 	chevron.Position = UDim2.new(1, -12, 0.5, 0)
 	chevron.ZIndex = 3
@@ -3367,11 +3398,11 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			BorderSizePixel = 0,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -24, 0.5, 0),
-			Size = UDim2.fromOffset(20, 16),
+			Size = UDim2.fromOffset(mobile and 20 or 22, mobile and 16 or 18),
 			Font = bold,
 			Text = "0",
 			TextColor3 = style.on(values().accent),
-			TextSize = util.size(9),
+			TextSize = util.size(mobile and 9 or 10),
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextYAlignment = Enum.TextYAlignment.Center,
 			Visible = false,
@@ -3381,19 +3412,19 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		util.corner(count_badge, 5)
 	end
 
-	local pad = 4
-	local item_h = mobile and 34 or 28
-	local bulk_h = (multi and #choices > 0) and (mobile and 28 or 24) or 0
-	local bulk_gap = bulk_h > 0 and 1 or 0
-	local min_height = math.max(32, pad * 2 + bulk_h + bulk_gap)
-	local desired_height = math.clamp(#choices * item_h + pad * 2 + bulk_h + bulk_gap, 40, mobile and 226 or 190)
+	local pad = mobile and 4 or 6
+	local item_h = mobile and 34 or 32
+	local bulk_h = (multi and #choices > 0) and (mobile and 28 or 30) or 0
+	local bulk_gap = bulk_h > 0 and (mobile and 1 or 2) or 0
+	local min_height = math.max(mobile and 32 or 42, pad * 2 + bulk_h + bulk_gap)
+	local desired_height = math.clamp(#choices * item_h + pad * 2 + bulk_h + bulk_gap, mobile and 40 or 48, mobile and 226 or 260)
 	local panel = util.new("Frame", {
 		Name = "dropdown",
 		Active = true,
 		BackgroundColor3 = values().panel,
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
-		Size = UDim2.fromOffset(200, 0),
+		Size = UDim2.fromOffset(mobile and 200 or 240, 0),
 		Visible = false,
 		ZIndex = 10,
 		Parent = env.modal,
@@ -3440,7 +3471,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 				Font = font,
 				Text = text,
 				TextColor3 = values().muted,
-				TextSize = util.size(9),
+				TextSize = util.size(mobile and 9 or 10),
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextTruncate = Enum.TextTruncate.AtEnd,
 				ZIndex = 13,
@@ -3465,8 +3496,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			end
 			return btn, hit
 		end
-		clear_action, clear_hit = action("clear", "Clear", mobile and 42 or 38, 0)
-		select_all_action, select_all_hit = action("select_all", "Select all", mobile and 58 or 54, -(mobile and 46 or 42))
+		clear_action, clear_hit = action("clear", "Clear", mobile and 42 or 48, 0)
+		select_all_action, select_all_hit = action("select_all", "Select all", mobile and 58 or 64, -(mobile and 46 or 52))
 	end
 
 	local area = util.new("ScrollingFrame", {
@@ -3477,7 +3508,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		ScrollingDirection = Enum.ScrollingDirection.Y,
-		ScrollBarThickness = 2,
+		ScrollBarThickness = mobile and 2 or 4,
 		ScrollBarImageColor3 = values().muted,
 		ScrollBarImageTransparency = 0.5,
 		ZIndex = 11,
@@ -3653,8 +3684,15 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			local win_h = win_size.Y > 20 and win_size.Y or view.Y
 			local rel_x = pos.X - win_anchor.X
 			local rel_y = pos.Y - win_anchor.Y
-			local width = math.min(math.max(size.X + 8, 180), math.max(160, win_w - 12))
-			local x = math.clamp(rel_x - 4, 6, math.max(6, win_w - width - 6))
+			local max_width = math.max(160, (mobile and win_w or view.X) - 16)
+			local min_width = math.min(mobile and 180 or 240, max_width)
+			local width = math.clamp(math.max(size.X + 8, min_width), min_width, max_width)
+			local x
+			if mobile then
+				x = math.clamp(rel_x - 4, 6, math.max(6, win_w - width - 6))
+			else
+				x = math.clamp(pos.X, 8, math.max(8, view.X - width - 8)) - win_anchor.X
+			end
 			local top_limit = (win._head or 34) + 4
 			local below = rel_y + size.Y + 4
 			local available_below = win_h - below - 6
@@ -3699,13 +3737,13 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			Font = font,
 			Text = option,
 			TextColor3 = values().text,
-			TextSize = util.size(11),
+			TextSize = util.size(mobile and 11 or 12),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 12,
 			Parent = area,
 		})
-		local mark_size = mobile and 16 or 14
+		local mark_size = 16
 		util.new("UIPadding", {
 			PaddingLeft = UDim.new(0, multi and (mark_size + 20) or 12),
 			PaddingRight = UDim.new(0, multi and 12 or 26),
