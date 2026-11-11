@@ -65,9 +65,10 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			initial[#initial + 1] = option
 		end
 	end
-	local row = win._row(mobile and 40 or 34)
+	local row = win._row(mobile and 40 or 38)
 	local name = caption(row, title)
 	name.Size = UDim2.new(0.48, -20, 1, 0)
+	name.TextSize = util.size(mobile and 11 or 12)
 	local emblem
 	if type(icon) == "string" and icon ~= "" then
 		emblem = icons.image(row, icon, 14, values().muted)
@@ -88,14 +89,14 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		Font = font,
 		Text = "None",
 		TextColor3 = values().muted,
-		TextSize = util.size(10),
+		TextSize = util.size(mobile and 10 or 11),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
 		Parent = row,
 	})
 
-	local chevron = util.chevron(row, 8, values().muted)
+	local chevron = util.chevron(row, mobile and 8 or 9, values().muted)
 	chevron.AnchorPoint = Vector2.new(0.5, 0.5)
 	chevron.Position = UDim2.new(1, -12, 0.5, 0)
 	chevron.ZIndex = 3
@@ -108,11 +109,11 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			BorderSizePixel = 0,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -24, 0.5, 0),
-			Size = UDim2.fromOffset(20, 16),
+			Size = UDim2.fromOffset(mobile and 20 or 22, mobile and 16 or 18),
 			Font = bold,
 			Text = "0",
 			TextColor3 = style.on(values().accent),
-			TextSize = util.size(9),
+			TextSize = util.size(mobile and 9 or 10),
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextYAlignment = Enum.TextYAlignment.Center,
 			Visible = false,
@@ -122,19 +123,19 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		util.corner(count_badge, 5)
 	end
 
-	local pad = 4
-	local item_h = mobile and 34 or 28
-	local bulk_h = (multi and #choices > 0) and (mobile and 28 or 24) or 0
-	local bulk_gap = bulk_h > 0 and 1 or 0
-	local min_height = math.max(32, pad * 2 + bulk_h + bulk_gap)
-	local desired_height = math.clamp(#choices * item_h + pad * 2 + bulk_h + bulk_gap, 40, mobile and 226 or 190)
+	local pad = mobile and 4 or 6
+	local item_h = mobile and 34 or 32
+	local bulk_h = (multi and #choices > 0) and (mobile and 28 or 30) or 0
+	local bulk_gap = bulk_h > 0 and (mobile and 1 or 2) or 0
+	local min_height = math.max(mobile and 32 or 42, pad * 2 + bulk_h + bulk_gap)
+	local desired_height = math.clamp(#choices * item_h + pad * 2 + bulk_h + bulk_gap, mobile and 40 or 48, mobile and 226 or 260)
 	local panel = util.new("Frame", {
 		Name = "dropdown",
 		Active = true,
 		BackgroundColor3 = values().panel,
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
-		Size = UDim2.fromOffset(200, 0),
+		Size = UDim2.fromOffset(mobile and 200 or 240, 0),
 		Visible = false,
 		ZIndex = 10,
 		Parent = env.modal,
@@ -181,7 +182,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 				Font = font,
 				Text = text,
 				TextColor3 = values().muted,
-				TextSize = util.size(9),
+				TextSize = util.size(mobile and 9 or 10),
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextTruncate = Enum.TextTruncate.AtEnd,
 				ZIndex = 13,
@@ -206,8 +207,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			end
 			return btn, hit
 		end
-		clear_action, clear_hit = action("clear", "Clear", mobile and 42 or 38, 0)
-		select_all_action, select_all_hit = action("select_all", "Select all", mobile and 58 or 54, -(mobile and 46 or 42))
+		clear_action, clear_hit = action("clear", "Clear", mobile and 42 or 48, 0)
+		select_all_action, select_all_hit = action("select_all", "Select all", mobile and 58 or 64, -(mobile and 46 or 52))
 	end
 
 	local area = util.new("ScrollingFrame", {
@@ -218,7 +219,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		ScrollingDirection = Enum.ScrollingDirection.Y,
-		ScrollBarThickness = 2,
+		ScrollBarThickness = mobile and 2 or 4,
 		ScrollBarImageColor3 = values().muted,
 		ScrollBarImageTransparency = 0.5,
 		ZIndex = 11,
@@ -394,8 +395,15 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			local win_h = win_size.Y > 20 and win_size.Y or view.Y
 			local rel_x = pos.X - win_anchor.X
 			local rel_y = pos.Y - win_anchor.Y
-			local width = math.min(math.max(size.X + 8, 180), math.max(160, win_w - 12))
-			local x = math.clamp(rel_x - 4, 6, math.max(6, win_w - width - 6))
+			local max_width = math.max(160, (mobile and win_w or view.X) - 16)
+			local min_width = math.min(mobile and 180 or 240, max_width)
+			local width = math.clamp(math.max(size.X + 8, min_width), min_width, max_width)
+			local x
+			if mobile then
+				x = math.clamp(rel_x - 4, 6, math.max(6, win_w - width - 6))
+			else
+				x = math.clamp(pos.X, 8, math.max(8, view.X - width - 8)) - win_anchor.X
+			end
 			local top_limit = (win._head or 34) + 4
 			local below = rel_y + size.Y + 4
 			local available_below = win_h - below - 6
@@ -440,13 +448,13 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			Font = font,
 			Text = option,
 			TextColor3 = values().text,
-			TextSize = util.size(11),
+			TextSize = util.size(mobile and 11 or 12),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 12,
 			Parent = area,
 		})
-		local mark_size = mobile and 16 or 14
+		local mark_size = 16
 		util.new("UIPadding", {
 			PaddingLeft = UDim.new(0, multi and (mark_size + 20) or 12),
 			PaddingRight = UDim.new(0, multi and 12 or 26),

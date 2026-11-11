@@ -24,6 +24,10 @@ local function content_cap(view, header_height)
 	return math.max(120, math.floor(math.min(view.Y * 0.56, view.Y - safe_top - header_height - 16)))
 end
 
+local function max_body_height(view, header_height)
+	return math.max(60, math.floor(view.Y - safe_top - header_height - 12))
+end
+
 local function values()
 	return style.values
 end
@@ -52,14 +56,19 @@ function Window.new(title, opts)
 	local vp = env.viewport()
 	local key = config.window_key(title)
 	local saved = config.window_state(key)
-	local preferred = opts.width or (mobile and math.min(272, vp.X - 20) or 276)
+	local preferred = opts.width or (mobile and math.min(272, vp.X - 20) or 320)
 	if saved and type(saved.width) == "number" then
 		preferred = saved.width
 	end
-	local width = math.clamp(preferred, math.min(210, vp.X - 20), math.max(210, vp.X - 20))
 	local head = mobile and 38 or 34
 	local row_base = mobile and 40 or 32
+	local min_width = math.min(mobile and 210 or 252, math.max(160, vp.X - 20))
+	local width = math.clamp(preferred, min_width, math.max(min_width, vp.X - 20))
 	local cap = content_cap(vp, head)
+	local height_override
+	if saved and type(saved.height) == "number" then
+		height_override = math.clamp(saved.height, 34, max_body_height(vp, head))
+	end
 	local order = 0
 	local open = not (saved and saved.open == false)
 	local start = spot(width)
@@ -71,7 +80,8 @@ function Window.new(title, opts)
 	local section_cursor
 	local dragging = false
 	local resizing = false
-	local drag_from, drag_at, resize_from, resize_at
+	local drag_from, drag_at
+	local resize_from, resize_from_height, resize_at, resize_at_y
 
 	local w = {}
 	w._mobile = mobile
@@ -163,6 +173,7 @@ function Window.new(title, opts)
 			x = root.Position.X.Offset,
 			y = root.Position.Y.Offset,
 			width = width,
+			height = height_override,
 			open = open,
 		})
 	end
@@ -261,7 +272,7 @@ function Window.new(title, opts)
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, 0, 1, 0),
-		Size = UDim2.fromOffset(mobile and 34 or 24, mobile and 12 or 10),
+		Size = UDim2.fromOffset(mobile and 34 or 26, mobile and 14 or 16),
 		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 8,
@@ -298,7 +309,12 @@ function Window.new(title, opts)
 
 	local function fit(animate)
 		local content_height = math.max(0, list.AbsoluteContentSize.Y + 2)
-		local height = math.clamp(content_height, 34, cap)
+		local height
+		if height_override then
+			height = math.clamp(height_override, 34, max_body_height(env.viewport(), head))
+		else
+			height = math.clamp(content_height, 34, cap)
+		end
 		scroll.CanvasSize = UDim2.fromOffset(0, content_height)
 		scroll.Size = UDim2.new(1, 0, 0, height)
 		grip.Visible = open
@@ -366,7 +382,9 @@ function Window.new(title, opts)
 		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 			resizing = true
 			resize_from = width
+			resize_from_height = root.Size.Y.Offset - head
 			resize_at = input.Position.X
+			resize_at_y = input.Position.Y
 			front()
 			modal.dismiss()
 		end
@@ -392,11 +410,15 @@ function Window.new(title, opts)
 			local y = math.clamp(drag_at.Y.Offset + delta.Y, safe_top, view.Y - head - 4)
 			root.Position = UDim2.fromOffset(x, y)
 		elseif resizing then
-			local next_width = math.clamp(resize_from + (input.Position.X - resize_at), math.min(210, view.X - 20), view.X - 20)
-			if math.abs(next_width - width) >= 1 then
+			local min_width = math.min(mobile and 210 or 252, math.max(160, view.X - 20))
+			local next_width = math.clamp(resize_from + (input.Position.X - resize_at), min_width, math.max(min_width, view.X - 20))
+			local delta_y = input.Position.Y - resize_at_y
+			if math.abs(next_width - width) >= 1 or math.abs(delta_y) >= 1 then
 				width = next_width
 				preferred = width
-				root.Size = UDim2.fromOffset(width, root.Size.Y.Offset)
+				if math.abs(delta_y) >= 1 then
+					height_override = math.clamp(resize_from_height + delta_y, 34, max_body_height(view, head))
+				end
 				fit(false)
 			end
 		end
@@ -434,8 +456,12 @@ function Window.new(title, opts)
 		if view.X <= 0 or view.Y <= 0 then
 			return
 		end
-		width = math.clamp(preferred, math.min(210, view.X - 20), math.max(210, view.X - 20))
+		local min_width = math.min(mobile and 210 or 252, math.max(160, view.X - 20))
+		width = math.clamp(preferred, min_width, math.max(min_width, view.X - 20))
 		cap = content_cap(view, head)
+		if height_override then
+			height_override = math.clamp(height_override, 34, max_body_height(view, head))
+		end
 		root.Position = UDim2.fromOffset(
 			math.clamp(root.Position.X.Offset, -math.max(0, width - 70), math.max(0, view.X - 70)),
 			math.clamp(root.Position.Y.Offset, safe_top, math.max(safe_top, view.Y - head - 4))
@@ -566,8 +592,12 @@ function Window.new(title, opts)
 		restore = function(state)
 			local view = env.viewport()
 			if type(state.width) == "number" then
-				width = math.clamp(state.width, math.min(210, view.X - 20), math.max(210, view.X - 20))
+				local min_width = math.min(mobile and 210 or 252, math.max(160, view.X - 20))
+				width = math.clamp(state.width, min_width, math.max(min_width, view.X - 20))
 				root.Size = UDim2.fromOffset(width, root.Size.Y.Offset)
+			end
+			if type(state.height) == "number" then
+				height_override = math.clamp(state.height, 34, max_body_height(view, head))
 			end
 			if type(state.x) == "number" and type(state.y) == "number" then
 				root.Position = UDim2.fromOffset(math.clamp(state.x, -(width - 70), view.X - 70), math.clamp(state.y, safe_top, math.max(safe_top, view.Y - head - 4))
