@@ -295,6 +295,19 @@ function util.tween(object, time, props, ease, direction)
 	return spin
 end
 
+function util.cancel(object)
+	local bucket = running[object]
+	if not bucket then
+		return
+	end
+	for key, spin in pairs(bucket) do
+		if spin and spin.Cancel then
+			spin:Cancel()
+		end
+		bucket[key] = nil
+	end
+end
+
 function util.hover(row, enter, leave)
 	local function inside()
 		util.tween(row, 0.1, { BackgroundTransparency = 0 })
@@ -386,6 +399,7 @@ local util = S.util
 local style = S.style
 local icons = {}
 
+-- Lucide icon assets that i didnt skid off at all from somewhere hehe
 local assets = {
 	gear = "rbxassetid://10734950309",
 	settings = "rbxassetid://10734950309",
@@ -1491,11 +1505,14 @@ end
 function config.bind(win, kind, label, api)
 	local base = kind .. ":" .. tostring(label or "")
 	value_counts[win] = value_counts[win] or {}
+
 	local count = (value_counts[win][base] or 0) + 1
 	value_counts[win][base] = count
+
 	local key = count == 1 and base or (base .. "#" .. count)
 	registry[win] = registry[win] or {}
 	registry[win][key] = api
+
 	local saved = data.values[win] and data.values[win][key]
 	if saved ~= nil and api.set then
 		pcall(api.set, saved)
@@ -1581,6 +1598,7 @@ end
 
 function launcher.mount(on_toggle)
 	local saved = config.launcher_state()
+-- just ignores old states once and start fresh
 	if type(saved) == "table" and saved.v == 2 then
 		local sx, sy = tonumber(saved.x), tonumber(saved.y)
 		if not sx or not sy or sx < 0 then
@@ -1688,25 +1706,22 @@ function launcher.mount(on_toggle)
 		end
 	end)
 
-	table.insert(
-		links,
-		env.uis.InputChanged:Connect(function(input)
-			if not dragging then
-				return
-			end
-			local kind = input.UserInputType
-			if kind ~= Enum.UserInputType.MouseMovement and kind ~= Enum.UserInputType.Touch then
-				return
-			end
-			local delta = input.Position - drag_from
-			if not moved and delta.Magnitude < 4 then
-				return
-			end
-			moved = true
-			user_moved = true
-			button.Position = UDim2.fromOffset(clamp_position(drag_at.X + delta.X, drag_at.Y + delta.Y))
-		end)
-	)
+	table.insert(links, env.uis.InputChanged:Connect(function(input)
+		if not dragging then
+			return
+		end
+		local kind = input.UserInputType
+		if kind ~= Enum.UserInputType.MouseMovement and kind ~= Enum.UserInputType.Touch then
+			return
+		end
+		local delta = input.Position - drag_from
+		if not moved and delta.Magnitude < 4 then
+			return
+		end
+		moved = true
+		user_moved = true
+		button.Position = UDim2.fromOffset(clamp_position(drag_at.X + delta.X, drag_at.Y + delta.Y))
+	end))
 
 	table.insert(
 		links,
@@ -1798,7 +1813,7 @@ local holder = util.new("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -12, 1, -12),
-	Size = UDim2.fromOffset(env.mobile and 268 or 250, 0),
+	Size = UDim2.fromOffset(env.mobile and 272 or 260, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	Parent = env.notes,
 })
@@ -1974,6 +1989,7 @@ local function notify(title, body, duration, kind)
 
 	return close
 end
+
 S.notify = notify
 end
 
@@ -2359,6 +2375,7 @@ function Window.new(title, opts)
 		local kind = input.UserInputType
 		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 			resizing = true
+			util.cancel(root)
 			resize_from = width
 			resize_from_height = root.Size.Y.Offset - head
 			resize_at = input.Position.X
@@ -2376,6 +2393,45 @@ function Window.new(title, opts)
 		}
 	end)
 
+	local resize_to
+	local resize_pending = false
+
+	local function commit_resize()
+		resize_pending = false
+		if not resizing or not resize_to then
+			return
+		end
+		local view = env.viewport()
+		local min_width = math.min(mobile and 210 or 252, math.max(160, view.X - 20))
+		local next_width = math.clamp(resize_from + (resize_to.X - resize_at), min_width, math.max(min_width, view.X - 20))
+		local delta_y = resize_to.Y - resize_at_y
+		resize_to = nil
+		local width_changed = math.abs(next_width - width) >= 1
+		local height_changed = math.abs(delta_y) >= 1
+		if not width_changed and not height_changed then
+			return
+		end
+		if width_changed then
+			width = next_width
+			preferred = width
+		end
+		if height_changed then
+			height_override = math.clamp(resize_from_height + delta_y, 34, max_body_height(view, head))
+		end
+		local body_height = height_override or math.max(34, root.Size.Y.Offset - head)
+		body_height = math.clamp(body_height, 34, max_body_height(view, head))
+		scroll.Size = UDim2.new(1, 0, 0, body_height)
+		root.Size = UDim2.fromOffset(width, head + (open and body_height or 0))
+	end
+
+	local function schedule_resize()
+		if resize_pending then
+			return
+		end
+		resize_pending = true
+		task.defer(commit_resize)
+	end
+
 	local function follow(input)
 		local moving = input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch
 		if not moving then
@@ -2388,17 +2444,8 @@ function Window.new(title, opts)
 			local y = math.clamp(drag_at.Y.Offset + delta.Y, safe_top, view.Y - head - 4)
 			root.Position = UDim2.fromOffset(x, y)
 		elseif resizing then
-			local min_width = math.min(mobile and 210 or 252, math.max(160, view.X - 20))
-			local next_width = math.clamp(resize_from + (input.Position.X - resize_at), min_width, math.max(min_width, view.X - 20))
-			local delta_y = input.Position.Y - resize_at_y
-			if math.abs(next_width - width) >= 1 or math.abs(delta_y) >= 1 then
-				width = next_width
-				preferred = width
-				if math.abs(delta_y) >= 1 then
-					height_override = math.clamp(resize_from_height + delta_y, 34, max_body_height(view, head))
-				end
-				fit(false)
-			end
+			resize_to = input.Position
+			schedule_resize()
 		end
 	end
 
@@ -2412,9 +2459,18 @@ function Window.new(title, opts)
 		local kind = input.UserInputType
 		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 			local moved = dragging or resizing
+			local was_resizing = resizing
+			if was_resizing and resize_to then
+				commit_resize()
+			end
 			dragging = false
 			resizing = false
+			resize_pending = false
+			resize_to = nil
 			if moved then
+				if was_resizing then
+					fit(false)
+				end
 				remember()
 			end
 		end
@@ -2425,6 +2481,9 @@ function Window.new(title, opts)
 	links[#links + 1] = moved
 
 	local measured = list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		if resizing then
+			return
+		end
 		fit(true)
 	end)
 	links[#links + 1] = measured
@@ -2748,6 +2807,7 @@ function inputs.button(win, text, callback, icon)
 	win._fit(true)
 	return btn
 end
+
 function inputs.toggle(win, text, a, b, opts)
 	local mobile = win._mobile
 	local state, changed
@@ -3101,7 +3161,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon)
 		end,
 	})
 	win._options(row, text, function()
-		return {
+		return { -- you can change this if you want
 			{ label = "Reset to default", icon = "arrow", run = function() apply(initial, true) end },
 			{ label = "Set minimum", run = function() apply(low, true) end },
 			{ label = "Set maximum", run = function() apply(high, true) end },
@@ -3285,6 +3345,7 @@ function inputs.keybind(win, text, default, callback, icon)
 		Gui = row,
 	}
 end
+
 S.inputs = inputs
 end
 
@@ -3679,37 +3740,29 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			local parent_pos = parent and parent.AbsolutePosition or Vector2.new()
 			local win_anchor = win.Gui.AbsolutePosition
 			local win_pos = win_anchor - parent_pos
-			local win_size = win.Gui.AbsoluteSize
-			local win_w = win_size.X > 20 and win_size.X or math.min(300, view.X)
-			local win_h = win_size.Y > 20 and win_size.Y or view.Y
-			local rel_x = pos.X - win_anchor.X
-			local rel_y = pos.Y - win_anchor.Y
-			local max_width = math.max(160, (mobile and win_w or view.X) - 16)
+			local row_top = pos.Y - parent_pos.Y
+			local row_left = pos.X - parent_pos.X
+			local row_bottom = row_top + size.Y
+			local head_limit = math.max(6, win_pos.Y + (win._head or 34) + 4)
+			local limit_bottom = math.max(head_limit, view.Y - 6)
+			local max_width = math.max(160, view.X - 16)
 			local min_width = math.min(mobile and 180 or 240, max_width)
 			local width = math.clamp(math.max(size.X + 8, min_width), min_width, max_width)
-			local x
-			if mobile then
-				x = math.clamp(rel_x - 4, 6, math.max(6, win_w - width - 6))
-			else
-				x = math.clamp(pos.X, 8, math.max(8, view.X - width - 8)) - win_anchor.X
-			end
-			local top_limit = (win._head or 34) + 4
-			local below = rel_y + size.Y + 4
-			local available_below = win_h - below - 6
-			local available_above = rel_y - top_limit - 4
-			local height
-			local y
-			local use_below = available_below >= 44 and (available_below >= desired_height or available_below >= available_above)
-			if use_below then
-				height = math.clamp(desired_height, min_height, math.max(min_height, available_below))
-				y = below
-			else
-				height = math.clamp(desired_height, min_height, math.max(min_height, available_above))
-				y = rel_y - height - 4
-			end
+			local x = math.clamp(mobile and (row_left - 4) or row_left, 8, math.max(8, view.X - width - 8))
+			local room_below = math.max(0, limit_bottom - row_bottom - 4)
+			local room_above = math.max(0, row_top - 4 - head_limit)
+			local room = math.max(room_below, room_above)
+			local min_visible = math.min(desired_height, math.max(min_height, math.floor(view.Y * 0.5)))
+			local height = math.min(desired_height, math.max(room, min_visible))
 			height = math.floor(height)
-			y = math.clamp(y, top_limit, math.max(top_limit, win_h - height - 6))
-			panel.Position = UDim2.fromOffset(math.floor(win_pos.X + x), math.floor(win_pos.Y + y))
+			local y
+			if room_below >= room_above then
+				y = row_bottom + 4
+			else
+				y = row_top - height - 4
+			end
+			y = math.clamp(y, 6, math.max(6, view.Y - height - 6))
+			panel.Position = UDim2.fromOffset(math.floor(x), math.floor(y))
 			panel.Size = UDim2.fromOffset(math.floor(width), 0)
 			panel.Visible = true
 			util.tween(panel, 0.13, { Size = UDim2.fromOffset(math.floor(width), math.floor(height)) })
@@ -3921,6 +3974,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		Gui = row,
 	}
 end
+
 function selects.colorpicker(win, title, default, callback, icon)
 	local mobile = win._mobile
 	local hue, sat, val = 0.58, 0.68, 1
@@ -3972,6 +4026,7 @@ function selects.colorpicker(win, title, default, callback, icon)
 		ZIndex = 10,
 		Parent = env.modal,
 	})
+	util.corner(panel, 6)
 	local edge = util.stroke(panel, values().line, 0.05)
 	util.shadow(panel, 18, 0.4)
 	win._popover(panel)
@@ -4505,6 +4560,7 @@ function text.section(win, title, icon)
 		end,
 	}
 end
+
 function text.label(win, body)
 	local holder = win._slot(0)
 	holder.AutomaticSize = Enum.AutomaticSize.Y

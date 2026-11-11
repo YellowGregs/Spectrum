@@ -381,6 +381,7 @@ function Window.new(title, opts)
 		local kind = input.UserInputType
 		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 			resizing = true
+			util.cancel(root)
 			resize_from = width
 			resize_from_height = root.Size.Y.Offset - head
 			resize_at = input.Position.X
@@ -398,6 +399,45 @@ function Window.new(title, opts)
 		}
 	end)
 
+	local resize_to
+	local resize_pending = false
+
+	local function commit_resize()
+		resize_pending = false
+		if not resizing or not resize_to then
+			return
+		end
+		local view = env.viewport()
+		local min_width = math.min(mobile and 210 or 252, math.max(160, view.X - 20))
+		local next_width = math.clamp(resize_from + (resize_to.X - resize_at), min_width, math.max(min_width, view.X - 20))
+		local delta_y = resize_to.Y - resize_at_y
+		resize_to = nil
+		local width_changed = math.abs(next_width - width) >= 1
+		local height_changed = math.abs(delta_y) >= 1
+		if not width_changed and not height_changed then
+			return
+		end
+		if width_changed then
+			width = next_width
+			preferred = width
+		end
+		if height_changed then
+			height_override = math.clamp(resize_from_height + delta_y, 34, max_body_height(view, head))
+		end
+		local body_height = height_override or math.max(34, root.Size.Y.Offset - head)
+		body_height = math.clamp(body_height, 34, max_body_height(view, head))
+		scroll.Size = UDim2.new(1, 0, 0, body_height)
+		root.Size = UDim2.fromOffset(width, head + (open and body_height or 0))
+	end
+
+	local function schedule_resize()
+		if resize_pending then
+			return
+		end
+		resize_pending = true
+		task.defer(commit_resize)
+	end
+
 	local function follow(input)
 		local moving = input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch
 		if not moving then
@@ -410,17 +450,8 @@ function Window.new(title, opts)
 			local y = math.clamp(drag_at.Y.Offset + delta.Y, safe_top, view.Y - head - 4)
 			root.Position = UDim2.fromOffset(x, y)
 		elseif resizing then
-			local min_width = math.min(mobile and 210 or 252, math.max(160, view.X - 20))
-			local next_width = math.clamp(resize_from + (input.Position.X - resize_at), min_width, math.max(min_width, view.X - 20))
-			local delta_y = input.Position.Y - resize_at_y
-			if math.abs(next_width - width) >= 1 or math.abs(delta_y) >= 1 then
-				width = next_width
-				preferred = width
-				if math.abs(delta_y) >= 1 then
-					height_override = math.clamp(resize_from_height + delta_y, 34, max_body_height(view, head))
-				end
-				fit(false)
-			end
+			resize_to = input.Position
+			schedule_resize()
 		end
 	end
 
@@ -434,9 +465,18 @@ function Window.new(title, opts)
 		local kind = input.UserInputType
 		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 			local moved = dragging or resizing
+			local was_resizing = resizing
+			if was_resizing and resize_to then
+				commit_resize()
+			end
 			dragging = false
 			resizing = false
+			resize_pending = false
+			resize_to = nil
 			if moved then
+				if was_resizing then
+					fit(false)
+				end
 				remember()
 			end
 		end
@@ -447,6 +487,9 @@ function Window.new(title, opts)
 	links[#links + 1] = moved
 
 	local measured = list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		if resizing then
+			return
+		end
 		fit(true)
 	end)
 	links[#links + 1] = measured

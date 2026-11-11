@@ -386,41 +386,32 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			modal.claim(close)
 			local view = env.viewport()
 			local pos, size = row.AbsolutePosition, row.AbsoluteSize
-			local parent = panel.Parent
-			local parent_pos = parent and parent.AbsolutePosition or Vector2.new()
+			local parent_pos = panel.Parent and panel.Parent.AbsolutePosition or Vector2.new()
 			local win_anchor = win.Gui.AbsolutePosition
 			local win_pos = win_anchor - parent_pos
-			local win_size = win.Gui.AbsoluteSize
-			local win_w = win_size.X > 20 and win_size.X or math.min(300, view.X)
-			local win_h = win_size.Y > 20 and win_size.Y or view.Y
-			local rel_x = pos.X - win_anchor.X
-			local rel_y = pos.Y - win_anchor.Y
-			local max_width = math.max(160, (mobile and win_w or view.X) - 16)
+			local row_top = pos.Y - parent_pos.Y
+			local row_left = pos.X - parent_pos.X
+			local row_bottom = row_top + size.Y
+			local head_limit = math.max(6, win_pos.Y + (win._head or 34) + 4)
+			local limit_bottom = math.max(head_limit, view.Y - 6)
+			local max_width = math.max(160, view.X - 16)
 			local min_width = math.min(mobile and 180 or 240, max_width)
 			local width = math.clamp(math.max(size.X + 8, min_width), min_width, max_width)
-			local x
-			if mobile then
-				x = math.clamp(rel_x - 4, 6, math.max(6, win_w - width - 6))
-			else
-				x = math.clamp(pos.X, 8, math.max(8, view.X - width - 8)) - win_anchor.X
-			end
-			local top_limit = (win._head or 34) + 4
-			local below = rel_y + size.Y + 4
-			local available_below = win_h - below - 6
-			local available_above = rel_y - top_limit - 4
-			local height
-			local y
-			local use_below = available_below >= 44 and (available_below >= desired_height or available_below >= available_above)
-			if use_below then
-				height = math.clamp(desired_height, min_height, math.max(min_height, available_below))
-				y = below
-			else
-				height = math.clamp(desired_height, min_height, math.max(min_height, available_above))
-				y = rel_y - height - 4
-			end
+			local x = math.clamp(mobile and (row_left - 4) or row_left, 8, math.max(8, view.X - width - 8))
+			local room_below = math.max(0, limit_bottom - row_bottom - 4)
+			local room_above = math.max(0, row_top - 4 - head_limit)
+			local room = math.max(room_below, room_above)
+			local min_visible = math.min(desired_height, math.max(min_height, math.floor(view.Y * 0.5)))
+			local height = math.min(desired_height, math.max(room, min_visible))
 			height = math.floor(height)
-			y = math.clamp(y, top_limit, math.max(top_limit, win_h - height - 6))
-			panel.Position = UDim2.fromOffset(math.floor(win_pos.X + x), math.floor(win_pos.Y + y))
+			local y
+			if room_below >= room_above then
+				y = row_bottom + 4
+			else
+				y = row_top - height - 4
+			end
+			y = math.clamp(y, 6, math.max(6, view.Y - height - 6))
+			panel.Position = UDim2.fromOffset(math.floor(x), math.floor(y))
 			panel.Size = UDim2.fromOffset(math.floor(width), 0)
 			panel.Visible = true
 			util.tween(panel, 0.13, { Size = UDim2.fromOffset(math.floor(width), math.floor(height)) })

@@ -114,6 +114,19 @@ function util.tween(object, time, props, ease, direction)
 	return spin
 end
 
+function util.cancel(object)
+	local bucket = running[object]
+	if not bucket then
+		return
+	end
+	for key, spin in pairs(bucket) do
+		if spin and spin.Cancel then
+			spin:Cancel()
+		end
+		bucket[key] = nil
+	end
+end
+
 function util.hover(row, enter, leave)
 	local function inside()
 		util.tween(row, 0.1, { BackgroundTransparency = 0 })
