@@ -1,11 +1,23 @@
 local S = ...
 
-local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
-local Workspace = game:GetService("Workspace")
-local tws = game:GetService("TweenService")
-local uis = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
+local cloneref = cloneref or function(obj)
+	return obj
+end
+
+local Players = cloneref(game:GetService("Players"))
+local CoreGui = cloneref(game:GetService("CoreGui"))
+local Workspace = cloneref(game:GetService("Workspace"))
+local tws = cloneref(game:GetService("TweenService"))
+local uis = cloneref(game:GetService("UserInputService"))
+local HttpService = cloneref(game:GetService("HttpService"))
+
+local thread_fix = type(setthreadidentity) == "function"
+if thread_fix then
+	local ok = pcall(setthreadidentity, 8)
+	if not ok then
+		thread_fix = false
+	end
+end
 
 local env = {}
 env.tws = tws
@@ -83,66 +95,35 @@ end
 sweep(CoreGui)
 sweep(player_gui())
 
-local holder, hidden_holder = nil, false
-
-local gethui_fn = type(gethui) == "function" and gethui or nil
-if not gethui_fn then
-	local ok, genv = pcall(function()
-		return type(getgenv) == "function" and getgenv() or nil
-	end)
-	if ok and type(genv) == "table" and type(genv.gethui) == "function" then
-		gethui_fn = genv.gethui
+local function can_parent(parent)
+	if not parent then
+		return false
 	end
-end
-
-if gethui_fn then
-	local ok, hidden = pcall(gethui_fn)
-	if ok and typeof(hidden) == "Instance" then
-		local probe = Instance.new("ScreenGui")
-		local placed = pcall(function()
-			probe.Parent = hidden
-		end)
-		probe:Destroy()
-		if placed then
-			holder = hidden
-			hidden_holder = true
-		end
-	end
-end
-
-if not holder then
 	local probe = Instance.new("ScreenGui")
 	local placed = pcall(function()
-		probe.Parent = CoreGui
+		probe.Parent = parent
 	end)
-	if placed then
-		holder = CoreGui
-	else
-		holder = player_gui()
-	end
 	probe:Destroy()
+	return placed
 end
+
+local holder = nil
+if thread_fix then
+	local ok, hidden = pcall(function()
+		return type(gethui) == "function" and gethui() or nil
+	end)
+	if ok and typeof(hidden) == "Instance" and can_parent(hidden) then
+		holder = hidden
+	elseif can_parent(CoreGui) then
+		holder = CoreGui
+	end
+end
+
 if not holder then
 	holder = player_gui()
 end
 if not holder then
 	error("[Spectrum] no PlayerGui available for the interface", 0)
-end
-
-local protect_gui_fn
-do
-	if type(protect_gui) == "function" then
-		protect_gui_fn = protect_gui
-	elseif type(syn) == "table" and type(syn.protect_gui) == "function" then
-		protect_gui_fn = syn.protect_gui
-	else
-		local ok, genv = pcall(function()
-			return type(getgenv) == "function" and getgenv() or nil
-		end)
-		if ok and type(genv) == "table" and type(genv.protect_gui) == "function" then
-			protect_gui_fn = genv.protect_gui
-		end
-	end
 end
 
 local function layer(name, order)
@@ -155,8 +136,11 @@ local function layer(name, order)
 	pcall(function()
 		gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 	end)
-	if not hidden_holder and protect_gui_fn then
-		pcall(protect_gui_fn, gui)
+	if thread_fix then
+		pcall(setthreadidentity, 8)
+		pcall(function()
+			gui.OnTopOfCoreBlur = true
+		end)
 	end
 	gui.Parent = holder
 	shared.SpectrumLayers[#shared.SpectrumLayers + 1] = gui
