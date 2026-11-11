@@ -264,6 +264,19 @@ function config.toggle_key(value)
 	return data.settings and data.settings.toggle_key
 end
 
+function config.panic_key(value)
+	if value ~= nil then
+		data.settings = type(data.settings) == "table" and data.settings or {}
+		if value == false or value == "" then
+			data.settings.panic_key = nil
+		else
+			data.settings.panic_key = tostring(value)
+		end
+		config.touch()
+	end
+	return data.settings and data.settings.panic_key
+end
+
 function config.launcher_state()
 	return data.settings and data.settings.launcher
 end

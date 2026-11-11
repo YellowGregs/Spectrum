@@ -430,6 +430,9 @@ local util = S.util
 local style = S.style
 local icons = {}
 
+-- Named icons are rendered from locally cached Lucide spritesheets instead
+-- of rbxassetid:// references. The cache keeps internal image asset IDs out of
+-- the GUI; executors without local file assets fall back to the drawn icons.
 local lucide = {
 	gear = "settings",
 	settings = "settings",
@@ -1795,6 +1798,19 @@ function config.toggle_key(value)
 		config.touch()
 	end
 	return data.settings and data.settings.toggle_key
+end
+
+function config.panic_key(value)
+	if value ~= nil then
+		data.settings = type(data.settings) == "table" and data.settings or {}
+		if value == false or value == "" then
+			data.settings.panic_key = nil
+		else
+			data.settings.panic_key = tostring(value)
+		end
+		config.touch()
+	end
+	return data.settings and data.settings.panic_key
 end
 
 function config.launcher_state()
@@ -3460,7 +3476,13 @@ function inputs.slider(win, text, min, max, default, callback, step, icon)
 	}
 end
 
-function inputs.keybind(win, text, default, callback, icon)
+function inputs.keybind(win, text, default, callback, icon, opts)
+	if type(icon) == "table" and opts == nil then
+		opts = icon
+		icon = opts.icon
+	end
+	opts = type(opts) == "table" and opts or {}
+	local on_change = type(opts.onChange) == "function" and opts.onChange or nil
 	local mobile = win._mobile
 	local row = win._row(mobile and 40 or 34)
 	row.ClipsDescendants = true
@@ -3555,6 +3577,9 @@ function inputs.keybind(win, text, default, callback, icon)
 				sync()
 				win._store(stored, key)
 				held[code] = true
+				if on_change then
+					on_change(key)
+				end
 				if callback then
 					callback(key, true)
 				end
@@ -3591,8 +3616,14 @@ function inputs.keybind(win, text, default, callback, icon)
 	sync()
 	stored = win._bind("key", text, {
 		set = function(value)
+			if key == value then
+				return
+			end
 			key = value
 			sync()
+			if on_change then
+				on_change(key)
+			end
 		end,
 	})
 	win._options(row, text, function()
@@ -3601,6 +3632,9 @@ function inputs.keybind(win, text, default, callback, icon)
 				key = nil
 				sync()
 				win._store(stored, key)
+				if on_change then
+					on_change(nil)
+				end
 				if callback then
 					callback(key, false)
 				end
@@ -3609,6 +3643,9 @@ function inputs.keybind(win, text, default, callback, icon)
 				key = initial
 				sync()
 				win._store(stored, key)
+				if on_change then
+					on_change(initial)
+				end
 			end },
 		}
 	end)
@@ -3616,8 +3653,14 @@ function inputs.keybind(win, text, default, callback, icon)
 
 	return {
 		Set = function(_, next)
+			if key == next then
+				return
+			end
 			key = next
 			sync()
+			if on_change then
+				on_change(key)
+			end
 		end,
 		Get = function()
 			return key
@@ -5073,6 +5116,10 @@ Library.Version = "3.1"
 config.load()
 local DEFAULT_MENU_KEY = "RightControl+LeftShift"
 local menu_key = DEFAULT_MENU_KEY
+local panic_key
+local panic_callback
+local panic_held = {}
+local panic_fired = false
 local menu_open = true
 local mobile_launcher
 local menu_held = {}
@@ -5081,9 +5128,6 @@ local combo_fired = false
 local function normalize_key(value)
 	local text = tostring(value or ""):gsub("%s+", "")
 	if text == "" then
-		return DEFAULT_MENU_KEY
-	end
-	if text == "RightShift" then
 		return DEFAULT_MENU_KEY
 	end
 	return text
@@ -5121,12 +5165,41 @@ local function all_held()
 	return true
 end
 
+local function panic_keys()
+	local keys = {}
+	if not panic_key then
+		return keys
+	end
+	for part in string.gmatch(panic_key, "[^+]+") do
+		keys[#keys + 1] = part
+	end
+	return keys
+end
+
+local function all_panic_held()
+	local keys = panic_keys()
+	if #keys == 0 then
+		return false
+	end
+	for _, key in ipairs(keys) do
+		if not panic_held[key] then
+			return false
+		end
+	end
+	return true
+end
+
 local saved_toggle = config.toggle_key()
 if saved_toggle then
 	menu_key = normalize_key(saved_toggle)
 end
 if config.toggle_key() ~= menu_key then
 	config.toggle_key(menu_key)
+end
+
+local saved_panic = config.panic_key()
+if saved_panic then
+	panic_key = tostring(saved_panic)
 end
 
 local function set_menu(state)
@@ -5144,6 +5217,17 @@ local function set_menu(state)
 		mobile_launcher.set_open(menu_open)
 	end
 	return menu_open
+end
+
+local function fire_panic()
+	if panic_callback then
+		local callback = panic_callback
+		task.spawn(function()
+			pcall(callback, panic_key)
+		end)
+	else
+		set_menu(false)
+	end
 end
 
 function Library:Design(props)
@@ -5171,8 +5255,8 @@ function Library:Window(title, opts)
 	win.slider = function(self, text, min, max, default, callback, step, icon)
 		return S.inputs.slider(self, text, min, max, default, callback, step, icon)
 	end
-	win.keybind = function(self, text, default, callback, icon)
-		return S.inputs.keybind(self, text, default, callback, icon)
+	win.keybind = function(self, text, default, callback, icon, opts)
+		return S.inputs.keybind(self, text, default, callback, icon, opts)
 	end
 	win.dropdown = function(self, text, options, default, callback, multi, icon)
 		return S.selects.dropdown(self, text, options, default, callback, multi, icon)
@@ -5238,6 +5322,30 @@ function Library:GetToggleKey()
 	return menu_key
 end
 
+function Library:SetPanicKey(key, callback)
+	if type(key) == "table" then
+		key = table.concat(key, "+")
+	end
+	if key == nil or key == false then
+		panic_key = nil
+		config.panic_key(false)
+	else
+		local text = tostring(key):gsub("%s+", "")
+		panic_key = text ~= "" and text or nil
+		config.panic_key(panic_key or false)
+	end
+	if callback ~= nil then
+		panic_callback = type(callback) == "function" and callback or nil
+	end
+	panic_held = {}
+	panic_fired = false
+	return panic_key
+end
+
+function Library:GetPanicKey()
+	return panic_key
+end
+
 function Library:SaveConfig(name)
 	return config.save(name)
 end
@@ -5255,6 +5363,12 @@ function Library:LoadConfig(name)
 	menu_key = normalize_key(config.toggle_key())
 	menu_held = {}
 	combo_fired = false
+	panic_key = config.panic_key()
+	if panic_key then
+		panic_key = tostring(panic_key)
+	end
+	panic_held = {}
+	panic_fired = false
 	return true
 end
 
@@ -5286,6 +5400,14 @@ local menu_link = env.uis.InputBegan:Connect(function(input)
 		return
 	end
 	menu_held[name] = true
+	if panic_key then
+		panic_held[name] = true
+		if not panic_fired and all_panic_held() then
+			panic_fired = true
+			fire_panic()
+			return
+		end
+	end
 	if not combo_fired and all_held() then
 		combo_fired = true
 		Library:ToggleUI()
@@ -5296,7 +5418,14 @@ local menu_release = env.uis.InputEnded:Connect(function(input)
 	if input.UserInputType ~= Enum.UserInputType.Keyboard then
 		return
 	end
-	menu_held[input.KeyCode.Name] = nil
+	local name = input.KeyCode.Name
+	menu_held[name] = nil
+	if panic_key then
+		panic_held[name] = nil
+		if not all_panic_held() then
+			panic_fired = false
+		end
+	end
 	if not all_held() then
 		combo_fired = false
 	end

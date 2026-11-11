@@ -515,7 +515,13 @@ function inputs.slider(win, text, min, max, default, callback, step, icon)
 	}
 end
 
-function inputs.keybind(win, text, default, callback, icon)
+function inputs.keybind(win, text, default, callback, icon, opts)
+	if type(icon) == "table" and opts == nil then
+		opts = icon
+		icon = opts.icon
+	end
+	opts = type(opts) == "table" and opts or {}
+	local on_change = type(opts.onChange) == "function" and opts.onChange or nil
 	local mobile = win._mobile
 	local row = win._row(mobile and 40 or 34)
 	row.ClipsDescendants = true
@@ -610,6 +616,9 @@ function inputs.keybind(win, text, default, callback, icon)
 				sync()
 				win._store(stored, key)
 				held[code] = true
+				if on_change then
+					on_change(key)
+				end
 				if callback then
 					callback(key, true)
 				end
@@ -646,8 +655,14 @@ function inputs.keybind(win, text, default, callback, icon)
 	sync()
 	stored = win._bind("key", text, {
 		set = function(value)
+			if key == value then
+				return
+			end
 			key = value
 			sync()
+			if on_change then
+				on_change(key)
+			end
 		end,
 	})
 	win._options(row, text, function()
@@ -656,6 +671,9 @@ function inputs.keybind(win, text, default, callback, icon)
 				key = nil
 				sync()
 				win._store(stored, key)
+				if on_change then
+					on_change(nil)
+				end
 				if callback then
 					callback(key, false)
 				end
@@ -664,6 +682,9 @@ function inputs.keybind(win, text, default, callback, icon)
 				key = initial
 				sync()
 				win._store(stored, key)
+				if on_change then
+					on_change(initial)
+				end
 			end },
 		}
 	end)
@@ -671,8 +692,14 @@ function inputs.keybind(win, text, default, callback, icon)
 
 	return {
 		Set = function(_, next)
+			if key == next then
+				return
+			end
 			key = next
 			sync()
+			if on_change then
+				on_change(key)
+			end
 		end,
 		Get = function()
 			return key
