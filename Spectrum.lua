@@ -5030,5 +5030,8 @@ if env.mobile then
 	end
 end
 
+shared.Spectrum = Library
 S.library = Library
 end
+
+return S.library
