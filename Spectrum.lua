@@ -1385,6 +1385,7 @@ local registry = {}
 local window_counts = {}
 local value_counts = {}
 local scheduled = false
+local auto_save_enabled = false
 
 local http
 do
@@ -1514,6 +1515,7 @@ function config.load(name)
 		data = copy(shared.SpectrumConfigs[profile])
 		normalize()
 	end
+	auto_save_enabled = type(data.settings) == "table" and data.settings.auto_save == true
 	return config.apply()
 end
 
@@ -1522,6 +1524,7 @@ function config.save(name)
 		profile = name_of(name)
 	end
 	normalize()
+	data.settings.auto_save = auto_save_enabled
 	local body = encode()
 	if body and can_write() then
 		ensure(ROOT)
@@ -1533,13 +1536,18 @@ function config.save(name)
 end
 
 function config.touch()
+	if not auto_save_enabled then
+		return
+	end
 	if scheduled then
 		return
 	end
 	scheduled = true
 	task.delay(0.8, function()
 		scheduled = false
-		config.save()
+		if auto_save_enabled then
+			config.save()
+		end
 	end)
 end
 
@@ -1582,8 +1590,12 @@ function config.bind(win, kind, label, api)
 	registry[win][key] = api
 
 	local saved = data.values[win] and data.values[win][key]
-	if saved ~= nil and api.set then
-		pcall(api.set, saved)
+	if saved ~= nil then
+		if api.apply then
+			pcall(api.apply, saved)
+		elseif api.set then
+			pcall(api.set, saved)
+		end
 	end
 	return key
 end
@@ -1600,8 +1612,12 @@ function config.apply()
 		if saved then
 			for key, api in pairs(items) do
 				local value = saved[key]
-				if value ~= nil and api.set then
-					pcall(api.set, value)
+				if value ~= nil then
+					if api.apply then
+						pcall(api.apply, value)
+					elseif api.set then
+						pcall(api.set, value)
+					end
 				end
 			end
 		end
@@ -1640,7 +1656,25 @@ function config.place_launcher(state)
 end
 
 function config.flush()
+	if auto_save_enabled then
+		config.save()
+	end
+end
+
+function config.auto_save()
+	return auto_save_enabled
+end
+
+function config.set_auto_save(enabled)
+	enabled = enabled == true
+	if auto_save_enabled == enabled then
+		return auto_save_enabled
+	end
+	auto_save_enabled = enabled
+	data.settings = type(data.settings) == "table" and data.settings or {}
+	data.settings.auto_save = enabled
 	config.save()
+	return auto_save_enabled
 end
 
 function config.profile()
@@ -3044,6 +3078,17 @@ function inputs.toggle(win, text, a, b, opts)
 		set = function(value)
 			set(value, false)
 		end,
+		apply = function(value)
+			set(value, false)
+			if changed then
+				local next = state
+				task.defer(function()
+					if changed then
+						changed(next)
+					end
+				end)
+			end
+		end,
 	})
 	win._options(row, text, function()
 		return {
@@ -3226,6 +3271,15 @@ function inputs.slider(win, text, min, max, default, callback, step, icon)
 	key = win._bind("slider", text, {
 		set = function(value)
 			apply(value, false)
+		end,
+		apply = function(value)
+			apply(value, false)
+			if callback then
+				local next = value
+				task.defer(function()
+					callback(next)
+				end)
+			end
 		end,
 	})
 	win._options(row, text, function()
@@ -3942,6 +3996,15 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 
 	key = win._bind(multi and "multi" or "dropdown", title, {
 		set = apply,
+		apply = function(value)
+			apply(value)
+			if callback then
+				local picked = current()
+				task.defer(function()
+					callback(picked)
+				end)
+			end
+		end,
 	})
 
 	local hit = util.new("TextButton", {
@@ -4429,6 +4492,15 @@ function selects.colorpicker(win, title, default, callback, icon)
 	refresh(false)
 	key = win._bind("color", title, {
 		set = apply,
+		apply = function(value)
+			apply(value)
+			if callback then
+				local picked = color()
+				task.defer(function()
+					callback(picked)
+				end)
+			end
+		end,
 	})
 	win._options(row, title, function()
 		return {
@@ -4787,6 +4859,15 @@ function text.textbox(win, title, default, callback, icon)
 		set = function(value)
 			box.Text = tostring(value)
 		end,
+		apply = function(value)
+			box.Text = tostring(value)
+			if callback then
+				local next = box.Text
+				task.defer(function()
+					callback(next)
+				end)
+			end
+		end,
 	})
 	win._options(row, title, function()
 		return {
@@ -5001,6 +5082,14 @@ end
 
 function Library:SaveConfig(name)
 	return config.save(name)
+end
+
+function Library:SetAutoSave(enabled)
+	return config.set_auto_save(enabled)
+end
+
+function Library:GetAutoSave()
+	return config.auto_save()
 end
 
 function Library:LoadConfig(name)

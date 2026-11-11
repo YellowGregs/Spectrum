@@ -291,6 +291,17 @@ function inputs.toggle(win, text, a, b, opts)
 		set = function(value)
 			set(value, false)
 		end,
+		apply = function(value)
+			set(value, false)
+			if changed then
+				local next = state
+				task.defer(function()
+					if changed then
+						changed(next)
+					end
+				end)
+			end
+		end,
 	})
 	win._options(row, text, function()
 		return {
@@ -473,6 +484,15 @@ function inputs.slider(win, text, min, max, default, callback, step, icon)
 	key = win._bind("slider", text, {
 		set = function(value)
 			apply(value, false)
+		end,
+		apply = function(value)
+			apply(value, false)
+			if callback then
+				local next = value
+				task.defer(function()
+					callback(next)
+				end)
+			end
 		end,
 	})
 	win._options(row, text, function()

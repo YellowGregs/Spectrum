@@ -322,6 +322,15 @@ function text.textbox(win, title, default, callback, icon)
 		set = function(value)
 			box.Text = tostring(value)
 		end,
+		apply = function(value)
+			box.Text = tostring(value)
+			if callback then
+				local next = box.Text
+				task.defer(function()
+					callback(next)
+				end)
+			end
+		end,
 	})
 	win._options(row, title, function()
 		return {

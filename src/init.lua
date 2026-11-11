@@ -177,6 +177,14 @@ function Library:SaveConfig(name)
 	return config.save(name)
 end
 
+function Library:SetAutoSave(enabled)
+	return config.set_auto_save(enabled)
+end
+
+function Library:GetAutoSave()
+	return config.auto_save()
+end
+
 function Library:LoadConfig(name)
 	config.load(name)
 	menu_key = normalize_key(config.toggle_key())

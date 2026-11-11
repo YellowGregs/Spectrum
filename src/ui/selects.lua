@@ -523,6 +523,15 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 
 	key = win._bind(multi and "multi" or "dropdown", title, {
 		set = apply,
+		apply = function(value)
+			apply(value)
+			if callback then
+				local picked = current()
+				task.defer(function()
+					callback(picked)
+				end)
+			end
+		end,
 	})
 
 	local hit = util.new("TextButton", {
@@ -1010,6 +1019,15 @@ function selects.colorpicker(win, title, default, callback, icon)
 	refresh(false)
 	key = win._bind("color", title, {
 		set = apply,
+		apply = function(value)
+			apply(value)
+			if callback then
+				local picked = color()
+				task.defer(function()
+					callback(picked)
+				end)
+			end
+		end,
 	})
 	win._options(row, title, function()
 		return {
