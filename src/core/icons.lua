@@ -4,46 +4,236 @@ local util = S.util
 local style = S.style
 local icons = {}
 
--- Lucide icon assets that i didnt skid off at all from somewhere hehe
-local assets = {
-	gear = "rbxassetid://10734950309",
-	settings = "rbxassetid://10734950309",
-	user = "rbxassetid://10747373176",
-	target = "rbxassetid://10734977012",
-	crosshair = "rbxassetid://10709818534",
-	key = "rbxassetid://10723416652",
-	arrow = "rbxassetid://10709768347",
-	menu = "rbxassetid://10734887784",
-	close = "rbxassetid://10747384394",
-	plus = "rbxassetid://10734924532",
-	search = "rbxassetid://10734943674",
-	sliders = "rbxassetid://10734963191",
-	eye = "rbxassetid://10723346959",
-	render = "rbxassetid://10723346959",
-	globe = "rbxassetid://10723404337",
-	world = "rbxassetid://10723404337",
-	bag = "rbxassetid://10734952273",
-	inventory = "rbxassetid://10734952273",
-	wrench = "rbxassetid://10747383470",
-	utility = "rbxassetid://10747383470",
-	bolt = "rbxassetid://10723345749",
-	speed = "rbxassetid://10723345749",
-	combat = "rbxassetid://10734975692",
-	palette = "rbxassetid://10734910430",
-	check = "rbxassetid://10709790644",
-	cross = "rbxassetid://10747384394",
-	save = "rbxassetid://10734941499",
-	folder = "rbxassetid://10723387563",
-	code = "rbxassetid://10709810463",
-	shield = "rbxassetid://10734951847",
-	alert = "rbxassetid://10709753149",
-	info = "rbxassetid://10723415903",
-	copy = "rbxassetid://10709812159",
-	trash = "rbxassetid://10747362241",
-	refresh = "rbxassetid://10734933222",
-	move = "rbxassetid://10734900011",
-	lock = "rbxassetid://10723434711",
+-- Named icons are rendered from locally cached Lucide spritesheets instead
+-- of rbxassetid:// references. The cache keeps internal image asset IDs out of
+-- the GUI; executors without local file assets fall back to the drawn icons.
+local lucide = {
+	gear = "settings",
+	settings = "settings",
+	user = "user",
+	target = "target",
+	crosshair = "crosshair",
+	key = "key",
+	arrow = "arrow-right",
+	menu = "menu",
+	close = "x",
+	plus = "plus",
+	search = "search",
+	sliders = "sliders-horizontal",
+	eye = "eye",
+	render = "eye",
+	globe = "globe",
+	world = "globe",
+	bag = "shopping-bag",
+	inventory = "shopping-bag",
+	wrench = "wrench",
+	utility = "wrench",
+	bolt = "zap",
+	speed = "zap",
+	combat = "swords",
+	palette = "palette",
+	check = "check",
+	cross = "x",
+	save = "save",
+	folder = "folder",
+	code = "code",
+	shield = "shield",
+	alert = "triangle-alert",
+	info = "info",
+	copy = "copy",
+	trash = "trash",
+	refresh = "refresh-cw",
+	move = "move",
+	lock = "lock",
 }
+
+local ICON_ROOT = "Spectrum/icons/v1"
+local SHEET_URL = "https://molto.pages.dev/spritesheets/lucide/%d.png"
+local PNG_SIGNATURE = "\137PNG\r\n\26\n"
+local SHEETS = {
+	[1] = { width = 1024, height = 1024, bytes = 489862 },
+	[2] = { width = 1024, height = 1024, bytes = 147010 },
+}
+local sprites = {
+	["settings"] = { sheet = 1, x = 925, y = 925, w = 24, h = 24 },
+	["user"] = { sheet = 2, x = 200, y = 475, w = 24, h = 24 },
+	["target"] = { sheet = 2, x = 350, y = 200, w = 24, h = 24 },
+	["crosshair"] = { sheet = 1, x = 825, y = 25, w = 24, h = 24 },
+	["key"] = { sheet = 1, x = 625, y = 500, w = 24, h = 24 },
+	["arrow-right"] = { sheet = 1, x = 0, y = 300, w = 24, h = 24 },
+	["menu"] = { sheet = 1, x = 775, y = 500, w = 24, h = 24 },
+	["x"] = { sheet = 2, x = 475, y = 275, w = 24, h = 24 },
+	["plus"] = { sheet = 1, x = 925, y = 600, w = 24, h = 24 },
+	["search"] = { sheet = 1, x = 950, y = 850, w = 24, h = 24 },
+	["sliders-horizontal"] = { sheet = 2, x = 200, y = 25, w = 24, h = 24 },
+	["eye"] = { sheet = 1, x = 200, y = 700, w = 24, h = 24 },
+	["globe"] = { sheet = 1, x = 800, y = 250, w = 24, h = 24 },
+	["shopping-bag"] = { sheet = 2, x = 125, y = 0, w = 24, h = 24 },
+	["wrench"] = { sheet = 2, x = 525, y = 225, w = 24, h = 24 },
+	["zap"] = { sheet = 2, x = 400, y = 350, w = 24, h = 24 },
+	["swords"] = { sheet = 2, x = 350, y = 175, w = 24, h = 24 },
+	["palette"] = { sheet = 1, x = 975, y = 450, w = 24, h = 24 },
+	["check"] = { sheet = 1, x = 125, y = 525, w = 24, h = 24 },
+	["save"] = { sheet = 1, x = 800, y = 900, w = 24, h = 24 },
+	["folder"] = { sheet = 1, x = 350, y = 650, w = 24, h = 24 },
+	["code"] = { sheet = 1, x = 400, y = 400, w = 24, h = 24 },
+	["shield"] = { sheet = 2, x = 100, y = 0, w = 24, h = 24 },
+	["triangle-alert"] = { sheet = 2, x = 350, y = 275, w = 24, h = 24 },
+	["info"] = { sheet = 1, x = 975, y = 150, w = 24, h = 24 },
+	["copy"] = { sheet = 1, x = 525, y = 300, w = 24, h = 24 },
+	["trash"] = { sheet = 2, x = 575, y = 50, w = 24, h = 24 },
+	["refresh-cw"] = { sheet = 1, x = 750, y = 850, w = 24, h = 24 },
+	["move"] = { sheet = 1, x = 900, y = 475, w = 24, h = 24 },
+	["lock"] = { sheet = 1, x = 700, y = 525, w = 24, h = 24 },
+}
+
+local custom_sheets = {}
+local custom_failures = {}
+local custom_supported
+local cache_ready
+
+local function custom_available()
+	if custom_supported ~= nil then
+		return custom_supported
+	end
+	custom_supported = (type(getcustomasset) == "function" or type(getsynasset) == "function")
+		and type(writefile) == "function"
+		and type(isfile) == "function"
+		and type(makefolder) == "function"
+	return custom_supported
+end
+
+local function prepare_cache()
+	if cache_ready ~= nil then
+		return cache_ready
+	end
+	cache_ready = false
+	if not custom_available() then
+		return false
+	end
+	local ok = pcall(function()
+		for _, folder in ipairs({ "Spectrum", "Spectrum/icons", ICON_ROOT }) do
+			if type(isfolder) ~= "function" or not isfolder(folder) then
+				pcall(makefolder, folder)
+			end
+		end
+	end)
+	if ok then
+		cache_ready = true
+	end
+	return cache_ready
+end
+
+local function png_size(data)
+	if type(data) ~= "string" or #data < 24 or data:sub(1, #PNG_SIGNATURE) ~= PNG_SIGNATURE then
+		return nil
+	end
+	local width = 0
+	local height = 0
+	for index = 0, 3 do
+		width = width * 256 + data:byte(17 + index)
+		height = height * 256 + data:byte(21 + index)
+	end
+	return width, height
+end
+
+local function valid_sheet(data, meta)
+	if type(data) ~= "string" or #data ~= meta.bytes then
+		return false
+	end
+	local width, height = png_size(data)
+	return width == meta.width and height == meta.height
+end
+
+local function sheet_file(sheet)
+	return ICON_ROOT .. "/lucide-" .. sheet .. ".png"
+end
+
+local function read_sheet(path, meta)
+	if type(readfile) ~= "function" then
+		return true
+	end
+	local ok, data = pcall(readfile, path)
+	return ok and valid_sheet(data, meta)
+end
+
+local function download_sheet(sheet, path, meta)
+	local ok, data = pcall(function()
+		return game:HttpGet(string.format(SHEET_URL, sheet), true)
+	end)
+	if not ok or not valid_sheet(data, meta) then
+		return false
+	end
+	return pcall(writefile, path, data)
+end
+
+local function custom_sheet(sheet)
+	local cached = custom_sheets[sheet]
+	if cached then
+		return cached
+	end
+	if custom_failures[sheet] or not prepare_cache() then
+		return nil
+	end
+	local meta = SHEETS[sheet]
+	local path = sheet_file(sheet)
+	local exists = false
+	local ok, result = pcall(isfile, path)
+	if ok and result == true then
+		exists = read_sheet(path, meta)
+	end
+	if not exists and not download_sheet(sheet, path, meta) then
+		custom_failures[sheet] = true
+		return nil
+	end
+	local getter = getcustomasset or getsynasset
+	local read_ok, asset = pcall(getter, path)
+	if (not read_ok or type(asset) ~= "string" or asset == "") and download_sheet(sheet, path, meta) then
+		read_ok, asset = pcall(getter, path)
+	end
+	if read_ok and type(asset) == "string" and asset ~= "" then
+		custom_sheets[sheet] = asset
+		return asset
+	end
+	custom_failures[sheet] = true
+	return nil
+end
+
+local function sprite_label(parent, sprite, size, color)
+	local source = custom_sheet(sprite.sheet)
+	if not source then
+		return nil
+	end
+	return util.new("ImageLabel", {
+		Name = "image",
+		BackgroundTransparency = 1,
+		Image = source,
+		ImageColor3 = color or style.values.muted,
+		ImageTransparency = 0,
+		ImageRectSize = Vector2.new(sprite.w, sprite.h),
+		ImageRectOffset = Vector2.new(sprite.x, sprite.y),
+		ScaleType = Enum.ScaleType.Fit,
+		Size = UDim2.fromOffset(size or 14, size or 14),
+		ZIndex = (parent and parent.ZIndex or 1) + 1,
+		Parent = parent,
+	})
+end
+
+local function image_label(parent, source, size, color)
+	return util.new("ImageLabel", {
+		Name = "image",
+		BackgroundTransparency = 1,
+		Image = source,
+		ImageColor3 = color or style.values.muted,
+		ImageTransparency = 0,
+		ImageRectSize = Vector2.new(),
+		ImageRectOffset = Vector2.new(),
+		ScaleType = Enum.ScaleType.Fit,
+		Size = UDim2.fromOffset(size or 14, size or 14),
+		ZIndex = (parent and parent.ZIndex or 1) + 1,
+		Parent = parent,
+	})
+end
 
 local function values()
 	return style.values
@@ -475,6 +665,8 @@ local named = {
 	folder = icons.folder,
 	code = icons.code,
 	shield = icons.shield,
+	alert = icons.alert,
+	info = icons.info,
 }
 
 function icons.kind(kind, parent, size, color)
@@ -492,31 +684,37 @@ function icons.image(parent, asset, size, color)
 	if type(asset) ~= "string" or asset == "" then
 		return nil
 	end
-	local source = assets[asset]
-	if source then
-		asset = source
-	else
+	local lucide_name = lucide[asset]
+	if lucide_name then
+		local sprite = sprites[lucide_name]
+		if sprite then
+			local label = sprite_label(parent, sprite, size, color)
+			if label then
+				return label
+			end
+		end
 		local build = named[asset]
 		if build then
 			return build(parent, size, color)
 		end
+		return nil
+	end
+	local build = named[asset]
+	if build then
+		return build(parent, size, color)
 	end
 	if tonumber(asset) then
 		asset = "rbxassetid://" .. asset
 	end
-	return util.new("ImageLabel", {
-		Name = "image",
-		BackgroundTransparency = 1,
-		Image = asset,
-		ImageColor3 = color or values().muted,
-		ImageTransparency = 0,
-		ImageRectSize = Vector2.new(),
-		ImageRectOffset = Vector2.new(),
-		ScaleType = Enum.ScaleType.Fit,
-		Size = UDim2.fromOffset(size or 14, size or 14),
-		ZIndex = (parent and parent.ZIndex or 1) + 1,
-		Parent = parent,
-	})
+	if not (
+		asset:match("^rbxassetid://%d+$")
+		or asset:match("^rbxthumb://")
+		or asset:match("^rbxasset://")
+		or asset:match("^https?://")
+	) then
+		return nil
+	end
+	return image_label(parent, asset, size, color)
 end
 
 function icons.layer(object, z)
