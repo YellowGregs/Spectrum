@@ -53,7 +53,7 @@ function launcher.mount(on_toggle)
 	local user_moved = saved ~= nil
 
 	local button = util.new("TextButton", {
-		Name = "SpectrumLauncher",
+		Name = env.gui_name("launcher_button"),
 		BackgroundColor3 = values().panel,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
