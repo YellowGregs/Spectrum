@@ -448,7 +448,7 @@ function Window.new(title, opts)
 	end
 
 	local function layout_chrome()
-		strip_visible = #tabs > 1
+		strip_visible = #tabs > 1 and open
 		strip.Visible = strip_visible
 		scroll.Position = UDim2.fromOffset(0, chrome())
 		w._head = chrome()
@@ -624,6 +624,7 @@ function Window.new(title, opts)
 			return
 		end
 		open = state
+		layout_chrome()
 		scroll.Visible = true
 		util.tween(fold_bar_v, 0.15, { Size = UDim2.fromOffset(1, open and 9 or 0) })
 		fit(true)
