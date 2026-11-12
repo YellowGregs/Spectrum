@@ -2897,7 +2897,6 @@ function splash.mount()
 		ZIndex = 3,
 		Parent = gui,
 	})
-	util.corner(card, 12)
 	local edge = util.stroke(card, values().line, 0.15)
 	util.shadow(card, 22, 0.35)
 	local scale = util.new("UIScale", { Scale = 0.9, Parent = card })
@@ -2965,9 +2964,9 @@ function splash.mount()
 		Position = UDim2.new(0, 0, 0, title_y),
 		Size = UDim2.new(1, 0, 0, 18),
 		Font = bold,
-		Text = "AF",
+		Text = "AdvanceFalling",
 		TextColor3 = values().text,
-		TextSize = util.size(16),
+		TextSize = util.size(15),
 		TextXAlignment = Enum.TextXAlignment.Center,
 		ZIndex = 4,
 		Parent = card,
@@ -2997,7 +2996,6 @@ function splash.mount()
 		ZIndex = 4,
 		Parent = card,
 	})
-	util.corner(rail, 1)
 	local fill = util.new("Frame", {
 		BackgroundColor3 = values().accent,
 		BorderSizePixel = 0,
@@ -3005,14 +3003,13 @@ function splash.mount()
 		ZIndex = 5,
 		Parent = rail,
 	})
-	util.corner(fill, 1)
 
 	util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.new(0, 0, 0, rail_y + 12),
 		Size = UDim2.new(1, 0, 0, 12),
 		Font = font,
-		Text = "Loading interface",
+		Text = "Loading UI",
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
 		TextXAlignment = Enum.TextXAlignment.Center,
