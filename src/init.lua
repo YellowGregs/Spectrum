@@ -103,6 +103,9 @@ local function set_menu(state)
 	env.notes.Enabled = menu_open
 	if not menu_open then
 		S.modal.dismiss()
+		if S.tooltip then
+			S.tooltip.hide()
+		end
 	end
 	if mobile_launcher then
 		mobile_launcher.set_open(menu_open)
@@ -152,41 +155,33 @@ function Library:Notify(title, body, duration, kind)
 	return S.notify(title, body, duration, kind)
 end
 
+function Library:SetBackground(asset, opts)
+	return S.background.set(asset, opts)
+end
+
+function Library:GetBackground()
+	return S.background.get()
+end
+
+function Library:ClearBackground()
+	return S.background.clear()
+end
+
+function Library:SetWatermark(text)
+	return S.watermark.set(text)
+end
+
+function Library:SetWatermarkVisible(state)
+	return S.watermark.visible(state)
+end
+
+function Library:GetWatermark()
+	return S.watermark.get()
+end
+
 function Library:Window(title, opts)
 	local win = S.window.new(title, opts)
 	win.Gui.Visible = menu_open
-
-	win.button = function(self, text, callback, icon, opts)
-		return S.inputs.button(self, text, callback, icon, opts)
-	end
-	win.toggle = function(self, text, a, b, opts)
-		return S.inputs.toggle(self, text, a, b, opts)
-	end
-	win.slider = function(self, text, min, max, default, callback, step, icon, opts)
-		return S.inputs.slider(self, text, min, max, default, callback, step, icon, opts)
-	end
-	win.keybind = function(self, text, default, callback, icon, opts)
-		return S.inputs.keybind(self, text, default, callback, icon, opts)
-	end
-	win.dropdown = function(self, text, options, default, callback, multi, icon, opts)
-		return S.selects.dropdown(self, text, options, default, callback, multi, icon, opts)
-	end
-	win.colorpicker = function(self, text, default, callback, icon, opts)
-		return S.selects.colorpicker(self, text, default, callback, icon, opts)
-	end
-	win.textbox = function(self, text, default, callback, icon, opts)
-		return S.text.textbox(self, text, default, callback, icon, opts)
-	end
-	win.section = function(self, text, icon)
-		return S.text.section(self, text, icon)
-	end
-	win.label = function(self, text)
-		return S.text.label(self, text)
-	end
-	win.separator = function(self)
-		return S.text.separator(self)
-	end
-
 	return win
 end
 

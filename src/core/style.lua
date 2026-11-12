@@ -78,5 +78,16 @@ function style.on(color)
 	return Color3.new(1, 1, 1)
 end
 
+function style.variant(kind)
+	local name = tostring(kind or "primary"):lower()
+	if name == "danger" or name == "destructive" then
+		return values.bad, style.on(values.bad)
+	end
+	if name == "secondary" or name == "surface" then
+		return values.raised, values.text
+	end
+	return values.accent, style.on(values.accent)
+end
+
 style.values = values
 S.style = style

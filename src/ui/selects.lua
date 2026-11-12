@@ -5,6 +5,7 @@ local util = S.util
 local style = S.style
 local modal = S.modal
 local icons = S.icons
+local tooltip = S.tooltip
 local bold = Enum.Font.GothamBold
 local font = Enum.Font.GothamMedium
 local selects = {}
@@ -942,6 +943,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			set_open(true)
 		end,
 	})
+	if tooltip and opts.tooltip then
+		tooltip.attach(row, opts.tooltip)
+	end
 	win._fit(true)
 
 	return {
@@ -990,6 +994,35 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	end
 
 	local initial = Color3.fromHSV(hue, sat, val)
+	local function parse_color(value)
+		if typeof(value) == "Color3" then
+			return value
+		end
+		if type(value) == "string" then
+			local raw = string.gsub(value, "#", "")
+			if #raw == 3 then
+				raw = string.sub(raw, 1, 1) .. string.sub(raw, 1, 1)
+					.. string.sub(raw, 2, 2) .. string.sub(raw, 2, 2)
+					.. string.sub(raw, 3, 3) .. string.sub(raw, 3, 3)
+			end
+			if #raw == 6 and tonumber(raw, 16) then
+				return Color3.fromHex("#" .. raw)
+			end
+		end
+	end
+
+	local presets = {}
+	for _, entry in ipairs(type(opts.presets) == "table" and opts.presets or {}) do
+		local picked = parse_color(entry)
+		if picked and #presets < 10 then
+			presets[#presets + 1] = picked
+		end
+	end
+	local recent_enabled = opts.recent == true
+	local recent_list = {}
+	local recent_slots = {}
+	local preset_rows = (#presets > 0 and 1 or 0) + (recent_enabled and 1 or 0)
+
 	local row = win._row(mobile and 40 or 34)
 	local name = caption(row, title)
 	name.Size = UDim2.new(1, -58, 1, 0)
@@ -1021,7 +1054,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	local field_h = mobile and 100 or 94
 	local panel_w = mobile and 240 or 226
 	local bottom_y = pad + field_h + 29
-	local panel_h = bottom_y + 36
+	local swatch_size = mobile and 18 or 16
+	local swatch_step = swatch_size + 6
+	local panel_h = bottom_y + 36 + preset_rows * 24
 
 	local panel = util.new("Frame", {
 		Name = "colorpicker",
@@ -1188,8 +1223,115 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		return Color3.fromHSV(hue, sat, val)
 	end
 
-	local key
-	local function refresh(fire)
+	local key = nil
+	local refresh
+	local set_open
+
+	local function paint_recent()
+		for index, slot in ipairs(recent_slots) do
+			local value = recent_list[index]
+			slot.Visible = value ~= nil
+			if value then
+				slot.BackgroundColor3 = Color3.fromHex("#" .. value)
+			end
+		end
+	end
+
+	local function add_recent(picked)
+		if not recent_enabled or typeof(picked) ~= "Color3" then
+			return
+		end
+		local hex = string.upper(picked:ToHex())
+		for index, entry in ipairs(recent_list) do
+			if entry == hex then
+				table.remove(recent_list, index)
+				break
+			end
+		end
+		table.insert(recent_list, 1, hex)
+		while #recent_list > #recent_slots do
+			table.remove(recent_list)
+		end
+		paint_recent()
+	end
+
+	local function swatch_holder(index)
+		return util.new("Frame", {
+			Name = "swatches",
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset(pad, bottom_y + 34 + (index - 1) * 24),
+			Size = UDim2.new(1, -pad * 2, 0, swatch_size),
+			ZIndex = 3,
+			Parent = panel,
+		})
+	end
+
+	local row_index = 0
+	if #presets > 0 then
+		row_index = row_index + 1
+		local holder = swatch_holder(row_index)
+		for index, preset in ipairs(presets) do
+			local swatch = util.new("TextButton", {
+				Name = "preset",
+				BackgroundColor3 = preset,
+				BorderSizePixel = 0,
+				AutoButtonColor = false,
+				Active = not disabled,
+				Position = UDim2.fromOffset((index - 1) * swatch_step, 0),
+				Size = UDim2.fromOffset(swatch_size, swatch_size),
+				Text = "",
+				ZIndex = 3,
+				Parent = holder,
+			})
+			util.corner(swatch, 3)
+			util.stroke(swatch, values().line, 0.2)
+			swatch.Activated:Connect(function()
+				if disabled then
+					return
+				end
+				hue, sat, val = Color3.toHSV(preset)
+				refresh(true)
+				add_recent(preset)
+				set_open(false)
+			end)
+		end
+	end
+
+	if recent_enabled then
+		row_index = row_index + 1
+		local holder = swatch_holder(row_index)
+		for index = 1, 6 do
+			local slot = util.new("TextButton", {
+				Name = "recent",
+				BackgroundColor3 = values().raised,
+				BorderSizePixel = 0,
+				AutoButtonColor = false,
+				Active = not disabled,
+				Position = UDim2.fromOffset((index - 1) * swatch_step, 0),
+				Size = UDim2.fromOffset(swatch_size, swatch_size),
+				Text = "",
+				Visible = false,
+				ZIndex = 3,
+				Parent = holder,
+			})
+			util.corner(slot, 3)
+			util.stroke(slot, values().line, 0.2)
+			recent_slots[index] = slot
+			slot.Activated:Connect(function()
+				if disabled then
+					return
+				end
+				local value = recent_list[index]
+				if not value then
+					return
+				end
+				hue, sat, val = Color3.toHSV(Color3.fromHex("#" .. value))
+				refresh(true)
+				set_open(false)
+			end)
+		end
+	end
+	function refresh(fire)
 		cursor.Position = UDim2.fromScale(sat, 1 - val)
 		knob.Position = UDim2.new(hue, 0, 0.5, 0)
 		field.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
@@ -1277,6 +1419,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	win._link(env.uis.InputEnded, function(input)
 		local kind = input.UserInputType
 		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+			if field_drag or hue_drag then
+				add_recent(color())
+			end
 			field_drag = false
 			hue_drag = false
 		end
@@ -1291,6 +1436,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 			local picked = Color3.fromHex("#" .. raw)
 			hue, sat, val = Color3.toHSV(picked)
 			refresh(true)
+			add_recent(picked)
 		else
 			refresh(false)
 		end
@@ -1309,7 +1455,6 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	end)
 
 	local open = false
-	local set_open
 
 	local function close()
 		set_open(false)
@@ -1465,6 +1610,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 			set_open(true)
 		end,
 	})
+	if tooltip and opts.tooltip then
+		tooltip.attach(row, opts.tooltip)
+	end
 	win._fit(true)
 
 	return {

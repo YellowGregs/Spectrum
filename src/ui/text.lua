@@ -4,6 +4,7 @@ local env = S.env
 local util = S.util
 local style = S.style
 local icons = S.icons
+local tooltip = S.tooltip
 local bold = Enum.Font.GothamBold
 local font = Enum.Font.GothamMedium
 local text = {}
@@ -236,6 +237,14 @@ function text.textbox(win, title, default, callback, icon, opts)
 	end
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
+	local placeholder = type(opts.placeholder) == "string" and opts.placeholder ~= "" and opts.placeholder or "Enter text"
+	local numeric = opts.numericOnly == true or opts.numbersOnly == true
+	local max_length = tonumber(opts.maxLength)
+	if max_length then
+		max_length = math.max(1, math.floor(max_length))
+	end
+	local submit = opts.submitOnEnter ~= false
+	local clear_focus = opts.clearOnFocus == true
 	local mobile = win._mobile
 	local row = win._row(mobile and 58 or 34)
 	row.ClipsDescendants = true
@@ -268,12 +277,12 @@ function text.textbox(win, title, default, callback, icon, opts)
 			Name = "textbox",
 			BackgroundColor3 = values().raised,
 			BorderSizePixel = 0,
-			ClearTextOnFocus = false,
+			ClearTextOnFocus = clear_focus,
 			Active = not disabled,
 			TextEditable = not disabled,
 			Font = font,
 			PlaceholderColor3 = values().muted,
-			PlaceholderText = "Enter text",
+			PlaceholderText = placeholder,
 			Position = UDim2.new(0, 10, 0, 27),
 			Size = UDim2.new(1, -20, 0, 26),
 			Text = tostring(default or ""),
@@ -289,12 +298,12 @@ function text.textbox(win, title, default, callback, icon, opts)
 			Name = "textbox",
 			BackgroundColor3 = values().raised,
 			BorderSizePixel = 0,
-			ClearTextOnFocus = false,
+			ClearTextOnFocus = clear_focus,
 			Active = not disabled,
 			TextEditable = not disabled,
 			Font = font,
 			PlaceholderColor3 = values().muted,
-			PlaceholderText = "Enter text",
+			PlaceholderText = placeholder,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -10, 0.5, 0),
 			Size = UDim2.new(0.52, 0, 0, 22),
@@ -315,15 +324,46 @@ function text.textbox(win, title, default, callback, icon, opts)
 	})
 	local edge = util.stroke(box, values().line, 0.2)
 	local stored
+	local fixing = false
+
+	box:GetPropertyChangedSignal("Text"):Connect(function()
+		if fixing or disabled then
+			return
+		end
+		local current = box.Text
+		local next_text = current
+		if numeric then
+			next_text = string.gsub(next_text, "[^%d%.%-]", "")
+			local dot = string.find(next_text, "%.", 1, false)
+			if dot then
+				next_text = string.sub(next_text, 1, dot) .. string.gsub(string.sub(next_text, dot + 1), "%.", "")
+			end
+			local minus = string.find(next_text, "-", 1, false)
+			if minus then
+				next_text = (minus == 1 and "-" or "") .. string.gsub(next_text, "%-", "")
+			end
+		end
+		if max_length and #next_text > max_length then
+			next_text = string.sub(next_text, 1, max_length)
+		end
+		if next_text ~= current then
+			fixing = true
+			box.Text = next_text
+			fixing = false
+		end
+	end)
 
 	box.Focused:Connect(function()
 		edge.Color = values().accent
 		edge.Transparency = 0.2
 	end)
-	box.FocusLost:Connect(function()
+	box.FocusLost:Connect(function(enter_pressed)
 		edge.Color = values().line
 		edge.Transparency = 0.2
 		if disabled then
+			return
+		end
+		if enter_pressed and not submit then
 			return
 		end
 		win._store(stored, box.Text)
@@ -338,7 +378,8 @@ function text.textbox(win, title, default, callback, icon, opts)
 		end
 		local code = input.KeyCode
 		local kind = input.UserInputType
-		local keyboard_release = kind == Enum.UserInputType.Keyboard and (code == Enum.KeyCode.Escape or code == Enum.KeyCode.Return or code == Enum.KeyCode.KeypadEnter)
+		local keyboard_release = kind == Enum.UserInputType.Keyboard
+			and (code == Enum.KeyCode.Escape or (submit and (code == Enum.KeyCode.Return or code == Enum.KeyCode.KeypadEnter)))
 		local gamepad_release = string.match(kind.Name, "^Gamepad") and code == Enum.KeyCode.ButtonB
 		if keyboard_release or gamepad_release then
 			box:ReleaseFocus()
@@ -423,6 +464,9 @@ function text.textbox(win, title, default, callback, icon, opts)
 			end
 		end,
 	})
+	if tooltip and opts.tooltip then
+		tooltip.attach(row, opts.tooltip)
+	end
 	win._fit(true)
 
 	return {

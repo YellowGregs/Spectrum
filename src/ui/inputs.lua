@@ -4,6 +4,7 @@ local env = S.env
 local util = S.util
 local style = S.style
 local icons = S.icons
+local tooltip = S.tooltip
 local bold = Enum.Font.GothamBold
 local font = Enum.Font.GothamMedium
 local inputs = {}
@@ -54,6 +55,10 @@ function inputs.button(win, text, callback, icon, opts)
 	end
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
+	local variant = tostring(opts.variant or opts.style or "primary"):lower()
+	local confirm = type(opts.confirm) == "string" and opts.confirm ~= "" and opts.confirm
+		or (opts.confirm == true and "Click again to confirm" or nil)
+	local _, front = style.variant(variant)
 	local mobile = win._mobile
 	local holder = win._slot(mobile and 46 or 32)
 	local btn = util.new("TextButton", {
@@ -67,7 +72,7 @@ function inputs.button(win, text, callback, icon, opts)
 		Size = UDim2.new(1, -16, 0, mobile and 36 or 24),
 		Font = bold,
 		Text = tostring(text or "Button"),
-		TextColor3 = style.on(values().accent),
+		TextColor3 = front,
 		TextSize = util.size(mobile and 11 or 9),
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Parent = holder,
@@ -84,23 +89,63 @@ function inputs.button(win, text, callback, icon, opts)
 	end
 	local pop = util.new("UIScale", { Parent = btn })
 	local held = false
+	local armed = false
+	local arm_token = 0
+
+	local function ink()
+		if disabled then
+			return values().muted
+		end
+		local _, tone = style.variant(variant)
+		return tone
+	end
 
 	local function face()
 		if disabled then
 			return values().raised
 		end
+		local back = style.variant(variant)
 		if held then
-			return values().accent:Lerp(Color3.new(1, 1, 1), 0.14)
+			return back:Lerp(Color3.new(1, 1, 1), 0.14)
 		end
-		return values().accent
+		return back
 	end
 
 	local function paint()
 		btn.BackgroundColor3 = face()
-		btn.TextColor3 = disabled and values().muted or style.on(values().accent)
+		btn.TextColor3 = ink()
 		if emblem then
-			icons.tint(emblem, disabled and values().muted or style.on(values().accent))
+			icons.tint(emblem, ink())
 		end
+	end
+
+	local function run()
+		if disabled then
+			return
+		end
+		if confirm and not armed then
+			armed = true
+			arm_token = arm_token + 1
+			local mine = arm_token
+			btn.Text = confirm
+			task.delay(3, function()
+				if btn.Parent and armed and arm_token == mine then
+					armed = false
+					btn.Text = tostring(text or "Button")
+				end
+			end)
+			return
+		end
+		armed = false
+		arm_token = arm_token + 1
+		btn.Text = tostring(text or "Button")
+		if callback then
+			callback()
+		end
+	end
+
+	if tooltip and opts.tooltip then
+		tooltip.attach(btn, opts.tooltip)
 	end
 
 	btn.MouseEnter:Connect(function()
@@ -114,14 +159,7 @@ function inputs.button(win, text, callback, icon, opts)
 		held = false
 		util.tween(btn, 0.15, { BackgroundColor3 = face() })
 	end)
-	btn.Activated:Connect(function()
-		if disabled then
-			return
-		end
-		if callback then
-			callback()
-		end
-	end)
+	btn.Activated:Connect(run)
 	btn.MouseButton1Down:Connect(function()
 		if disabled then
 			return
@@ -140,6 +178,8 @@ function inputs.button(win, text, callback, icon, opts)
 		btn.Active = not disabled
 		if disabled then
 			held = false
+			armed = false
+			btn.Text = tostring(text or "Button")
 			util.tween(pop, 0.1, { Scale = 1 })
 		end
 		if btn:GetAttribute("SpectrumDisabled") ~= disabled then
@@ -159,11 +199,7 @@ function inputs.button(win, text, callback, icon, opts)
 
 	win._options(holder, text, function()
 		return {
-			{ label = "Run action", icon = "arrow", accent = true, run = function()
-				if not disabled and callback then
-					callback()
-				end
-			end },
+			{ label = "Run action", icon = "arrow", accent = true, run = run },
 		}
 	end)
 
@@ -173,11 +209,7 @@ function inputs.button(win, text, callback, icon, opts)
 		is_enabled = function()
 			return not disabled
 		end,
-		activate = function()
-			if callback then
-				callback()
-			end
-		end,
+		activate = run,
 	})
 
 	win._fit(true)
@@ -186,6 +218,7 @@ end
 
 function inputs.toggle(win, text, a, b, opts)
 	local mobile = win._mobile
+	local listeners = {}
 	local state, changed
 	if type(a) == "function" then
 		changed = a
@@ -338,6 +371,9 @@ function inputs.toggle(win, text, a, b, opts)
 				changed(state)
 			end
 		end
+		for _, listener in ipairs(listeners) do
+			pcall(listener, state)
+		end
 	end
 
 	hit.Activated:Connect(function()
@@ -406,6 +442,9 @@ function inputs.toggle(win, text, a, b, opts)
 			set(direction > 0, true)
 		end,
 	})
+	if tooltip and opts.tooltip then
+		tooltip.attach(row, opts.tooltip)
+	end
 	win._fit(true)
 
 	return {
@@ -417,6 +456,20 @@ function inputs.toggle(win, text, a, b, opts)
 		end,
 		Toggle = function()
 			set(not state, true)
+		end,
+		OnChanged = function(_, fn)
+			if type(fn) ~= "function" then
+				return function() end
+			end
+			listeners[#listeners + 1] = fn
+			return function()
+				for index, entry in ipairs(listeners) do
+					if entry == fn then
+						table.remove(listeners, index)
+						break
+					end
+				end
+			end
 		end,
 		SetDisabled = function(_, value)
 			set_disabled(value)
@@ -432,7 +485,10 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
 	local mobile = win._mobile
-	local row = win._row(mobile and 46 or 40)
+	local compact = opts.compact == true
+	local suffix = type(opts.suffix) == "string" and opts.suffix or ""
+	local show_max = opts.showMax == true or opts.hideMax == false
+	local row = win._row(compact and (mobile and 40 or 34) or (mobile and 46 or 40))
 	local low = tonumber(min) or 0
 	local high = tonumber(max) or 100
 	if high <= low then
@@ -444,27 +500,35 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	end
 	local initial = math.clamp(tonumber(default) or low, low, high)
 	local value = initial
-	local decimals = notch >= 1 and 0 or (notch >= 0.1 and 1 or 2)
+	local precision = tonumber(opts.decimals)
+	local decimals = math.clamp(
+		math.floor(precision ~= nil and precision or (notch >= 1 and 0 or (notch >= 0.1 and 1 or 2))),
+		0,
+		3
+	)
+	local label_y = compact and 3 or (mobile and 7 or 5)
+	local track_y = compact and (mobile and 24 or 22) or (mobile and 31 or 27)
 
-	local emblem = row_emblem(row, icon, 14, values().muted, mobile and 7 or 5)
-	local name = label(row, text, mobile and 7 or 5, 14)
+	local emblem = row_emblem(row, icon, 14, values().muted, label_y)
+	local name = label(row, text, label_y, 14)
 	if emblem then
-		name.Position = UDim2.fromOffset(28, mobile and 7 or 5)
-		name.Size = UDim2.new(1, -100, 0, 14)
+		name.Position = UDim2.fromOffset(28, label_y)
+		name.Size = UDim2.new(1, -120, 0, 14)
 	else
-		name.Size = UDim2.new(1, -80, 0, 14)
+		name.Size = UDim2.new(1, -100, 0, 14)
 	end
 
 	local readout = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -10, 0, mobile and 6 or 4),
-		Size = UDim2.fromOffset(62, 14),
+		Position = UDim2.new(1, -10, 0, compact and 2 or (mobile and 6 or 4)),
+		Size = UDim2.fromOffset(88, 14),
 		Font = bold,
 		Text = "",
 		TextColor3 = values().muted,
 		TextSize = util.size(10),
 		TextXAlignment = Enum.TextXAlignment.Right,
+		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
 		Parent = row,
 	})
@@ -472,7 +536,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	local track = util.new("Frame", {
 		BackgroundColor3 = values().raised,
 		BorderSizePixel = 0,
-		Position = UDim2.new(0, 10, 0, mobile and 31 or 27),
+		Position = UDim2.new(0, 10, 0, track_y),
 		Size = UDim2.new(1, -20, 0, mobile and 5 or 4),
 		ZIndex = 3,
 		Parent = row,
@@ -504,7 +568,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Active = not disabled,
-		Position = UDim2.new(0, 4, 0, mobile and 20 or 17),
+		Position = UDim2.new(0, 4, 0, math.max(0, track_y - 10)),
 		Size = UDim2.new(1, -8, 0, 22),
 		Text = "",
 		ZIndex = 2,
@@ -517,7 +581,11 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		local alpha = (value - low) / (high - low)
 		fill.Size = UDim2.fromScale(alpha, 1)
 		thumb.Position = UDim2.new(alpha, 0, 0.5, 0)
-		readout.Text = string.format("%." .. decimals .. "f", value)
+		local shown = string.format("%." .. decimals .. "f", value) .. suffix
+		if show_max then
+			shown = shown .. " / " .. string.format("%." .. decimals .. "f", high) .. suffix
+		end
+		readout.Text = shown
 		readout.TextColor3 = disabled and values().muted or (dragging and values().accent or values().muted)
 		if fire then
 			win._store(key, value)
@@ -655,6 +723,9 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 			end
 		end,
 	})
+	if tooltip and opts.tooltip then
+		tooltip.attach(row, opts.tooltip)
+	end
 	win._fit(true)
 
 	return {
@@ -681,6 +752,14 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	end
 	opts = type(opts) == "table" and opts or {}
 	local on_change = type(opts.onChange) == "function" and opts.onChange or nil
+	local on_press = type(opts.onPress) == "function" and opts.onPress or nil
+	local on_release = type(opts.onRelease) == "function" and opts.onRelease or nil
+	local mirror_toggle = type(opts.syncToggle) == "table" and opts.syncToggle or nil
+	local mode = tostring(opts.mode or (on_release and "hold" or "toggle")):lower()
+	if mode ~= "hold" and mode ~= "toggle" then
+		mode = "hold"
+	end
+	local action = on_press ~= nil or on_release ~= nil or mirror_toggle ~= nil or opts.mode ~= nil
 	local empty_text = type(opts.emptyText) == "string" and opts.emptyText ~= "" and opts.emptyText or "None"
 	local disabled = opts.disabled == true
 	local allow_mouse = opts.allowMouse ~= false
@@ -727,6 +806,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	local listening = false
 	local held = {}
 	local stored
+	local active = false
+	local toggled = false
 
 	local function display(value)
 		if value == nil or value == "" then
@@ -740,9 +821,96 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	end
 
 	local function sync()
+		local fill = values().raised
+		local tone = key and values().text or values().muted
+		local border = values().line
+		local border_alpha = 0.35
+		if disabled then
+			tone = values().muted
+		elseif listening then
+			tone = values().accent
+			border = values().accent
+			border_alpha = 0.2
+		elseif active then
+			tone = style.on(values().accent)
+			fill = values().accent
+			border = values().accent
+			border_alpha = 1
+		end
 		pill.Text = listening and "..." or display(key)
-		pill.TextColor3 = disabled and values().muted or (listening and values().accent or (key and values().text or values().muted))
-		edge.Color = disabled and values().line or (listening and values().accent or values().line)
+		pill.TextColor3 = tone
+		pill.BackgroundColor3 = fill
+		edge.Color = border
+		edge.Transparency = border_alpha
+	end
+
+	local function release_action()
+		if not active then
+			return
+		end
+		active = false
+		sync()
+		if on_release then
+			pcall(on_release)
+		end
+	end
+
+	local function press_action()
+		if not action then
+			return
+		end
+		if mode == "toggle" then
+			toggled = not toggled
+			active = toggled
+			sync()
+			if mirror_toggle then
+				pcall(function()
+					if type(mirror_toggle.Toggle) == "function" then
+						mirror_toggle:Toggle()
+					else
+						mirror_toggle:Set(toggled)
+					end
+				end)
+			end
+			if on_press then
+				pcall(on_press, toggled)
+			end
+		else
+			active = true
+			sync()
+			if on_press then
+				pcall(on_press, true)
+			end
+		end
+	end
+
+	local function mirror_state()
+		if not mirror_toggle then
+			return
+		end
+		local ok, value = pcall(function()
+			return mirror_toggle:Get()
+		end)
+		if ok and type(value) == "boolean" and value ~= toggled then
+			toggled = value
+			if mode == "toggle" then
+				active = value
+				sync()
+			end
+		end
+	end
+
+	if mirror_toggle and type(mirror_toggle.OnChanged) == "function" then
+		local stop = mirror_toggle:OnChanged(function(value)
+			toggled = value == true
+			if mode == "toggle" then
+				active = toggled
+				sync()
+			end
+		end)
+		if type(stop) == "function" then
+			row.Destroying:Connect(stop)
+		end
 	end
 
 	local function toggle_capture()
@@ -761,6 +929,12 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 			listening = false
 			S.binding = false
 		end
+		if active then
+			active = false
+			if on_release then
+				pcall(on_release)
+			end
+		end
 	end)
 
 	local function cancel_capture()
@@ -771,6 +945,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 
 	local function clear_key()
 		key = nil
+		toggled = false
+		release_action()
 		cancel_capture()
 		win._store(stored, key)
 		if on_change then
@@ -817,11 +993,13 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 			end
 			return
 		end
-		if processed or util.focused_text_box() then
+		if processed or util.focused_text_box() or S.splash_open or not win.Gui.Visible then
 			return
 		end
-		if key and id == key then
+		if key and id == key and not held[id] then
 			held[id] = true
+			mirror_state()
+			press_action()
 			if callback then
 				callback(key, true)
 			end
@@ -835,6 +1013,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		local id = util.input_id(input)
 		if id and id == key and held[id] then
 			held[id] = nil
+			release_action()
 			if callback then
 				callback(key, false)
 			end
@@ -842,14 +1021,16 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	end)
 
 	style.paint(function()
-		edge.Color = disabled and values().line or (listening and values().accent or values().line)
-		pill.BackgroundColor3 = values().raised
 		caption.TextColor3 = disabled and values().muted or values().text
 		if emblem then
 			icons.tint(emblem, disabled and values().line or values().muted)
 		end
 		sync()
 	end)
+
+	if tooltip and opts.tooltip then
+		tooltip.attach(row, opts.tooltip)
+	end
 
 	local function set_disabled(value)
 		disabled = value == true
@@ -860,6 +1041,12 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 				S.binding = false
 			end
 			held = {}
+			if active then
+				active = false
+				if on_release then
+					pcall(on_release)
+				end
+			end
 		end
 		sync()
 		if win._nav_refresh then
@@ -887,6 +1074,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 					return
 				end
 				key = nil
+				toggled = false
+				release_action()
 				sync()
 				win._store(stored, key)
 				if on_change then

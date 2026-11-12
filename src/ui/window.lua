@@ -6,6 +6,8 @@ local style = S.style
 local modal = S.modal
 local icons = S.icons
 local config = S.config
+local tooltip = S.tooltip
+local background = S.background
 local bold = Enum.Font.GothamBold
 local font = Enum.Font.GothamMedium
 
@@ -101,7 +103,6 @@ function Window.new(title, opts)
 	end
 	local links = {}
 	local panels = {}
-	local section_cursor
 	local dragging = false
 	local resizing = false
 	local drag_from, drag_at
@@ -138,6 +139,56 @@ function Window.new(title, opts)
 	})
 	local edge = util.stroke(body, values().line, 0.3)
 	util.shadow(body, 18, 0.5)
+
+	local backdrop = util.new("Frame", {
+		Name = "backdrop",
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+		ZIndex = 1,
+		Parent = body,
+	})
+	local backdrop_image = util.new("ImageLabel", {
+		Name = "image",
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Image = "",
+		ImageColor3 = Color3.new(1, 1, 1),
+		ImageTransparency = 0.25,
+		ScaleType = Enum.ScaleType.Crop,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 1,
+		Parent = backdrop,
+	})
+	local backdrop_scrim = util.new("Frame", {
+		Name = "scrim",
+		BackgroundColor3 = values().background,
+		BackgroundTransparency = 0.4,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 2,
+		Parent = backdrop,
+	})
+
+	local function apply_backdrop(state)
+		if not state.asset then
+			backdrop.Visible = false
+			backdrop_image.Image = ""
+			return
+		end
+		backdrop_image.Image = state.asset
+		backdrop_image.ImageTransparency = state.transparency
+		backdrop_image.ImageColor3 = state.tint
+		backdrop_image.ScaleType = background.scale_type(state.scale)
+		backdrop_scrim.BackgroundTransparency = state.scrim
+		backdrop.Visible = true
+	end
+
+	if background then
+		local stop = background.watch(apply_backdrop)
+		links[#links + 1] = { Disconnect = stop }
+	end
 
 	local header = util.new("Frame", {
 		Name = "header",
@@ -331,23 +382,242 @@ function Window.new(title, opts)
 	end)
 	style.paint(paint_grip)
 
+	local tab_h = mobile and 34 or 30
+	local tabs = {}
+	local default_tab = {
+		name = "Main",
+		icon = nil,
+		slots = {},
+		section_of = {},
+		scroll = 0,
+		order = 1,
+		implicit = true,
+	}
+	tabs[1] = default_tab
+	local active_tab = default_tab
+	local strip_visible = false
+
+	local strip = util.new("Frame", {
+		Name = "tabs",
+		BackgroundColor3 = values().raised,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(0, head),
+		Size = UDim2.new(1, 0, 0, tab_h),
+		Visible = false,
+		ZIndex = 3,
+		Parent = body,
+	})
+	local rail = util.new("ScrollingFrame", {
+		Name = "rail",
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.X,
+		ClipsDescendants = true,
+		ScrollBarThickness = 0,
+		ScrollBarImageTransparency = 1,
+		ScrollingDirection = Enum.ScrollingDirection.X,
+		Size = UDim2.new(1, 0, 1, 0),
+		ZIndex = 4,
+		Parent = strip,
+	})
+	util.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, 2),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Parent = rail,
+	})
+	util.new("UIPadding", {
+		PaddingLeft = UDim.new(0, 6),
+		PaddingRight = UDim.new(0, 6),
+		Parent = rail,
+	})
+	local strip_seam = util.new("Frame", {
+		BackgroundColor3 = values().line,
+		BackgroundTransparency = 0.2,
+		BorderSizePixel = 0,
+		Position = UDim2.new(0, 0, 1, -1),
+		Size = UDim2.new(1, 0, 0, 1),
+		ZIndex = 5,
+		Parent = strip,
+	})
+
+	local function chrome()
+		return head + (strip_visible and tab_h or 0)
+	end
+
+	local function layout_chrome()
+		strip_visible = #tabs > 1
+		strip.Visible = strip_visible
+		scroll.Position = UDim2.fromOffset(0, chrome())
+		w._head = chrome()
+		for _, entry in ipairs(tabs) do
+			if entry.facade then
+				entry.facade._head = chrome()
+			end
+		end
+	end
+
 	local function fit(animate)
+		cap = content_cap(env.viewport(), chrome())
 		local content_height = math.max(0, list.AbsoluteContentSize.Y + 2)
 		local height
 		if height_override then
-			height = math.clamp(height_override, 34, max_body_height(env.viewport(), head))
+			height = math.clamp(height_override, 34, max_body_height(env.viewport(), chrome()))
 		else
 			height = math.clamp(content_height, 34, cap)
 		end
 		scroll.CanvasSize = UDim2.fromOffset(0, content_height)
 		scroll.Size = UDim2.new(1, 0, 0, height)
 		grip.Visible = open
-		local target = UDim2.fromOffset(width, head + (open and height or 0))
+		local target = UDim2.fromOffset(width, chrome() + (open and height or 0))
 		if animate then
 			util.tween(root, 0.2, { Size = target })
 		else
 			root.Size = target
 		end
+	end
+
+	local function paint_tab(tab)
+		if not tab.chip then
+			return
+		end
+		local on = tab == active_tab
+		tab.chip.BackgroundColor3 = values().hover
+		tab.chip.BackgroundTransparency = on and 0 or 1
+		tab.chip.TextColor3 = on and values().text or values().muted
+		tab.bar.Visible = on
+		tab.bar.BackgroundColor3 = values().accent
+		if tab.emblem then
+			icons.tint(tab.emblem, on and values().accent or values().muted)
+		end
+	end
+
+	local set_tab
+
+	local function chip_for(tab)
+		local chip = util.new("TextButton", {
+			Name = "tab",
+			BackgroundColor3 = values().hover,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			AutoButtonColor = false,
+			AutomaticSize = Enum.AutomaticSize.X,
+			LayoutOrder = tab.order,
+			Size = UDim2.fromOffset(0, tab_h - 6),
+			Font = font,
+			Text = tab.name,
+			TextColor3 = values().muted,
+			TextSize = util.size(10),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			ZIndex = 4,
+			Parent = rail,
+		})
+		util.corner(chip, 4)
+		util.new("UISizeConstraint", {
+			MaxSize = Vector2.new(mobile and 132 or 152, tab_h),
+			Parent = chip,
+		})
+		util.new("UIPadding", {
+			PaddingLeft = UDim.new(0, tab.icon and 25 or 10),
+			PaddingRight = UDim.new(0, 10),
+			Parent = chip,
+		})
+		local emblem
+		if tab.icon then
+			emblem = icons.image(chip, tab.icon, 12, values().muted)
+			if emblem then
+				emblem.AnchorPoint = Vector2.new(0, 0.5)
+				emblem.Position = UDim2.new(0, 9, 0.5, 0)
+				icons.layer(emblem, 5)
+			end
+		end
+		local bar = util.new("Frame", {
+			BackgroundColor3 = values().accent,
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 8, 1, -3),
+			Size = UDim2.new(1, -16, 0, 2),
+			Visible = false,
+			ZIndex = 5,
+			Parent = chip,
+		})
+		tab.chip = chip
+		tab.bar = bar
+		tab.emblem = emblem
+		chip.MouseEnter:Connect(function()
+			if tab ~= active_tab then
+				util.tween(chip, 0.1, { BackgroundTransparency = 0.86 })
+			end
+		end)
+		chip.MouseLeave:Connect(function()
+			if tab ~= active_tab then
+				util.tween(chip, 0.12, { BackgroundTransparency = 1 })
+			end
+		end)
+		chip.Activated:Connect(function()
+			set_tab(tab)
+		end)
+		if tooltip and tab.tooltip then
+			tooltip.attach(chip, tab.tooltip)
+		end
+		return chip
+	end
+
+	set_tab = function(tab, force)
+		if not tab or (tab == active_tab and not force) then
+			paint_tab(active_tab)
+			return
+		end
+		if active_tab then
+			active_tab.scroll = scroll.CanvasPosition.Y
+		end
+		active_tab = tab
+		for _, entry in ipairs(tabs) do
+			for _, slot in ipairs(entry.slots) do
+				if slot.Parent then
+					local record = entry.section_of[slot]
+					slot.Visible = entry == tab and (record == nil or record.open)
+				end
+			end
+			paint_tab(entry)
+		end
+		layout_chrome()
+		if tooltip then
+			tooltip.hide()
+		end
+		modal.dismiss()
+		if w._nav_clear then
+			w._nav_clear()
+		end
+		fit(false)
+		local target = tab.scroll or 0
+		task.defer(function()
+			if active_tab == tab and scroll.Parent then
+				scroll.CanvasPosition = Vector2.new(0, target)
+			end
+		end)
+	end
+
+	local function make_tab(name, tab_icon, note, tab_order)
+		if not default_tab.chip then
+			chip_for(default_tab)
+		end
+		local tab = {
+			name = name,
+			icon = tab_icon,
+			tooltip = note,
+			slots = {},
+			section_of = {},
+			scroll = 0,
+			order = tab_order,
+			implicit = false,
+		}
+		tabs[#tabs + 1] = tab
+		chip_for(tab)
+		return tab
 	end
 
 	local function front()
@@ -383,6 +653,9 @@ function Window.new(title, opts)
 	local function close()
 		remember()
 		modal.dismiss()
+		if tooltip then
+			tooltip.hide()
+		end
 		root:Destroy()
 	end
 
@@ -408,7 +681,7 @@ function Window.new(title, opts)
 			resizing = true
 			util.cancel(root)
 			resize_from = width
-			resize_from_height = root.Size.Y.Offset - head
+			resize_from_height = root.Size.Y.Offset - chrome()
 			resize_at = input.Position.X
 			resize_at_y = input.Position.Y
 			front()
@@ -447,12 +720,12 @@ function Window.new(title, opts)
 			preferred = width
 		end
 		if height_changed then
-			height_override = math.clamp(resize_from_height + delta_y, 34, max_body_height(view, head))
+			height_override = math.clamp(resize_from_height + delta_y, 34, max_body_height(view, chrome()))
 		end
-		local body_height = height_override or math.max(34, root.Size.Y.Offset - head)
-		body_height = math.clamp(body_height, 34, max_body_height(view, head))
+		local body_height = height_override or math.max(34, root.Size.Y.Offset - chrome())
+		body_height = math.clamp(body_height, 34, max_body_height(view, chrome()))
 		scroll.Size = UDim2.new(1, 0, 0, body_height)
-		root.Size = UDim2.fromOffset(width, head + (open and body_height or 0))
+		root.Size = UDim2.fromOffset(width, chrome() + (open and body_height or 0))
 	end
 
 	local function schedule_resize()
@@ -472,7 +745,7 @@ function Window.new(title, opts)
 		if dragging then
 			local delta = input.Position - drag_from
 			local x = math.clamp(drag_at.X.Offset + delta.X, -(width - 70), view.X - 70)
-			local y = math.clamp(drag_at.Y.Offset + delta.Y, safe_top, view.Y - head - 4)
+			local y = math.clamp(drag_at.Y.Offset + delta.Y, safe_top, view.Y - chrome() - 4)
 			root.Position = UDim2.fromOffset(x, y)
 		elseif resizing then
 			resize_to = input.Position
@@ -526,13 +799,13 @@ function Window.new(title, opts)
 		end
 		local min_width = math.min(mobile and 210 or 252, math.max(160, view.X - 20))
 		width = math.clamp(preferred, min_width, math.max(min_width, view.X - 20))
-		cap = content_cap(view, head)
+		cap = content_cap(view, chrome())
 		if height_override then
-			height_override = math.clamp(height_override, 34, max_body_height(view, head))
+			height_override = math.clamp(height_override, 34, max_body_height(view, chrome()))
 		end
 		root.Position = UDim2.fromOffset(
 			math.clamp(root.Position.X.Offset, -math.max(0, width - 70), math.max(0, view.X - 70)),
-			math.clamp(root.Position.Y.Offset, safe_top, math.max(safe_top, view.Y - head - 4))
+			math.clamp(root.Position.Y.Offset, safe_top, math.max(safe_top, view.Y - chrome() - 4))
 		)
 		root.Size = UDim2.fromOffset(width, root.Size.Y.Offset)
 		fit(false)
@@ -555,7 +828,7 @@ function Window.new(title, opts)
 	local camera_switch = workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watch_camera)
 	links[#links + 1] = camera_switch
 
-	function w._slot(height, ungrouped)
+	local function slot_for(tab, height, ungrouped)
 		order = order + 1
 		local slot = util.new("Frame", {
 			Name = "slot",
@@ -564,22 +837,17 @@ function Window.new(title, opts)
 			Size = UDim2.new(1, 0, 0, height or row_base),
 			Parent = scroll,
 		})
-		if section_cursor and not ungrouped then
-			section_cursor.slots[#section_cursor.slots + 1] = slot
-			slot.Visible = section_cursor.open
+		tab.slots[#tab.slots + 1] = slot
+		if tab.cursor and not ungrouped then
+			tab.cursor.slots[#tab.cursor.slots + 1] = slot
+			tab.section_of[slot] = tab.cursor
 		end
+		local record = tab.section_of[slot]
+		slot.Visible = tab == active_tab and (record == nil or record.open)
 		return slot
 	end
 
-	function w._new_section()
-		return { open = true, slots = {} }
-	end
-
-	function w._focus_section(record)
-		section_cursor = record
-	end
-
-	function w._toggle_section(record, state)
+	local function toggle_section(record, state)
 		if not record then
 			return
 		end
@@ -589,7 +857,7 @@ function Window.new(title, opts)
 		record.open = state
 		for _, slot in ipairs(record.slots) do
 			if slot.Parent then
-				slot.Visible = state
+				slot.Visible = state and record.tab == active_tab
 			end
 		end
 		if w._nav_refresh then
@@ -602,6 +870,22 @@ function Window.new(title, opts)
 				end
 			end)
 		end
+	end
+
+	function w._slot(height, ungrouped)
+		return slot_for(active_tab, height, ungrouped)
+	end
+
+	function w._new_section()
+		return { open = true, slots = {}, tab = active_tab }
+	end
+
+	function w._focus_section(record)
+		active_tab.cursor = record
+	end
+
+	function w._toggle_section(record, state)
+		toggle_section(record, state)
 	end
 
 	function w._row(height)
@@ -649,9 +933,23 @@ function Window.new(title, opts)
 	local nav_items = {}
 	local nav_current
 
+	local function shown(object)
+		local node = object
+		while node do
+			if node.Visible == false then
+				return false
+			end
+			if node == scroll then
+				return true
+			end
+			node = node.Parent
+		end
+		return true
+	end
+
 	local function nav_item_available(item)
 		local row = item.row
-		if not row or not row.Parent or not row.Visible or row.AbsoluteSize.Y <= 0 then
+		if not row or not row.Parent or not shown(row) or row.AbsoluteSize.Y <= 0 then
 			return false
 		end
 		if item.is_enabled and not item.is_enabled() then
@@ -760,7 +1058,7 @@ function Window.new(title, opts)
 
 	function w._nav_register(row, opts)
 		opts = opts or {}
-		local edge = util.new("UIStroke", {
+		local nav_edge = util.new("UIStroke", {
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 			Color = values().accent,
 			Thickness = 1,
@@ -778,12 +1076,12 @@ function Window.new(title, opts)
 			Parent = row,
 		})
 		style.paint(function()
-			edge.Color = values().accent
+			nav_edge.Color = values().accent
 			bar.BackgroundColor3 = values().accent
 		end)
 		local item = {
 			row = row,
-			edge = edge,
+			edge = nav_edge,
 			bar = bar,
 			activate = opts.activate,
 			adjust = opts.adjust,
@@ -885,6 +1183,143 @@ function Window.new(title, opts)
 	end)
 	links[#links + 1] = nav_changed
 
+	local function surface(tab)
+		local api = {}
+		api._tab = tab
+		tab.facade = api
+		api._mobile = mobile
+		api._head = chrome()
+		api._scroll = scroll
+		api.Gui = root
+
+		function api._slot(height, ungrouped)
+			return slot_for(tab, height, ungrouped)
+		end
+
+		function api._row(height)
+			local row = api._slot(height or row_base)
+			row.BackgroundColor3 = values().hover
+			row.BackgroundTransparency = 1
+			local line = util.divider(row)
+			style.paint(function()
+				row.BackgroundColor3 = values().hover
+				line.BackgroundColor3 = values().line
+			end)
+			return row
+		end
+
+		function api._hover(row)
+			util.hover(row)
+		end
+
+		function api._options(row, caption, build)
+			if S.options then
+				return S.options.attach(row, caption, build)
+			end
+		end
+
+		function api._popover(panel)
+			panels[#panels + 1] = panel
+			return panel
+		end
+
+		api._fit = fit
+		api._modal = modal
+
+		function api._bind(kind, caption, handler)
+			return config.bind(key, kind, caption, handler)
+		end
+
+		function api._store(id, value)
+			config.put(key, id, value)
+		end
+
+		function api._link(signal, fn)
+			return w._link(signal, fn)
+		end
+
+		function api._nav_register(row, spec)
+			return w._nav_register(row, spec)
+		end
+
+		function api._nav_refresh()
+			w._nav_refresh()
+		end
+
+		function api._nav_clear()
+			w._nav_clear()
+		end
+
+		function api._new_section()
+			return { open = true, slots = {}, tab = tab }
+		end
+
+		function api._focus_section(record)
+			tab.cursor = record
+		end
+
+		function api._toggle_section(record, state)
+			toggle_section(record, state)
+		end
+
+		return api
+	end
+
+	local function decorate(target)
+		target.button = function(self, text, callback, icon, spec)
+			return S.inputs.button(self, text, callback, icon, spec)
+		end
+		target.toggle = function(self, text, a, b, spec)
+			return S.inputs.toggle(self, text, a, b, spec)
+		end
+		target.slider = function(self, text, min, max, default, callback, step, icon, spec)
+			return S.inputs.slider(self, text, min, max, default, callback, step, icon, spec)
+		end
+		target.keybind = function(self, text, default, callback, icon, spec)
+			return S.inputs.keybind(self, text, default, callback, icon, spec)
+		end
+		target.dropdown = function(self, text, options, default, callback, multi, icon, spec)
+			return S.selects.dropdown(self, text, options, default, callback, multi, icon, spec)
+		end
+		target.colorpicker = function(self, text, default, callback, icon, spec)
+			return S.selects.colorpicker(self, text, default, callback, icon, spec)
+		end
+		target.textbox = function(self, text, default, callback, icon, spec)
+			return S.text.textbox(self, text, default, callback, icon, spec)
+		end
+		target.section = function(self, text, icon)
+			return S.text.section(self, text, icon)
+		end
+		target.label = function(self, text)
+			return S.text.label(self, text)
+		end
+		target.separator = function(self)
+			return S.text.separator(self)
+		end
+		return target
+	end
+
+	function w.Tab(self, name, spec)
+		spec = type(spec) == "table" and spec or {}
+		local label = tostring(name or "Tab")
+		local tab_icon = type(spec.icon) == "string" and spec.icon ~= "" and spec.icon or nil
+		local note = type(spec.tooltip) == "string" and spec.tooltip ~= "" and spec.tooltip or nil
+		local tab
+		if #tabs == 1 and default_tab.implicit and #default_tab.slots == 0 then
+			tab = default_tab
+			tab.name = label
+			tab.icon = tab_icon
+			tab.tooltip = note
+			tab.implicit = false
+			chip_for(tab)
+		else
+			tab = make_tab(label, tab_icon, note, #tabs + 1)
+		end
+		layout_chrome()
+		set_tab(tab, true)
+		return decorate(surface(tab))
+	end
+
 	function w:SetTitle(text)
 		caption.Text = tostring(text)
 	end
@@ -902,6 +1337,8 @@ function Window.new(title, opts)
 		close()
 	end
 
+	decorate(w)
+
 	config.attach_window(key, {
 		restore = function(state)
 			local view = env.viewport()
@@ -911,10 +1348,10 @@ function Window.new(title, opts)
 				root.Size = UDim2.fromOffset(width, root.Size.Y.Offset)
 			end
 			if type(state.height) == "number" then
-				height_override = math.clamp(state.height, 34, max_body_height(view, head))
+				height_override = math.clamp(state.height, 34, max_body_height(view, chrome()))
 			end
 			if type(state.x) == "number" and type(state.y) == "number" then
-				root.Position = UDim2.fromOffset(math.clamp(state.x, -(width - 70), view.X - 70), math.clamp(state.y, safe_top, math.max(safe_top, view.Y - head - 4))
+				root.Position = UDim2.fromOffset(math.clamp(state.x, -(width - 70), view.X - 70), math.clamp(state.y, safe_top, math.max(safe_top, view.Y - chrome() - 4))
 				)
 			end
 			if state.open ~= nil then
@@ -929,9 +1366,18 @@ function Window.new(title, opts)
 	root.Destroying:Connect(function()
 		remember()
 		modal.dismiss()
+		if tooltip then
+			tooltip.hide()
+		end
 		for index, entry in ipairs(Window.windows) do
 			if entry == w then
 				table.remove(Window.windows, index)
+				break
+			end
+		end
+		for index, entry in ipairs(Window.roots) do
+			if entry == root then
+				table.remove(Window.roots, index)
 				break
 			end
 		end
@@ -939,16 +1385,25 @@ function Window.new(title, opts)
 			nav.owner = nil
 		end
 		for _, conn in ipairs(links) do
-			conn:Disconnect()
+			if conn then
+				pcall(function()
+					conn:Disconnect()
+				end)
+			end
 		end
 		for _, panel in ipairs(panels) do
-			panel:Destroy()
+			if panel.Parent then
+				panel:Destroy()
+			end
 		end
 	end)
 
 	style.paint(function()
 		body.BackgroundColor3 = values().background
 		header.BackgroundColor3 = values().panel
+		strip.BackgroundColor3 = values().raised
+		strip_seam.BackgroundColor3 = values().line
+		backdrop_scrim.BackgroundColor3 = values().background:Lerp(Color3.new(0, 0, 0), 0.7)
 		caption.TextColor3 = values().text
 		mark.BackgroundColor3 = values().accent
 		seam.BackgroundColor3 = values().line
@@ -961,8 +1416,12 @@ function Window.new(title, opts)
 		for _, pip in ipairs(pips) do
 			pip.BackgroundColor3 = values().muted
 		end
+		for _, entry in ipairs(tabs) do
+			paint_tab(entry)
+		end
 	end)
 
+	layout_chrome()
 	fit(false)
 	Window.windows[#Window.windows + 1] = w
 	return w
