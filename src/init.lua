@@ -155,8 +155,8 @@ function Library:Notify(title, body, duration, kind)
 	return S.notify(title, body, duration, kind)
 end
 
-function Library:SetBackground(asset, opts)
-	return S.background.set(asset, opts)
+function Library:SetBackground(asset, opts, callback)
+	return S.background.set(asset, opts, callback)
 end
 
 function Library:GetBackground()

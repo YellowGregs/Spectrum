@@ -172,7 +172,7 @@ function Window.new(title, opts)
 	})
 
 	local function apply_backdrop(state)
-		if not state.asset then
+		if not state.asset or state.status == "failed" then
 			backdrop.Visible = false
 			backdrop_image.Image = ""
 			return
