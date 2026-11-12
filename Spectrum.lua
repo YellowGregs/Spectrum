@@ -479,9 +479,6 @@ local util = S.util
 local style = S.style
 local icons = {}
 
--- Named icons are rendered from locally cached Lucide spritesheets instead
--- of rbxassetid:// references. The cache keeps internal image asset IDs out of
--- the GUI; executors without local file assets fall back to the drawn icons.
 local lucide = {
 	gear = "settings",
 	settings = "settings",
