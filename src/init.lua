@@ -15,6 +15,7 @@ local panic_held = {}
 local panic_fired = false
 local menu_open = true
 local mobile_launcher
+local splash
 local menu_held = {}
 local combo_fired = false
 
@@ -301,7 +302,7 @@ local menu_link = env.uis.InputBegan:Connect(function(input, processed)
 	if processed then
 		return
 	end
-	if S.binding or focused_text_box() then
+	if S.splash_open or S.binding or focused_text_box() then
 		return
 	end
 	local name = util.input_id(input)
@@ -342,6 +343,11 @@ end)
 
 function Library:Destroy()
 	config.flush()
+	S.splash_open = false
+	if splash and splash.destroy then
+		splash.destroy()
+		splash = nil
+	end
 	if menu_link then
 		menu_link:Disconnect()
 		menu_link = nil
@@ -363,6 +369,7 @@ function Library:Destroy()
 	S.env.modal:Destroy()
 	S.env.notes:Destroy()
 	S.env.launcher:Destroy()
+	S.env.splash:Destroy()
 	if shared.Spectrum == Library then
 		shared.Spectrum = nil
 	end
@@ -381,6 +388,14 @@ if env.mobile then
 	if mobile_launcher then
 		mobile_launcher.set_open(menu_open)
 	end
+end
+
+local splash_ok, splash_handle = pcall(function()
+	return S.splash.mount()
+end)
+splash = splash_ok and splash_handle or nil
+if not splash_ok then
+	S.splash_open = false
 end
 
 shared.Spectrum = Library

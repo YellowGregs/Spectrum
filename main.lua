@@ -4,18 +4,20 @@ local MODULES = {
 	"src/core/style",
 	"src/core/util",
 	"src/core/icons",
+	"src/core/brand",
 	"src/core/modal",
 	"src/core/options",
 	"src/core/config",
 	"src/core/launcher",
 	"src/core/notify",
+	"src/core/splash",
 	"src/ui/window",
 	"src/ui/inputs",
 	"src/ui/selects",
 	"src/ui/text",
 	"src/init",
 }
-local CACHE_VERSION = "6"
+local CACHE_VERSION = "7"
 
 if not game:IsLoaded() then
 	game.Loaded:Wait()

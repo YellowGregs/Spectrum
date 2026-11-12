@@ -803,7 +803,7 @@ function Window.new(title, opts)
 	end
 
 	local function nav_ready()
-		return root.Visible and root.Parent ~= nil and open and not util.focused_text_box() and not S.binding and not modal.current
+		return root.Visible and root.Parent ~= nil and open and not S.splash_open and not util.focused_text_box() and not S.binding and not modal.current
 	end
 
 	local function nav_here()
