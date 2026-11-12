@@ -11,6 +11,30 @@ local font = Enum.Font.GothamMedium
 
 local Window = {}
 Window.roots = {}
+Window.windows = {}
+
+local nav = { owner = nil }
+
+local function nav_claim(win)
+	local previous = nav.owner
+	if previous and previous ~= win and previous._nav_clear then
+		previous._nav_clear()
+	end
+	nav.owner = win
+end
+
+local function nav_target()
+	if nav.owner and nav.owner._nav_available and nav.owner._nav_available() then
+		return nav.owner
+	end
+	local best
+	for _, win in ipairs(Window.windows) do
+		if win._nav_available and win._nav_available() and (not best or win.Gui.ZIndex > best.Gui.ZIndex) then
+			best = win
+		end
+	end
+	return best
+end
 
 local slots = 0
 local top = 10
@@ -329,6 +353,7 @@ function Window.new(title, opts)
 	local function front()
 		top = top + 1
 		root.ZIndex = top
+		nav_claim(w)
 	end
 	w._front = front
 
@@ -567,6 +592,9 @@ function Window.new(title, opts)
 				slot.Visible = state
 			end
 		end
+		if w._nav_refresh then
+			w._nav_refresh()
+		end
 		if w._fit then
 			task.defer(function()
 				if w.Gui and w.Gui.Parent and w._fit then
@@ -614,6 +642,249 @@ function Window.new(title, opts)
 		config.put(key, id, value)
 	end
 
+	w._nav_available = function()
+		return root.Visible and root.Parent ~= nil and open
+	end
+
+	local nav_items = {}
+	local nav_current
+
+	local function nav_item_available(item)
+		local row = item.row
+		if not row or not row.Parent or not row.Visible or row.AbsoluteSize.Y <= 0 then
+			return false
+		end
+		if item.is_enabled and not item.is_enabled() then
+			return false
+		end
+		return true
+	end
+
+	local function nav_scroll(item)
+		local row = item.row
+		if not row or not row.Parent or not scroll.Parent then
+			return
+		end
+		local top = row.AbsolutePosition.Y - scroll.AbsolutePosition.Y + scroll.CanvasPosition.Y
+		local view_top = scroll.CanvasPosition.Y
+		local view_bottom = view_top + scroll.AbsoluteSize.Y
+		if top < view_top then
+			scroll.CanvasPosition = Vector2.new(scroll.CanvasPosition.X, math.max(0, top - 2))
+		elseif top + row.AbsoluteSize.Y > view_bottom then
+			scroll.CanvasPosition = Vector2.new(scroll.CanvasPosition.X, math.max(0, top + row.AbsoluteSize.Y - scroll.AbsoluteSize.Y + 2))
+		end
+	end
+
+	local function nav_clear()
+		if nav_current then
+			if nav_current.edge then
+				nav_current.edge.Transparency = 1
+			end
+			if nav_current.bar then
+				nav_current.bar.Visible = false
+			end
+		end
+		nav_current = nil
+	end
+
+	w._nav_clear = nav_clear
+
+	local function nav_focus(item)
+		if nav_current and nav_current ~= item then
+			if nav_current.edge then
+				nav_current.edge.Transparency = 1
+			end
+			if nav_current.bar then
+				nav_current.bar.Visible = false
+			end
+		end
+		nav_current = item
+		if item.edge then
+			item.edge.Transparency = 0.15
+		end
+		if item.bar then
+			item.bar.Visible = true
+		end
+		nav_scroll(item)
+	end
+
+	local function nav_walk(index, direction)
+		local count = #nav_items
+		if count == 0 then
+			return
+		end
+		for _ = 1, count do
+			index = index + direction
+			if index > count then
+				index = 1
+			elseif index < 1 then
+				index = count
+			end
+			local item = nav_items[index]
+			if nav_item_available(item) then
+				nav_focus(item)
+				return
+			end
+		end
+		nav_clear()
+	end
+
+	local function nav_step(direction)
+		local index = nav_current and nav_current.index or (direction > 0 and 0 or #nav_items + 1)
+		nav_walk(index, direction)
+	end
+
+	local function nav_edge(direction)
+		nav_walk(direction > 0 and 0 or #nav_items + 1, direction)
+	end
+
+	local function nav_activate()
+		local item = nav_current
+		if not item or not item.activate or not nav_item_available(item) then
+			nav_clear()
+			return
+		end
+		task.defer(function()
+			if nav_current == item and nav_item_available(item) then
+				item.activate()
+			end
+		end)
+	end
+
+	local function nav_adjust(direction)
+		local item = nav_current
+		if item and item.adjust and nav_item_available(item) then
+			item.adjust(direction)
+		end
+	end
+
+	function w._nav_register(row, opts)
+		opts = opts or {}
+		local edge = util.new("UIStroke", {
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			Color = values().accent,
+			Thickness = 1,
+			Transparency = 1,
+			Parent = row,
+		})
+		local bar = util.new("Frame", {
+			Name = "nav_focus_bar",
+			BackgroundColor3 = values().accent,
+			Active = false,
+			BorderSizePixel = 0,
+			Size = UDim2.new(0, 2, 1, 0),
+			Visible = false,
+			ZIndex = 20,
+			Parent = row,
+		})
+		style.paint(function()
+			edge.Color = values().accent
+			bar.BackgroundColor3 = values().accent
+		end)
+		local item = {
+			row = row,
+			edge = edge,
+			bar = bar,
+			activate = opts.activate,
+			adjust = opts.adjust,
+			is_enabled = opts.is_enabled,
+			kind = opts.kind,
+			label = opts.label,
+			index = #nav_items + 1,
+		}
+		nav_items[#nav_items + 1] = item
+		return item
+	end
+
+	function w._nav_refresh()
+		if nav_current and not nav_item_available(nav_current) then
+			nav_clear()
+		end
+	end
+
+	local function nav_ready()
+		return root.Visible and root.Parent ~= nil and open and not util.focused_text_box() and not S.binding and not modal.current
+	end
+
+	local function nav_here()
+		if nav_target() ~= w then
+			return false
+		end
+		if nav.owner ~= w then
+			nav_claim(w)
+		end
+		return true
+	end
+
+	local nav_input = env.uis.InputBegan:Connect(function(input, processed)
+		if processed or not nav_ready() or not nav_here() then
+			return
+		end
+		local code = input.KeyCode
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.Keyboard then
+			if code == Enum.KeyCode.Down or code == Enum.KeyCode.Tab then
+				nav_step(1)
+			elseif code == Enum.KeyCode.Up then
+				nav_step(-1)
+			elseif code == Enum.KeyCode.Home then
+				nav_edge(1)
+			elseif code == Enum.KeyCode.End then
+				nav_edge(-1)
+			elseif code == Enum.KeyCode.Return or code == Enum.KeyCode.KeypadEnter then
+				nav_activate()
+			elseif code == Enum.KeyCode.Left then
+				nav_adjust(-1)
+			elseif code == Enum.KeyCode.Right then
+				nav_adjust(1)
+			elseif code == Enum.KeyCode.Escape then
+				nav_clear()
+			end
+		elseif string.match(kind.Name, "^Gamepad") then
+			if code == Enum.KeyCode.DPadDown then
+				nav_step(1)
+			elseif code == Enum.KeyCode.DPadUp then
+				nav_step(-1)
+			elseif code == Enum.KeyCode.DPadLeft then
+				nav_adjust(-1)
+			elseif code == Enum.KeyCode.DPadRight then
+				nav_adjust(1)
+			elseif code == Enum.KeyCode.ButtonA then
+				nav_activate()
+			elseif code == Enum.KeyCode.ButtonB then
+				nav_clear()
+			end
+		end
+	end)
+	links[#links + 1] = nav_input
+
+	local stick_latched = false
+	local stick_next = 0
+	local nav_changed = env.uis.InputChanged:Connect(function(input)
+		if not string.match(input.UserInputType.Name, "^Gamepad") then
+			stick_latched = false
+			return
+		end
+		if not nav_ready() or not nav_here() then
+			stick_latched = false
+			return
+		end
+		local y = input.Position.Y
+		local direction = y > 0.55 and -1 or (y < -0.55 and 1 or 0)
+		if direction == 0 then
+			stick_latched = false
+			return
+		end
+		local now = os.clock()
+		if stick_latched and now < stick_next then
+			return
+		end
+		nav_step(direction)
+		stick_latched = true
+		stick_next = now + 0.18
+	end)
+	links[#links + 1] = nav_changed
+
 	function w:SetTitle(text)
 		caption.Text = tostring(text)
 	end
@@ -658,6 +929,15 @@ function Window.new(title, opts)
 	root.Destroying:Connect(function()
 		remember()
 		modal.dismiss()
+		for index, entry in ipairs(Window.windows) do
+			if entry == w then
+				table.remove(Window.windows, index)
+				break
+			end
+		end
+		if nav.owner == w then
+			nav.owner = nil
+		end
 		for _, conn in ipairs(links) do
 			conn:Disconnect()
 		end
@@ -684,6 +964,7 @@ function Window.new(title, opts)
 	end)
 
 	fit(false)
+	Window.windows[#Window.windows + 1] = w
 	return w
 end
 

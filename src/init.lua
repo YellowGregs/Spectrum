@@ -2,6 +2,7 @@ local S = ...
 
 local env = S.env
 local config = S.config
+local util = S.util
 local Library = {}
 Library.Version = "3.1"
 
@@ -34,14 +35,11 @@ local function combo_keys()
 end
 
 local function combo_label(value)
-	local label = tostring(value or "")
-	label = label:gsub("LeftControl", "LCtrl")
-	label = label:gsub("RightControl", "RCtrl")
-	label = label:gsub("LeftShift", "LShift")
-	label = label:gsub("RightShift", "RShift")
-	label = label:gsub("LeftAlt", "LAlt")
-	label = label:gsub("RightAlt", "RAlt")
-	return label
+	local parts = {}
+	for part in string.gmatch(tostring(value or ""), "[^+]+") do
+		parts[#parts + 1] = util.input_label(part)
+	end
+	return table.concat(parts, "+")
 end
 
 local function all_held()
@@ -130,6 +128,25 @@ function Library:GetDesign()
 	return S.style.copy()
 end
 
+function Library:SetDisabled(control, value)
+	if type(control) == "table" and type(control.SetDisabled) == "function" then
+		control:SetDisabled(value)
+	elseif typeof(control) == "Instance" and control:GetAttribute("SpectrumDisabled") ~= nil then
+		control:SetAttribute("SpectrumDisabled", value == true)
+	end
+	return control
+end
+
+function Library:GetDisabled(control)
+	if type(control) == "table" and type(control.GetDisabled) == "function" then
+		return control:GetDisabled() == true
+	end
+	if typeof(control) == "Instance" then
+		return control:GetAttribute("SpectrumDisabled") == true
+	end
+	return false
+end
+
 function Library:Notify(title, body, duration, kind)
 	return S.notify(title, body, duration, kind)
 end
@@ -138,26 +155,26 @@ function Library:Window(title, opts)
 	local win = S.window.new(title, opts)
 	win.Gui.Visible = menu_open
 
-	win.button = function(self, text, callback, icon)
-		return S.inputs.button(self, text, callback, icon)
+	win.button = function(self, text, callback, icon, opts)
+		return S.inputs.button(self, text, callback, icon, opts)
 	end
 	win.toggle = function(self, text, a, b, opts)
 		return S.inputs.toggle(self, text, a, b, opts)
 	end
-	win.slider = function(self, text, min, max, default, callback, step, icon)
-		return S.inputs.slider(self, text, min, max, default, callback, step, icon)
+	win.slider = function(self, text, min, max, default, callback, step, icon, opts)
+		return S.inputs.slider(self, text, min, max, default, callback, step, icon, opts)
 	end
 	win.keybind = function(self, text, default, callback, icon, opts)
 		return S.inputs.keybind(self, text, default, callback, icon, opts)
 	end
-	win.dropdown = function(self, text, options, default, callback, multi, icon)
-		return S.selects.dropdown(self, text, options, default, callback, multi, icon)
+	win.dropdown = function(self, text, options, default, callback, multi, icon, opts)
+		return S.selects.dropdown(self, text, options, default, callback, multi, icon, opts)
 	end
-	win.colorpicker = function(self, text, default, callback, icon)
-		return S.selects.colorpicker(self, text, default, callback, icon)
+	win.colorpicker = function(self, text, default, callback, icon, opts)
+		return S.selects.colorpicker(self, text, default, callback, icon, opts)
 	end
-	win.textbox = function(self, text, default, callback, icon)
-		return S.text.textbox(self, text, default, callback, icon)
+	win.textbox = function(self, text, default, callback, icon, opts)
+		return S.text.textbox(self, text, default, callback, icon, opts)
 	end
 	win.section = function(self, text, icon)
 		return S.text.section(self, text, icon)
@@ -280,15 +297,15 @@ local function focused_text_box()
 	return focused ~= nil
 end
 
-local menu_link = env.uis.InputBegan:Connect(function(input)
-	if input.UserInputType ~= Enum.UserInputType.Keyboard then
+local menu_link = env.uis.InputBegan:Connect(function(input, processed)
+	if processed then
 		return
 	end
 	if S.binding or focused_text_box() then
 		return
 	end
-	local name = input.KeyCode.Name
-	if name == "Unknown" then
+	local name = util.input_id(input)
+	if not name then
 		return
 	end
 	menu_held[name] = true
@@ -307,10 +324,10 @@ local menu_link = env.uis.InputBegan:Connect(function(input)
 end)
 
 local menu_release = env.uis.InputEnded:Connect(function(input)
-	if input.UserInputType ~= Enum.UserInputType.Keyboard then
+	local name = util.input_id(input)
+	if not name then
 		return
 	end
-	local name = input.KeyCode.Name
 	menu_held[name] = nil
 	if panic_key then
 		panic_held[name] = nil
@@ -366,4 +383,5 @@ if env.mobile then
 	end
 end
 
+shared.Spectrum = Library
 S.library = Library

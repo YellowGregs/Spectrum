@@ -163,6 +163,55 @@ function util.size(base)
 	return base + (env.mobile and 1 or 0)
 end
 
+function util.input_id(input)
+	if not input or not input.UserInputType then
+		return nil
+	end
+	local kind = input.UserInputType
+	local kind_name = kind.Name
+	if kind == Enum.UserInputType.Keyboard then
+		local name = input.KeyCode and input.KeyCode.Name or "Unknown"
+		return name ~= "Unknown" and name or nil
+	end
+	if string.match(kind_name, "^MouseButton%d+$") then
+		return kind_name
+	end
+	if string.match(kind_name, "^Gamepad%d+$") then
+		local name = input.KeyCode and input.KeyCode.Name or "Unknown"
+		return name ~= "Unknown" and name or nil
+	end
+	return nil
+end
+
+function util.input_label(value)
+	local label = tostring(value or "None")
+	local mouse = {
+		MouseButton1 = "LMB",
+		MouseButton2 = "RMB",
+		MouseButton3 = "MMB",
+	}
+	if mouse[label] then
+		return mouse[label]
+	end
+	label = label:gsub("^Button", "Pad ")
+	label = label:gsub("RightControl", "RCtrl")
+	label = label:gsub("LeftControl", "LCtrl")
+	label = label:gsub("RightShift", "RShift")
+	label = label:gsub("LeftShift", "LShift")
+	label = label:gsub("RightAlt", "RAlt")
+	label = label:gsub("LeftAlt", "LAlt")
+	label = label:gsub("Backspace", "Bksp")
+	label = label:gsub("Escape", "Esc")
+	return label
+end
+
+function util.focused_text_box()
+	local ok, box = pcall(function()
+		return env.uis:GetFocusedTextBox()
+	end)
+	return ok and box or nil
+end
+
 style.paint(function()
 	for _, corner in ipairs(themed) do
 		if corner.Parent then

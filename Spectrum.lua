@@ -412,6 +412,55 @@ function util.size(base)
 	return base + (env.mobile and 1 or 0)
 end
 
+function util.input_id(input)
+	if not input or not input.UserInputType then
+		return nil
+	end
+	local kind = input.UserInputType
+	local kind_name = kind.Name
+	if kind == Enum.UserInputType.Keyboard then
+		local name = input.KeyCode and input.KeyCode.Name or "Unknown"
+		return name ~= "Unknown" and name or nil
+	end
+	if string.match(kind_name, "^MouseButton%d+$") then
+		return kind_name
+	end
+	if string.match(kind_name, "^Gamepad%d+$") then
+		local name = input.KeyCode and input.KeyCode.Name or "Unknown"
+		return name ~= "Unknown" and name or nil
+	end
+	return nil
+end
+
+function util.input_label(value)
+	local label = tostring(value or "None")
+	local mouse = {
+		MouseButton1 = "LMB",
+		MouseButton2 = "RMB",
+		MouseButton3 = "MMB",
+	}
+	if mouse[label] then
+		return mouse[label]
+	end
+	label = label:gsub("^Button", "Pad ")
+	label = label:gsub("RightControl", "RCtrl")
+	label = label:gsub("LeftControl", "LCtrl")
+	label = label:gsub("RightShift", "RShift")
+	label = label:gsub("LeftShift", "LShift")
+	label = label:gsub("RightAlt", "RAlt")
+	label = label:gsub("LeftAlt", "LAlt")
+	label = label:gsub("Backspace", "Bksp")
+	label = label:gsub("Escape", "Esc")
+	return label
+end
+
+function util.focused_text_box()
+	local ok, box = pcall(function()
+		return env.uis:GetFocusedTextBox()
+	end)
+	return ok and box or nil
+end
+
 style.paint(function()
 	for _, corner in ipairs(themed) do
 		if corner.Parent then
@@ -430,6 +479,9 @@ local util = S.util
 local style = S.style
 local icons = {}
 
+-- Named icons are rendered from locally cached Lucide spritesheets instead
+-- of rbxassetid:// references. The cache keeps internal image asset IDs out of
+-- the GUI; executors without local file assets fall back to the drawn icons.
 local lucide = {
 	gear = "settings",
 	settings = "settings",
@@ -2278,6 +2330,30 @@ local font = Enum.Font.GothamMedium
 
 local Window = {}
 Window.roots = {}
+Window.windows = {}
+
+local nav = { owner = nil }
+
+local function nav_claim(win)
+	local previous = nav.owner
+	if previous and previous ~= win and previous._nav_clear then
+		previous._nav_clear()
+	end
+	nav.owner = win
+end
+
+local function nav_target()
+	if nav.owner and nav.owner._nav_available and nav.owner._nav_available() then
+		return nav.owner
+	end
+	local best
+	for _, win in ipairs(Window.windows) do
+		if win._nav_available and win._nav_available() and (not best or win.Gui.ZIndex > best.Gui.ZIndex) then
+			best = win
+		end
+	end
+	return best
+end
 
 local slots = 0
 local top = 10
@@ -2596,6 +2672,7 @@ function Window.new(title, opts)
 	local function front()
 		top = top + 1
 		root.ZIndex = top
+		nav_claim(w)
 	end
 	w._front = front
 
@@ -2834,6 +2911,9 @@ function Window.new(title, opts)
 				slot.Visible = state
 			end
 		end
+		if w._nav_refresh then
+			w._nav_refresh()
+		end
 		if w._fit then
 			task.defer(function()
 				if w.Gui and w.Gui.Parent and w._fit then
@@ -2881,6 +2961,249 @@ function Window.new(title, opts)
 		config.put(key, id, value)
 	end
 
+	w._nav_available = function()
+		return root.Visible and root.Parent ~= nil and open
+	end
+
+	local nav_items = {}
+	local nav_current
+
+	local function nav_item_available(item)
+		local row = item.row
+		if not row or not row.Parent or not row.Visible or row.AbsoluteSize.Y <= 0 then
+			return false
+		end
+		if item.is_enabled and not item.is_enabled() then
+			return false
+		end
+		return true
+	end
+
+	local function nav_scroll(item)
+		local row = item.row
+		if not row or not row.Parent or not scroll.Parent then
+			return
+		end
+		local top = row.AbsolutePosition.Y - scroll.AbsolutePosition.Y + scroll.CanvasPosition.Y
+		local view_top = scroll.CanvasPosition.Y
+		local view_bottom = view_top + scroll.AbsoluteSize.Y
+		if top < view_top then
+			scroll.CanvasPosition = Vector2.new(scroll.CanvasPosition.X, math.max(0, top - 2))
+		elseif top + row.AbsoluteSize.Y > view_bottom then
+			scroll.CanvasPosition = Vector2.new(scroll.CanvasPosition.X, math.max(0, top + row.AbsoluteSize.Y - scroll.AbsoluteSize.Y + 2))
+		end
+	end
+
+	local function nav_clear()
+		if nav_current then
+			if nav_current.edge then
+				nav_current.edge.Transparency = 1
+			end
+			if nav_current.bar then
+				nav_current.bar.Visible = false
+			end
+		end
+		nav_current = nil
+	end
+
+	w._nav_clear = nav_clear
+
+	local function nav_focus(item)
+		if nav_current and nav_current ~= item then
+			if nav_current.edge then
+				nav_current.edge.Transparency = 1
+			end
+			if nav_current.bar then
+				nav_current.bar.Visible = false
+			end
+		end
+		nav_current = item
+		if item.edge then
+			item.edge.Transparency = 0.15
+		end
+		if item.bar then
+			item.bar.Visible = true
+		end
+		nav_scroll(item)
+	end
+
+	local function nav_walk(index, direction)
+		local count = #nav_items
+		if count == 0 then
+			return
+		end
+		for _ = 1, count do
+			index = index + direction
+			if index > count then
+				index = 1
+			elseif index < 1 then
+				index = count
+			end
+			local item = nav_items[index]
+			if nav_item_available(item) then
+				nav_focus(item)
+				return
+			end
+		end
+		nav_clear()
+	end
+
+	local function nav_step(direction)
+		local index = nav_current and nav_current.index or (direction > 0 and 0 or #nav_items + 1)
+		nav_walk(index, direction)
+	end
+
+	local function nav_edge(direction)
+		nav_walk(direction > 0 and 0 or #nav_items + 1, direction)
+	end
+
+	local function nav_activate()
+		local item = nav_current
+		if not item or not item.activate or not nav_item_available(item) then
+			nav_clear()
+			return
+		end
+		task.defer(function()
+			if nav_current == item and nav_item_available(item) then
+				item.activate()
+			end
+		end)
+	end
+
+	local function nav_adjust(direction)
+		local item = nav_current
+		if item and item.adjust and nav_item_available(item) then
+			item.adjust(direction)
+		end
+	end
+
+	function w._nav_register(row, opts)
+		opts = opts or {}
+		local edge = util.new("UIStroke", {
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			Color = values().accent,
+			Thickness = 1,
+			Transparency = 1,
+			Parent = row,
+		})
+		local bar = util.new("Frame", {
+			Name = "nav_focus_bar",
+			BackgroundColor3 = values().accent,
+			Active = false,
+			BorderSizePixel = 0,
+			Size = UDim2.new(0, 2, 1, 0),
+			Visible = false,
+			ZIndex = 20,
+			Parent = row,
+		})
+		style.paint(function()
+			edge.Color = values().accent
+			bar.BackgroundColor3 = values().accent
+		end)
+		local item = {
+			row = row,
+			edge = edge,
+			bar = bar,
+			activate = opts.activate,
+			adjust = opts.adjust,
+			is_enabled = opts.is_enabled,
+			kind = opts.kind,
+			label = opts.label,
+			index = #nav_items + 1,
+		}
+		nav_items[#nav_items + 1] = item
+		return item
+	end
+
+	function w._nav_refresh()
+		if nav_current and not nav_item_available(nav_current) then
+			nav_clear()
+		end
+	end
+
+	local function nav_ready()
+		return root.Visible and root.Parent ~= nil and open and not util.focused_text_box() and not S.binding and not modal.current
+	end
+
+	local function nav_here()
+		if nav_target() ~= w then
+			return false
+		end
+		if nav.owner ~= w then
+			nav_claim(w)
+		end
+		return true
+	end
+
+	local nav_input = env.uis.InputBegan:Connect(function(input, processed)
+		if processed or not nav_ready() or not nav_here() then
+			return
+		end
+		local code = input.KeyCode
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.Keyboard then
+			if code == Enum.KeyCode.Down or code == Enum.KeyCode.Tab then
+				nav_step(1)
+			elseif code == Enum.KeyCode.Up then
+				nav_step(-1)
+			elseif code == Enum.KeyCode.Home then
+				nav_edge(1)
+			elseif code == Enum.KeyCode.End then
+				nav_edge(-1)
+			elseif code == Enum.KeyCode.Return or code == Enum.KeyCode.KeypadEnter then
+				nav_activate()
+			elseif code == Enum.KeyCode.Left then
+				nav_adjust(-1)
+			elseif code == Enum.KeyCode.Right then
+				nav_adjust(1)
+			elseif code == Enum.KeyCode.Escape then
+				nav_clear()
+			end
+		elseif string.match(kind.Name, "^Gamepad") then
+			if code == Enum.KeyCode.DPadDown then
+				nav_step(1)
+			elseif code == Enum.KeyCode.DPadUp then
+				nav_step(-1)
+			elseif code == Enum.KeyCode.DPadLeft then
+				nav_adjust(-1)
+			elseif code == Enum.KeyCode.DPadRight then
+				nav_adjust(1)
+			elseif code == Enum.KeyCode.ButtonA then
+				nav_activate()
+			elseif code == Enum.KeyCode.ButtonB then
+				nav_clear()
+			end
+		end
+	end)
+	links[#links + 1] = nav_input
+
+	local stick_latched = false
+	local stick_next = 0
+	local nav_changed = env.uis.InputChanged:Connect(function(input)
+		if not string.match(input.UserInputType.Name, "^Gamepad") then
+			stick_latched = false
+			return
+		end
+		if not nav_ready() or not nav_here() then
+			stick_latched = false
+			return
+		end
+		local y = input.Position.Y
+		local direction = y > 0.55 and -1 or (y < -0.55 and 1 or 0)
+		if direction == 0 then
+			stick_latched = false
+			return
+		end
+		local now = os.clock()
+		if stick_latched and now < stick_next then
+			return
+		end
+		nav_step(direction)
+		stick_latched = true
+		stick_next = now + 0.18
+	end)
+	links[#links + 1] = nav_changed
+
 	function w:SetTitle(text)
 		caption.Text = tostring(text)
 	end
@@ -2925,6 +3248,15 @@ function Window.new(title, opts)
 	root.Destroying:Connect(function()
 		remember()
 		modal.dismiss()
+		for index, entry in ipairs(Window.windows) do
+			if entry == w then
+				table.remove(Window.windows, index)
+				break
+			end
+		end
+		if nav.owner == w then
+			nav.owner = nil
+		end
 		for _, conn in ipairs(links) do
 			conn:Disconnect()
 		end
@@ -2951,6 +3283,7 @@ function Window.new(title, opts)
 	end)
 
 	fit(false)
+	Window.windows[#Window.windows + 1] = w
 	return w
 end
 
@@ -3005,7 +3338,13 @@ local function row_emblem(parent, icon, size, color, y)
 	return emblem
 end
 
-function inputs.button(win, text, callback, icon)
+function inputs.button(win, text, callback, icon, opts)
+	if type(icon) == "table" and opts == nil then
+		opts = icon
+		icon = opts.icon
+	end
+	opts = type(opts) == "table" and opts or {}
+	local disabled = opts.disabled == true
 	local mobile = win._mobile
 	local holder = win._slot(mobile and 46 or 32)
 	local btn = util.new("TextButton", {
@@ -3013,6 +3352,7 @@ function inputs.button(win, text, callback, icon)
 		BackgroundColor3 = values().accent,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
+		Active = not disabled,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(1, -16, 0, mobile and 36 or 24),
@@ -3037,13 +3377,27 @@ function inputs.button(win, text, callback, icon)
 	local held = false
 
 	local function face()
+		if disabled then
+			return values().raised
+		end
 		if held then
 			return values().accent:Lerp(Color3.new(1, 1, 1), 0.14)
 		end
 		return values().accent
 	end
 
+	local function paint()
+		btn.BackgroundColor3 = face()
+		btn.TextColor3 = disabled and values().muted or style.on(values().accent)
+		if emblem then
+			icons.tint(emblem, disabled and values().muted or style.on(values().accent))
+		end
+	end
+
 	btn.MouseEnter:Connect(function()
+		if disabled then
+			return
+		end
 		held = true
 		util.tween(btn, 0.12, { BackgroundColor3 = face() })
 	end)
@@ -3052,30 +3406,70 @@ function inputs.button(win, text, callback, icon)
 		util.tween(btn, 0.15, { BackgroundColor3 = face() })
 	end)
 	btn.Activated:Connect(function()
+		if disabled then
+			return
+		end
 		if callback then
 			callback()
 		end
 	end)
 	btn.MouseButton1Down:Connect(function()
+		if disabled then
+			return
+		end
 		util.tween(pop, 0.08, { Scale = 0.97 }, Enum.EasingStyle.Quad)
 	end)
 	btn.MouseButton1Up:Connect(function()
+		if disabled then
+			return
+		end
 		util.tween(pop, 0.2, { Scale = 1 }, Enum.EasingStyle.Back)
 	end)
 
-	style.paint(function()
-		btn.BackgroundColor3 = face()
-		btn.TextColor3 = style.on(values().accent)
-		if emblem then
-			icons.tint(emblem, style.on(values().accent))
+	local function set_disabled(value)
+		disabled = value == true
+		btn.Active = not disabled
+		if disabled then
+			held = false
+			util.tween(pop, 0.1, { Scale = 1 })
 		end
+		if btn:GetAttribute("SpectrumDisabled") ~= disabled then
+			btn:SetAttribute("SpectrumDisabled", disabled)
+		end
+		paint()
+		if win._nav_refresh then
+			win._nav_refresh()
+		end
+	end
+
+	btn:SetAttribute("SpectrumDisabled", disabled)
+	btn:GetAttributeChangedSignal("SpectrumDisabled"):Connect(function()
+		set_disabled(btn:GetAttribute("SpectrumDisabled") == true)
 	end)
+	style.paint(paint)
 
 	win._options(holder, text, function()
 		return {
-			{ label = "Run action", icon = "arrow", accent = true, run = callback },
+			{ label = "Run action", icon = "arrow", accent = true, run = function()
+				if not disabled and callback then
+					callback()
+				end
+			end },
 		}
 	end)
+
+	win._nav_register(holder, {
+		kind = "button",
+		label = text,
+		is_enabled = function()
+			return not disabled
+		end,
+		activate = function()
+			if callback then
+				callback()
+			end
+		end,
+	})
 
 	win._fit(true)
 	return btn
@@ -3098,6 +3492,7 @@ function inputs.toggle(win, text, a, b, opts)
 	end
 	local kind = tostring(opts.style or "switch"):lower()
 	local checkbox = kind == "checkbox" or kind == "check"
+	local disabled = opts.disabled == true
 	local row = win._row()
 	local initial = state
 	local heading = label(row, text, 0)
@@ -3114,6 +3509,7 @@ function inputs.toggle(win, text, a, b, opts)
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
+		Active = not disabled,
 		Size = UDim2.fromScale(1, 1),
 		Text = "",
 		ZIndex = 1,
@@ -3167,11 +3563,12 @@ function inputs.toggle(win, text, a, b, opts)
 
 		sync = function()
 			check.Visible = state
-			local tint = state and values().accent or values().raised
+			local accent = disabled and values().muted or values().accent
+			local tint = state and accent or values().raised
 			util.tween(box, 0.12, { BackgroundColor3 = tint })
-			edge.Color = state and values().accent or values().line
+			edge.Color = state and accent or values().line
 			edge.Transparency = state and 1 or 0.15
-			local ink = state and style.on(values().accent) or values().ink
+			local ink = state and (disabled and values().ink or style.on(values().accent)) or values().ink
 			short.BackgroundColor3 = ink
 			long.BackgroundColor3 = ink
 		end
@@ -3206,18 +3603,22 @@ function inputs.toggle(win, text, a, b, opts)
 
 		sync = function()
 			local x = state and (width - thumb_size - 2) or 2
+			local accent = disabled and values().muted or values().accent
 			util.tween(thumb, 0.16, {
 				Position = UDim2.new(0, x, 0.5, 0),
-				BackgroundColor3 = state and Color3.new(1, 1, 1) or values().muted,
+				BackgroundColor3 = state and (disabled and values().muted or Color3.new(1, 1, 1)) or values().muted,
 			}, Enum.EasingStyle.Quart)
-			util.tween(track, 0.14, { BackgroundColor3 = state and values().accent or values().raised })
-			edge.Color = state and values().accent or values().line
+			util.tween(track, 0.14, { BackgroundColor3 = state and accent or values().raised })
+			edge.Color = state and accent or values().line
 			edge.Transparency = state and 1 or 0.2
 		end
 	end
 
 	local key
 	local function set(value, fire)
+		if disabled and fire then
+			return
+		end
 		state = value == true
 		sync()
 		pop.Scale = 0.9
@@ -3231,15 +3632,31 @@ function inputs.toggle(win, text, a, b, opts)
 	end
 
 	hit.Activated:Connect(function()
+		if disabled then
+			return
+		end
 		set(not state, true)
 	end)
+
+	local function set_disabled(value)
+		disabled = value == true
+		hit.Active = not disabled
+		heading.TextColor3 = disabled and values().muted or values().text
+		if emblem then
+			icons.tint(emblem, disabled and values().line or values().muted)
+		end
+		sync()
+		if win._nav_refresh then
+			win._nav_refresh()
+		end
+	end
 
 	style.paint(function()
 		row.BackgroundColor3 = values().hover
 		hit.BackgroundColor3 = values().hover
-		heading.TextColor3 = values().text
+		heading.TextColor3 = disabled and values().muted or values().text
 		if emblem then
-			icons.tint(emblem, values().muted)
+			icons.tint(emblem, disabled and values().line or values().muted)
 		end
 		sync()
 	end)
@@ -3267,6 +3684,19 @@ function inputs.toggle(win, text, a, b, opts)
 			{ label = "Reset to default", icon = "arrow", run = function() set(initial, true) end },
 		}
 	end)
+	win._nav_register(row, {
+		kind = "toggle",
+		label = text,
+		is_enabled = function()
+			return not disabled
+		end,
+		activate = function()
+			set(not state, true)
+		end,
+		adjust = function(direction)
+			set(direction > 0, true)
+		end,
+	})
 	win._fit(true)
 
 	return {
@@ -3279,11 +3709,19 @@ function inputs.toggle(win, text, a, b, opts)
 		Toggle = function()
 			set(not state, true)
 		end,
+		SetDisabled = function(_, value)
+			set_disabled(value)
+		end,
+		GetDisabled = function()
+			return disabled
+		end,
 		Gui = row,
 	}
 end
 
-function inputs.slider(win, text, min, max, default, callback, step, icon)
+function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
+	opts = type(opts) == "table" and opts or {}
+	local disabled = opts.disabled == true
 	local mobile = win._mobile
 	local row = win._row(mobile and 46 or 40)
 	local low = tonumber(min) or 0
@@ -3356,6 +3794,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon)
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
+		Active = not disabled,
 		Position = UDim2.new(0, 4, 0, mobile and 20 or 17),
 		Size = UDim2.new(1, -8, 0, 22),
 		Text = "",
@@ -3370,7 +3809,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon)
 		fill.Size = UDim2.fromScale(alpha, 1)
 		thumb.Position = UDim2.new(alpha, 0, 0.5, 0)
 		readout.Text = string.format("%." .. decimals .. "f", value)
-		readout.TextColor3 = dragging and values().accent or values().muted
+		readout.TextColor3 = disabled and values().muted or (dragging and values().accent or values().muted)
 		if fire then
 			win._store(key, value)
 			if callback then
@@ -3392,6 +3831,9 @@ function inputs.slider(win, text, min, max, default, callback, step, icon)
 	end
 
 	local function begin(input)
+		if disabled then
+			return
+		end
 		dragging = true
 		win._scroll.ScrollingEnabled = false
 		thumb.Size = UDim2.fromOffset(7, mobile and 18 or 15)
@@ -3407,7 +3849,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon)
 	end)
 
 	win._link(env.uis.InputChanged, function(input)
-		if not dragging then
+		if disabled or not dragging then
 			return
 		end
 		local kind = input.UserInputType
@@ -3429,14 +3871,34 @@ function inputs.slider(win, text, min, max, default, callback, step, icon)
 
 	style.paint(function()
 		track.BackgroundColor3 = values().raised
-		fill.BackgroundColor3 = values().accent
-		thumb.BackgroundColor3 = values().accent
-		name.TextColor3 = values().text
-		readout.TextColor3 = dragging and values().accent or values().muted
+		fill.BackgroundColor3 = disabled and values().muted or values().accent
+		thumb.BackgroundColor3 = disabled and values().muted or values().accent
+		name.TextColor3 = disabled and values().muted or values().text
+		readout.TextColor3 = disabled and values().muted or (dragging and values().accent or values().muted)
 		if emblem then
-			icons.tint(emblem, values().muted)
+			icons.tint(emblem, disabled and values().line or values().muted)
 		end
 	end)
+
+	local function set_disabled(value)
+		disabled = value == true
+		hit.Active = not disabled
+		if disabled and dragging then
+			dragging = false
+			win._scroll.ScrollingEnabled = true
+			thumb.Size = UDim2.fromOffset(6, mobile and 16 or 13)
+		end
+		fill.BackgroundColor3 = disabled and values().muted or values().accent
+		thumb.BackgroundColor3 = disabled and values().muted or values().accent
+		name.TextColor3 = disabled and values().muted or values().text
+		if emblem then
+			icons.tint(emblem, disabled and values().line or values().muted)
+		end
+		paint_value(false)
+		if win._nav_refresh then
+			win._nav_refresh()
+		end
+	end
 
 	paint_value(false)
 	key = win._bind("slider", text, {
@@ -3455,11 +3917,35 @@ function inputs.slider(win, text, min, max, default, callback, step, icon)
 	})
 	win._options(row, text, function()
 		return { -- you can change this if you want
-			{ label = "Reset to default", icon = "arrow", run = function() apply(initial, true) end },
-			{ label = "Set minimum", run = function() apply(low, true) end },
-			{ label = "Set maximum", run = function() apply(high, true) end },
+			{ label = "Reset to default", icon = "arrow", run = function()
+				if not disabled then
+					apply(initial, true)
+				end
+			end },
+			{ label = "Set minimum", run = function()
+				if not disabled then
+					apply(low, true)
+				end
+			end },
+			{ label = "Set maximum", run = function()
+				if not disabled then
+					apply(high, true)
+				end
+			end },
 		}
 	end)
+	win._nav_register(row, {
+		kind = "slider",
+		label = text,
+		is_enabled = function()
+			return not disabled
+		end,
+		adjust = function(direction)
+			if not disabled then
+				apply(math.clamp(value + direction * notch, low, high), true)
+			end
+		end,
+	})
 	win._fit(true)
 
 	return {
@@ -3468,6 +3954,12 @@ function inputs.slider(win, text, min, max, default, callback, step, icon)
 		end,
 		Get = function()
 			return value
+		end,
+		SetDisabled = function(_, value)
+			set_disabled(value)
+		end,
+		GetDisabled = function()
+			return disabled
 		end,
 		Gui = row,
 	}
@@ -3480,10 +3972,16 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	end
 	opts = type(opts) == "table" and opts or {}
 	local on_change = type(opts.onChange) == "function" and opts.onChange or nil
+	local empty_text = type(opts.emptyText) == "string" and opts.emptyText ~= "" and opts.emptyText or "None"
+	local disabled = opts.disabled == true
+	local allow_mouse = opts.allowMouse ~= false
+	local allow_gamepad = opts.allowGamepad ~= false
+	local clear_on_delete = opts.clearOnDelete ~= false
 	local mobile = win._mobile
 	local row = win._row(mobile and 40 or 34)
 	row.ClipsDescendants = true
 	local initial = default
+	local reset_key = opts.resetKey ~= nil and opts.resetKey or initial
 	local emblem = row_emblem(row, icon, 14, values().muted)
 	local caption = label(row, text, 0)
 	if emblem then
@@ -3497,12 +3995,13 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		BackgroundColor3 = values().raised,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
+		Active = not disabled,
 		ClipsDescendants = true,
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -10, 0.5, 0),
 		Size = UDim2.fromOffset(mobile and 96 or 84, mobile and 30 or 22),
 		Font = bold,
-		Text = default or "None",
+		Text = default or empty_text,
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
 		TextTruncate = Enum.TextTruncate.AtEnd,
@@ -3522,17 +4021,9 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 
 	local function display(value)
 		if value == nil or value == "" then
-			return "None"
+			return empty_text
 		end
-		local label = tostring(value)
-		label = label:gsub("RightControl", "RCtrl")
-		label = label:gsub("LeftControl", "LCtrl")
-		label = label:gsub("RightShift", "RShift")
-		label = label:gsub("LeftShift", "LShift")
-		label = label:gsub("RightAlt", "RAlt")
-		label = label:gsub("LeftAlt", "LAlt")
-		label = label:gsub("Backspace", "Bksp")
-		label = label:gsub("Escape", "Esc")
+		local label = util.input_label(value)
 		if #label > 14 then
 			label = string.sub(label, 1, 12) .. "..."
 		end
@@ -3541,15 +4032,20 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 
 	local function sync()
 		pill.Text = listening and "..." or display(key)
-		pill.TextColor3 = listening and values().accent or (key and values().text or values().muted)
-		edge.Color = listening and values().accent or values().line
+		pill.TextColor3 = disabled and values().muted or (listening and values().accent or (key and values().text or values().muted))
+		edge.Color = disabled and values().line or (listening and values().accent or values().line)
 	end
 
-	pill.Activated:Connect(function()
+	local function toggle_capture()
+		if disabled then
+			return
+		end
 		listening = not listening
 		S.binding = listening
 		sync()
-	end)
+	end
+
+	pill.Activated:Connect(toggle_capture)
 
 	row.Destroying:Connect(function()
 		if listening then
@@ -3558,33 +4054,65 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		end
 	end)
 
-	win._link(env.uis.InputBegan, function(input)
+	local function cancel_capture()
+		listening = false
+		S.binding = false
+		sync()
+	end
+
+	local function clear_key()
+		key = nil
+		cancel_capture()
+		win._store(stored, key)
+		if on_change then
+			on_change(nil)
+		end
+		if callback then
+			callback(nil, false)
+		end
+	end
+
+	win._link(env.uis.InputBegan, function(input, processed)
+		if disabled then
+			return
+		end
+		local id = util.input_id(input)
 		if listening then
-			if input.UserInputType == Enum.UserInputType.Keyboard then
-				local code = input.KeyCode
-				if code == Enum.KeyCode.Escape then
-					listening = false
-					S.binding = false
-					sync()
-					return
-				end
-				key = code.Name
-				listening = false
-				S.binding = false
-				sync()
-				win._store(stored, key)
-				held[code] = true
-				if on_change then
-					on_change(key)
-				end
-				if callback then
-					callback(key, true)
-				end
+			if not id then
+				return
+			end
+			local kind_name = input.UserInputType.Name
+			local is_keyboard = input.UserInputType == Enum.UserInputType.Keyboard
+			if is_keyboard and input.KeyCode == Enum.KeyCode.Escape then
+				cancel_capture()
+				return
+			end
+			if is_keyboard and clear_on_delete and (input.KeyCode == Enum.KeyCode.Backspace or input.KeyCode == Enum.KeyCode.Delete) then
+				clear_key()
+				return
+			end
+			local is_mouse = string.match(kind_name, "^MouseButton%d+$") ~= nil
+			local is_gamepad = string.match(kind_name, "^Gamepad%d+$") ~= nil
+			if (is_mouse and not allow_mouse) or (is_gamepad and not allow_gamepad) then
+				return
+			end
+			key = id
+			cancel_capture()
+			win._store(stored, key)
+			held[id] = true
+			if on_change then
+				on_change(key)
+			end
+			if callback then
+				callback(key, true)
 			end
 			return
 		end
-		if key and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode.Name == key then
-			held[input.KeyCode] = true
+		if processed or util.focused_text_box() then
+			return
+		end
+		if key and id == key then
+			held[id] = true
 			if callback then
 				callback(key, true)
 			end
@@ -3592,8 +4120,12 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	end)
 
 	win._link(env.uis.InputEnded, function(input)
-		if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode.Name == key and held[input.KeyCode] then
-			held[input.KeyCode] = nil
+		if disabled then
+			return
+		end
+		local id = util.input_id(input)
+		if id and id == key and held[id] then
+			held[id] = nil
 			if callback then
 				callback(key, false)
 			end
@@ -3601,14 +4133,30 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	end)
 
 	style.paint(function()
-		edge.Color = listening and values().accent or values().line
+		edge.Color = disabled and values().line or (listening and values().accent or values().line)
 		pill.BackgroundColor3 = values().raised
-		caption.TextColor3 = values().text
+		caption.TextColor3 = disabled and values().muted or values().text
 		if emblem then
-			icons.tint(emblem, values().muted)
+			icons.tint(emblem, disabled and values().line or values().muted)
 		end
 		sync()
 	end)
+
+	local function set_disabled(value)
+		disabled = value == true
+		pill.Active = not disabled
+		if disabled then
+			if listening then
+				listening = false
+				S.binding = false
+			end
+			held = {}
+		end
+		sync()
+		if win._nav_refresh then
+			win._nav_refresh()
+		end
+	end
 
 	sync()
 	stored = win._bind("key", text, {
@@ -3626,6 +4174,9 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	win._options(row, text, function()
 		return {
 			{ label = "Clear key", icon = "close", run = function()
+				if disabled then
+					return
+				end
 				key = nil
 				sync()
 				win._store(stored, key)
@@ -3637,15 +4188,26 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 				end
 			end },
 			{ label = "Reset to default", icon = "arrow", run = function()
-				key = initial
+				if disabled then
+					return
+				end
+				key = reset_key
 				sync()
 				win._store(stored, key)
 				if on_change then
-					on_change(initial)
+					on_change(reset_key)
 				end
 			end },
 		}
 	end)
+	win._nav_register(row, {
+		kind = "keybind",
+		label = text,
+		is_enabled = function()
+			return not disabled
+		end,
+		activate = toggle_capture,
+	})
 	win._fit(true)
 
 	return {
@@ -3655,12 +4217,19 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 			end
 			key = next
 			sync()
+			win._store(stored, key)
 			if on_change then
 				on_change(key)
 			end
 		end,
 		Get = function()
 			return key
+		end,
+		SetDisabled = function(_, value)
+			set_disabled(value)
+		end,
+		GetDisabled = function()
+			return disabled
 		end,
 		Gui = row,
 	}
@@ -3707,11 +4276,30 @@ local function caption(parent, title)
 	})
 end
 
-function selects.dropdown(win, title, options, default, callback, multi, icon)
+function selects.dropdown(win, title, options, default, callback, multi, icon, opts)
+	if type(icon) == "table" and opts == nil then
+		opts = icon
+		icon = opts.icon
+	end
+	opts = type(opts) == "table" and opts or {}
 	local mobile = win._mobile
 	local choices = {}
 	for _, option in ipairs(options or {}) do
 		choices[#choices + 1] = tostring(option)
+	end
+	local disabled = opts.disabled == true
+	local placeholder = tostring(opts.placeholder or "None")
+	local searchable = opts.searchable
+	if searchable == nil then
+		searchable = #choices >= 10
+	end
+	local disabled_options = {}
+	for key, value in pairs(opts.disabledOptions or {}) do
+		if value == true then
+			disabled_options[tostring(key)] = true
+		elseif type(key) == "number" then
+			disabled_options[tostring(value)] = true
+		end
 	end
 
 	if type(default) == "function" then
@@ -3757,7 +4345,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		Position = UDim2.new(1, -29, 0.5, 0),
 		Size = UDim2.new(0.4, 0, 1, 0),
 		Font = font,
-		Text = "None",
+		Text = placeholder,
 		TextColor3 = values().muted,
 		TextSize = util.size(mobile and 10 or 11),
 		TextXAlignment = Enum.TextXAlignment.Right,
@@ -3797,8 +4385,11 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 	local item_h = mobile and 34 or 32
 	local bulk_h = (multi and #choices > 0) and (mobile and 28 or 30) or 0
 	local bulk_gap = bulk_h > 0 and (mobile and 1 or 2) or 0
-	local min_height = math.max(mobile and 32 or 42, pad * 2 + bulk_h + bulk_gap)
-	local desired_height = math.clamp(#choices * item_h + pad * 2 + bulk_h + bulk_gap, mobile and 40 or 48, mobile and 226 or 260)
+	local search_h = searchable and (mobile and 30 or 26) or 0
+	local search_gap = searchable and 4 or 0
+	local chrome_h = bulk_h + bulk_gap + search_h + search_gap
+	local min_height = math.max(mobile and 32 or 42, pad * 2 + chrome_h)
+	local desired_height = math.clamp(#choices * item_h + pad * 2 + chrome_h, mobile and 40 or 48, mobile and 226 or 260)
 	local panel = util.new("Frame", {
 		Name = "dropdown",
 		Active = true,
@@ -3881,11 +4472,38 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		select_all_action, select_all_hit = action("select_all", "Select all", mobile and 58 or 64, -(mobile and 46 or 52))
 	end
 
+	local search
+	if searchable then
+		search = util.new("TextBox", {
+			Name = "dropdown_search",
+			BackgroundColor3 = values().raised,
+			BorderSizePixel = 0,
+			ClearTextOnFocus = false,
+			Font = font,
+			PlaceholderColor3 = values().muted,
+			PlaceholderText = "Search...",
+			Position = UDim2.fromOffset(pad, pad + bulk_h + bulk_gap),
+			Size = UDim2.new(1, -pad * 2, 0, search_h),
+			Text = "",
+			TextColor3 = values().text,
+			TextSize = util.size(10),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 13,
+			Parent = panel,
+		})
+		util.corner(search, 4)
+		util.new("UIPadding", {
+			PaddingLeft = UDim.new(0, 8),
+			PaddingRight = UDim.new(0, 8),
+			Parent = search,
+		})
+	end
+
 	local area = util.new("ScrollingFrame", {
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Position = UDim2.fromOffset(pad, pad + bulk_h + bulk_gap),
-		Size = UDim2.new(1, -pad * 2, 1, -(pad * 2 + bulk_h + bulk_gap)),
+		Position = UDim2.fromOffset(pad, pad + chrome_h),
+		Size = UDim2.new(1, -pad * 2, 1, -(pad * 2 + chrome_h)),
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		ScrollingDirection = Enum.ScrollingDirection.Y,
@@ -3905,6 +4523,10 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 	local marks = {}
 	local mark_edges = {}
 	local key
+	local open = false
+	local set_open
+	local active_option
+	local no_results
 
 	local function current()
 		if not multi then
@@ -3917,6 +4539,117 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			end
 		end
 		return out
+	end
+
+	local function visible_options()
+		local out = {}
+		for _, option in ipairs(choices) do
+			if not search or search.Text == "" or string.find(string.lower(option), string.lower(search.Text), 1, true) then
+				out[#out + 1] = option
+			end
+		end
+		return out
+	end
+
+	local function option_available(option)
+		return disabled_options[option] ~= true
+	end
+
+	local function paint_active()
+		for option, item in pairs(items) do
+			item.BackgroundTransparency = option == active_option and 0 or 1
+		end
+	end
+
+	local function scroll_active()
+		if not active_option then
+			return
+		end
+		local list = visible_options()
+		local index
+		for position, option in ipairs(list) do
+			if option == active_option then
+				index = position
+				break
+			end
+		end
+		if not index then
+			return
+		end
+		local top = (index - 1) * item_h
+		local view = area.AbsoluteSize.Y
+		local canvas = area.CanvasPosition.Y
+		if top < canvas then
+			area.CanvasPosition = Vector2.new(0, top)
+		elseif top + item_h > canvas + view then
+			area.CanvasPosition = Vector2.new(0, math.max(0, top + item_h - view))
+		end
+	end
+
+	local function reset_active()
+		local list = visible_options()
+		active_option = nil
+		for _, option in ipairs(list) do
+			if option_available(option) and ((multi and picks[option]) or (not multi and single == option)) then
+				active_option = option
+				break
+			end
+		end
+		if not active_option then
+			for _, option in ipairs(list) do
+				if option_available(option) then
+					active_option = option
+					break
+				end
+			end
+		end
+		paint_active()
+		scroll_active()
+	end
+
+	local function move_active(delta)
+		local list = visible_options()
+		if #list == 0 then
+			active_option = nil
+			paint_active()
+			return
+		end
+		local index = 1
+		for position, option in ipairs(list) do
+			if option == active_option then
+				index = position
+				break
+			end
+		end
+		for _ = 1, #list do
+			index = index + delta
+			if index > #list then
+				index = 1
+			elseif index < 1 then
+				index = #list
+			end
+			local option = list[index]
+			if option_available(option) then
+				active_option = option
+				paint_active()
+				scroll_active()
+				return
+			end
+		end
+	end
+
+	local function apply_filter()
+		for option, item in pairs(items) do
+			local show = not search or search.Text == "" or string.find(string.lower(option), string.lower(search.Text), 1, true) ~= nil
+			item.Visible = show
+			item.Size = UDim2.new(1, 0, 0, show and item_h or 0)
+		end
+		if no_results then
+			local empty = #visible_options() == 0
+			no_results.Visible = empty
+			no_results.Size = UDim2.new(1, 0, 0, empty and item_h or 0)
+		end
+		reset_active()
 	end
 
 	local function refresh()
@@ -3935,7 +4668,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 				end
 			end
 			if picked == 0 then
-				readout.Text = "None"
+				readout.Text = placeholder
 			elseif picked == 1 then
 				readout.Text = first_name
 			elseif picked == 2 then
@@ -3944,9 +4677,11 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 				readout.Text = picked .. " selected"
 			end
 		else
-			readout.Text = single or "None"
+			readout.Text = single or placeholder
 		end
-		if multi then
+		if disabled then
+			readout.TextColor3 = values().muted
+		elseif multi then
 			readout.TextColor3 = picked > 0 and values().accent or values().muted
 		else
 			readout.TextColor3 = single and values().text or values().muted
@@ -3965,8 +4700,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		end
 		for option, item in pairs(items) do
 			local on = multi and picks[option] or single == option
-			item.TextColor3 = on and values().accent or values().text
-			item.Font = on and bold or font
+			local option_disabled = disabled_options[option] == true
+			item.TextColor3 = option_disabled and values().muted or (on and values().accent or values().text)
+			item.Font = (on and not option_disabled) and bold or font
 			if marks[option] then
 				marks[option].BackgroundColor3 = on and values().accent or values().raised
 				local mark_edge = mark_edges[option]
@@ -3993,11 +4729,43 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		refresh()
 	end
 
+	local function choose(option)
+		if disabled or disabled_options[option] then
+			return
+		end
+		active_option = option
+		paint_active()
+		if multi then
+			if picks[option] then
+				picks[option] = nil
+			else
+				picks[option] = true
+			end
+			refresh()
+			local picked = current()
+			win._store(key, picked)
+			if callback then
+				callback(picked)
+			end
+		else
+			single = option
+			refresh()
+			set_open(false)
+			win._store(key, single)
+			if callback then
+				callback(option)
+			end
+		end
+	end
+
 	if select_all_action then
 		local function select_all()
+			if disabled then
+				return
+			end
 			local changed = false
 			for _, option in ipairs(choices) do
-				if not picks[option] then
+				if not disabled_options[option] and not picks[option] then
 					picks[option] = true
 					changed = true
 				end
@@ -4013,6 +4781,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			end
 		end
 		local function clear_all()
+			if disabled then
+				return
+			end
 			local had = false
 			for _, option in ipairs(choices) do
 				if picks[option] then
@@ -4040,14 +4811,14 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		end
 	end
 
-	local open = false
-	local set_open
-
 	local function close()
 		set_open(false)
 	end
 
 	function set_open(state)
+		if state and disabled then
+			return
+		end
 		if state == open then
 			return
 		end
@@ -4087,7 +4858,22 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			panel.Visible = true
 			util.tween(panel, 0.13, { Size = UDim2.fromOffset(math.floor(width), math.floor(height)) })
 			util.tween(chevron, 0.15, { Rotation = 180 })
+			if search then
+				search.Text = ""
+				apply_filter()
+				if not mobile then
+					task.defer(function()
+						if open then
+							search:CaptureFocus()
+						end
+					end)
+				end
+			end
+			reset_active()
 		else
+			if search and search:IsFocused() then
+				search:ReleaseFocus()
+			end
 			modal.drop(close)
 			util.tween(panel, 0.1, { Size = UDim2.fromOffset(panel.Size.X.Offset, 0) })
 			util.tween(chevron, 0.15, { Rotation = 0 })
@@ -4153,27 +4939,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		items[option] = item
 
 		item.Activated:Connect(function()
-			if multi then
-				if picks[option] then
-					picks[option] = nil
-				else
-					picks[option] = true
-				end
-				refresh()
-				local picked = current()
-				win._store(key, picked)
-				if callback then
-					callback(picked)
-				end
-			else
-				single = option
-				refresh()
-				set_open(false)
-				win._store(key, single)
-				if callback then
-					callback(option)
-				end
-			end
+			choose(option)
 		end)
 	end
 
@@ -4190,6 +4956,24 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			Parent = area,
 		})
 		util.new("UIPadding", { PaddingLeft = UDim.new(0, 12), Parent = empty })
+	end
+
+	if search then
+		no_results = util.new("TextLabel", {
+			BackgroundTransparency = 1,
+			LayoutOrder = #choices + 1,
+			Size = UDim2.new(1, 0, 0, 0),
+			Font = font,
+			Text = "No matches",
+			TextColor3 = values().muted,
+			TextSize = util.size(10),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 12,
+			Visible = false,
+			Parent = area,
+		})
+		util.new("UIPadding", { PaddingLeft = UDim.new(0, 12), Parent = no_results })
+		search:GetPropertyChangedSignal("Text"):Connect(apply_filter)
 	end
 
 	key = win._bind(multi and "multi" or "dropdown", title, {
@@ -4210,6 +4994,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
+		Active = not disabled,
 		Size = UDim2.fromScale(1, 1),
 		Text = "",
 		ZIndex = 1,
@@ -4217,7 +5002,103 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 	})
 	util.hover(hit)
 	hit.Activated:Connect(function()
+		if disabled then
+			return
+		end
 		set_open(not open)
+	end)
+
+	local function set_disabled(value)
+		disabled = value == true
+		hit.Active = not disabled
+		if disabled then
+			set_open(false)
+		end
+		name.TextColor3 = disabled and values().muted or values().text
+		if emblem then
+			icons.tint(emblem, disabled and values().line or values().muted)
+		end
+		refresh()
+		if win._nav_refresh then
+			win._nav_refresh()
+		end
+	end
+
+	win._link(env.uis.InputBegan, function(input)
+		if not open or disabled then
+			return
+		end
+		local kind = input.UserInputType
+		local code = input.KeyCode
+		if kind == Enum.UserInputType.Keyboard then
+			if code == Enum.KeyCode.Down then
+				move_active(1)
+			elseif code == Enum.KeyCode.Up then
+				move_active(-1)
+			elseif code == Enum.KeyCode.Home then
+				local list = visible_options()
+				active_option = nil
+				for _, option in ipairs(list) do
+					if option_available(option) then
+						active_option = option
+						break
+					end
+				end
+				paint_active()
+				scroll_active()
+			elseif code == Enum.KeyCode.End then
+				local list = visible_options()
+				active_option = nil
+				for index = #list, 1, -1 do
+					if option_available(list[index]) then
+						active_option = list[index]
+						break
+					end
+				end
+				paint_active()
+				scroll_active()
+			elseif code == Enum.KeyCode.Return or code == Enum.KeyCode.KeypadEnter then
+				if active_option then
+					choose(active_option)
+				end
+			elseif code == Enum.KeyCode.Escape then
+				set_open(false)
+			end
+		elseif string.match(kind.Name, "^Gamepad") then
+			if code == Enum.KeyCode.DPadDown then
+				move_active(1)
+			elseif code == Enum.KeyCode.DPadUp then
+				move_active(-1)
+			elseif code == Enum.KeyCode.ButtonA then
+				if active_option then
+					choose(active_option)
+				end
+			elseif code == Enum.KeyCode.ButtonB then
+				set_open(false)
+			end
+		end
+	end)
+
+	local stick_latched = false
+	local stick_next = 0
+	win._link(env.uis.InputChanged, function(input)
+		if not open or disabled or not string.match(input.UserInputType.Name, "^Gamepad") then
+			stick_latched = false
+			return
+		end
+		local y = input.Position.Y
+		local direction = y > 0.55 and -1 or (y < -0.55 and 1 or 0)
+		if direction == 0 then
+			stick_latched = false
+			return
+		end
+		local now = os.clock()
+		if stick_latched and now < stick_next then
+			return
+		end
+		move_active(direction)
+		stick_latched = true
+		stick_next = now + 0.18
 	end)
 
 	style.paint(function()
@@ -4225,6 +5106,15 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 		edge.Color = values().line
 		area.ScrollBarImageColor3 = values().muted
 		hit.BackgroundColor3 = values().hover
+		name.TextColor3 = disabled and values().muted or values().text
+		if search then
+			search.BackgroundColor3 = values().raised
+			search.TextColor3 = values().text
+			search.PlaceholderColor3 = values().muted
+		end
+		if emblem then
+			icons.tint(emblem, disabled and values().line or values().muted)
+		end
 		if bulk_seam then
 			bulk_seam.BackgroundColor3 = values().line
 		end
@@ -4237,9 +5127,6 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			select_all_action.TextColor3 = values().muted
 			clear_action.BackgroundColor3 = values().hover
 			clear_action.TextColor3 = values().muted
-		end
-		if emblem then
-			icons.tint(emblem, values().muted)
 		end
 		for option, item in pairs(items) do
 			item.BackgroundColor3 = values().hover
@@ -4263,6 +5150,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 	win._options(row, title, function()
 		return {
 			{ label = "Reset to default", icon = "arrow", run = function()
+				if disabled then
+					return
+				end
 				apply(initial)
 				win._store(key, current())
 				if callback then
@@ -4270,6 +5160,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 				end
 			end },
 			{ label = "Clear selection", icon = "close", run = function()
+				if disabled then
+					return
+				end
 				apply(multi and {} or nil)
 				win._store(key, current())
 				if callback then
@@ -4278,6 +5171,16 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			end },
 		}
 	end)
+	win._nav_register(row, {
+		kind = "dropdown",
+		label = title,
+		is_enabled = function()
+			return not disabled
+		end,
+		activate = function()
+			set_open(true)
+		end,
+	})
 	win._fit(true)
 
 	return {
@@ -4295,16 +5198,30 @@ function selects.dropdown(win, title, options, default, callback, multi, icon)
 			refresh()
 		end,
 		Open = function()
-			set_open(true)
+			if not disabled then
+				set_open(true)
+			end
 		end,
 		Close = function()
 			set_open(false)
+		end,
+		SetDisabled = function(_, value)
+			set_disabled(value)
+		end,
+		GetDisabled = function()
+			return disabled
 		end,
 		Gui = row,
 	}
 end
 
-function selects.colorpicker(win, title, default, callback, icon)
+function selects.colorpicker(win, title, default, callback, icon, opts)
+	if type(icon) == "table" and opts == nil then
+		opts = icon
+		icon = opts.icon
+	end
+	opts = type(opts) == "table" and opts or {}
+	local disabled = opts.disabled == true
 	local mobile = win._mobile
 	local hue, sat, val = 0.58, 0.68, 1
 	if typeof(default) == "Color3" then
@@ -4421,6 +5338,7 @@ function selects.colorpicker(win, title, default, callback, icon)
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
+		Active = not disabled,
 		Size = UDim2.fromScale(1, 1),
 		Text = "",
 		ZIndex = 7,
@@ -4463,6 +5381,7 @@ function selects.colorpicker(win, title, default, callback, icon)
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
+		Active = not disabled,
 		Position = UDim2.new(0, pad, 0, pad + field_h + 5),
 		Size = UDim2.new(1, -pad * 2, 0, 19),
 		Text = "",
@@ -4485,6 +5404,7 @@ function selects.colorpicker(win, title, default, callback, icon)
 		BackgroundColor3 = values().raised,
 		BorderSizePixel = 0,
 		ClearTextOnFocus = false,
+		TextEditable = not disabled,
 		Font = Enum.Font.Code,
 		Position = UDim2.fromOffset(pad + 36, bottom_y),
 		Size = UDim2.new(1, -(pad * 2 + 36), 0, 28),
@@ -4561,6 +5481,9 @@ function selects.colorpicker(win, title, default, callback, icon)
 	end
 
 	field_hit.InputBegan:Connect(function(input)
+		if disabled then
+			return
+		end
 		local kind = input.UserInputType
 		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 			field_drag = true
@@ -4568,6 +5491,9 @@ function selects.colorpicker(win, title, default, callback, icon)
 		end
 	end)
 	hue_hit.InputBegan:Connect(function(input)
+		if disabled then
+			return
+		end
 		local kind = input.UserInputType
 		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 			hue_drag = true
@@ -4616,7 +5542,9 @@ function selects.colorpicker(win, title, default, callback, icon)
 	hex.FocusLost:Connect(function()
 		hex_edge.Color = values().line
 		hex_edge.Transparency = 0.2
-		commit_hex()
+		if not disabled then
+			commit_hex()
+		end
 	end)
 
 	local open = false
@@ -4627,6 +5555,9 @@ function selects.colorpicker(win, title, default, callback, icon)
 	end
 
 	function set_open(state)
+		if state and disabled then
+			return
+		end
 		if state == open then
 			return
 		end
@@ -4664,6 +5595,7 @@ function selects.colorpicker(win, title, default, callback, icon)
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
+		Active = not disabled,
 		Size = UDim2.fromScale(1, 1),
 		Text = "",
 		ZIndex = 1,
@@ -4671,19 +5603,62 @@ function selects.colorpicker(win, title, default, callback, icon)
 	})
 	util.hover(hit)
 	hit.Activated:Connect(function()
+		if disabled then
+			return
+		end
 		set_open(not open)
 	end)
+
+	win._link(env.uis.InputBegan, function(input)
+		if not open then
+			return
+		end
+		local code = input.KeyCode
+		local kind = input.UserInputType
+		local keyboard_close = kind == Enum.UserInputType.Keyboard and code == Enum.KeyCode.Escape
+		local gamepad_close = string.match(kind.Name, "^Gamepad") and code == Enum.KeyCode.ButtonB
+		if keyboard_close or gamepad_close then
+			set_open(false)
+		end
+	end)
+
+	local function set_disabled(value)
+		disabled = value == true
+		hit.Active = not disabled
+		field_hit.Active = not disabled
+		hue_hit.Active = not disabled
+		hex.TextEditable = not disabled
+		if disabled then
+			set_open(false)
+			field_drag = false
+			hue_drag = false
+			if hex:IsFocused() then
+				hex:ReleaseFocus()
+			end
+		end
+		hex.TextColor3 = disabled and values().muted or values().text
+		name.TextColor3 = disabled and values().muted or values().text
+		if emblem then
+			icons.tint(emblem, disabled and values().line or values().muted)
+		end
+		swatch.BackgroundTransparency = disabled and 0.4 or 0
+		if win._nav_refresh then
+			win._nav_refresh()
+		end
+	end
 
 	style.paint(function()
 		panel.BackgroundColor3 = values().panel
 		edge.Color = values().line
 		hex.BackgroundColor3 = values().raised
-		hex.TextColor3 = values().text
+		hex.TextColor3 = disabled and values().muted or values().text
 		hex_edge.Color = values().line
 		hit.BackgroundColor3 = values().hover
+		name.TextColor3 = disabled and values().muted or values().text
 		if emblem then
-			icons.tint(emblem, values().muted)
+			icons.tint(emblem, disabled and values().line or values().muted)
 		end
+		swatch.BackgroundTransparency = disabled and 0.4 or 0
 		refresh(false)
 	end)
 
@@ -4702,8 +5677,15 @@ function selects.colorpicker(win, title, default, callback, icon)
 	})
 	win._options(row, title, function()
 		return {
-			{ label = "Open color picker", icon = "palette", accent = true, run = function() set_open(true) end },
+			{ label = "Open color picker", icon = "palette", accent = true, run = function()
+				if not disabled then
+					set_open(true)
+				end
+			end },
 			{ label = "Reset color", icon = "arrow", run = function()
+				if disabled then
+					return
+				end
 				apply(initial)
 				win._store(key, "#" .. string.upper(color():ToHex()))
 				if callback then
@@ -4712,6 +5694,16 @@ function selects.colorpicker(win, title, default, callback, icon)
 			end },
 		}
 	end)
+	win._nav_register(row, {
+		kind = "colorpicker",
+		label = title,
+		is_enabled = function()
+			return not disabled
+		end,
+		activate = function()
+			set_open(true)
+		end,
+	})
 	win._fit(true)
 
 	return {
@@ -4722,10 +5714,18 @@ function selects.colorpicker(win, title, default, callback, icon)
 			return color()
 		end,
 		Open = function()
-			set_open(true)
+			if not disabled then
+				set_open(true)
+			end
 		end,
 		Close = function()
 			set_open(false)
+		end,
+		SetDisabled = function(_, value)
+			set_disabled(value)
+		end,
+		GetDisabled = function()
+			return disabled
 		end,
 		Gui = row,
 	}
@@ -4735,6 +5735,7 @@ S.selects = selects
 end
 
 do
+local env = S.env
 local util = S.util
 local style = S.style
 local icons = S.icons
@@ -4879,6 +5880,17 @@ function text.section(win, title, icon)
 		end
 	end)
 
+	win._nav_register(holder, {
+		kind = "section",
+		label = title,
+		is_enabled = function()
+			return true
+		end,
+		activate = function()
+			set_open(nil, true)
+		end,
+	})
+
 	win._focus_section(record)
 	win._fit(true)
 
@@ -4952,7 +5964,13 @@ function text.separator(win)
 	return bar
 end
 
-function text.textbox(win, title, default, callback, icon)
+function text.textbox(win, title, default, callback, icon, opts)
+	if type(icon) == "table" and opts == nil then
+		opts = icon
+		icon = opts.icon
+	end
+	opts = type(opts) == "table" and opts or {}
+	local disabled = opts.disabled == true
 	local mobile = win._mobile
 	local row = win._row(mobile and 58 or 34)
 	row.ClipsDescendants = true
@@ -4986,6 +6004,8 @@ function text.textbox(win, title, default, callback, icon)
 			BackgroundColor3 = values().raised,
 			BorderSizePixel = 0,
 			ClearTextOnFocus = false,
+			Active = not disabled,
+			TextEditable = not disabled,
 			Font = font,
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = "Enter text",
@@ -5005,6 +6025,8 @@ function text.textbox(win, title, default, callback, icon)
 			BackgroundColor3 = values().raised,
 			BorderSizePixel = 0,
 			ClearTextOnFocus = false,
+			Active = not disabled,
+			TextEditable = not disabled,
 			Font = font,
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = "Enter text",
@@ -5036,22 +6058,55 @@ function text.textbox(win, title, default, callback, icon)
 	box.FocusLost:Connect(function()
 		edge.Color = values().line
 		edge.Transparency = 0.2
+		if disabled then
+			return
+		end
 		win._store(stored, box.Text)
 		if callback then
 			callback(box.Text)
 		end
 	end)
 
-	style.paint(function()
-		box.BackgroundColor3 = values().raised
-		box.TextColor3 = values().text
-		box.PlaceholderColor3 = values().muted
-		edge.Color = values().line
-		name.TextColor3 = values().text
-		if emblem then
-			icons.tint(emblem, values().muted)
+	win._link(env.uis.InputBegan, function(input)
+		if not box:IsFocused() then
+			return
+		end
+		local code = input.KeyCode
+		local kind = input.UserInputType
+		local keyboard_release = kind == Enum.UserInputType.Keyboard and (code == Enum.KeyCode.Escape or code == Enum.KeyCode.Return or code == Enum.KeyCode.KeypadEnter)
+		local gamepad_release = string.match(kind.Name, "^Gamepad") and code == Enum.KeyCode.ButtonB
+		if keyboard_release or gamepad_release then
+			box:ReleaseFocus()
 		end
 	end)
+
+	style.paint(function()
+		box.BackgroundColor3 = values().raised
+		box.TextColor3 = disabled and values().muted or values().text
+		box.PlaceholderColor3 = values().muted
+		edge.Color = values().line
+		name.TextColor3 = disabled and values().muted or values().text
+		if emblem then
+			icons.tint(emblem, disabled and values().line or values().muted)
+		end
+	end)
+
+	local function set_disabled(value)
+		disabled = value == true
+		box.TextEditable = not disabled
+		box.Active = not disabled
+		if disabled and box:IsFocused() then
+			box:ReleaseFocus()
+		end
+		box.TextColor3 = disabled and values().muted or values().text
+		name.TextColor3 = disabled and values().muted or values().text
+		if emblem then
+			icons.tint(emblem, disabled and values().line or values().muted)
+		end
+		if win._nav_refresh then
+			win._nav_refresh()
+		end
+	end
 
 	stored = win._bind("text", title, {
 		set = function(value)
@@ -5070,6 +6125,9 @@ function text.textbox(win, title, default, callback, icon)
 	win._options(row, title, function()
 		return {
 			{ label = "Clear text", icon = "close", run = function()
+				if disabled then
+					return
+				end
 				box.Text = ""
 				win._store(stored, "")
 				if callback then
@@ -5077,6 +6135,9 @@ function text.textbox(win, title, default, callback, icon)
 				end
 			end },
 			{ label = "Reset to default", icon = "arrow", run = function()
+				if disabled then
+					return
+				end
 				box.Text = tostring(initial or "")
 				win._store(stored, box.Text)
 				if callback then
@@ -5085,6 +6146,18 @@ function text.textbox(win, title, default, callback, icon)
 			end },
 		}
 	end)
+	win._nav_register(row, {
+		kind = "textbox",
+		label = title,
+		is_enabled = function()
+			return not disabled
+		end,
+		activate = function()
+			if not disabled then
+				box:CaptureFocus()
+			end
+		end,
+	})
 	win._fit(true)
 
 	return {
@@ -5095,7 +6168,15 @@ function text.textbox(win, title, default, callback, icon)
 			return box.Text
 		end,
 		Focus = function()
-			box:CaptureFocus()
+			if not disabled then
+				box:CaptureFocus()
+			end
+		end,
+		SetDisabled = function(_, value)
+			set_disabled(value)
+		end,
+		GetDisabled = function()
+			return disabled
 		end,
 		Gui = row,
 	}
@@ -5107,6 +6188,7 @@ end
 do
 local env = S.env
 local config = S.config
+local util = S.util
 local Library = {}
 Library.Version = "3.1"
 
@@ -5139,14 +6221,11 @@ local function combo_keys()
 end
 
 local function combo_label(value)
-	local label = tostring(value or "")
-	label = label:gsub("LeftControl", "LCtrl")
-	label = label:gsub("RightControl", "RCtrl")
-	label = label:gsub("LeftShift", "LShift")
-	label = label:gsub("RightShift", "RShift")
-	label = label:gsub("LeftAlt", "LAlt")
-	label = label:gsub("RightAlt", "RAlt")
-	return label
+	local parts = {}
+	for part in string.gmatch(tostring(value or ""), "[^+]+") do
+		parts[#parts + 1] = util.input_label(part)
+	end
+	return table.concat(parts, "+")
 end
 
 local function all_held()
@@ -5235,6 +6314,25 @@ function Library:GetDesign()
 	return S.style.copy()
 end
 
+function Library:SetDisabled(control, value)
+	if type(control) == "table" and type(control.SetDisabled) == "function" then
+		control:SetDisabled(value)
+	elseif typeof(control) == "Instance" and control:GetAttribute("SpectrumDisabled") ~= nil then
+		control:SetAttribute("SpectrumDisabled", value == true)
+	end
+	return control
+end
+
+function Library:GetDisabled(control)
+	if type(control) == "table" and type(control.GetDisabled) == "function" then
+		return control:GetDisabled() == true
+	end
+	if typeof(control) == "Instance" then
+		return control:GetAttribute("SpectrumDisabled") == true
+	end
+	return false
+end
+
 function Library:Notify(title, body, duration, kind)
 	return S.notify(title, body, duration, kind)
 end
@@ -5243,26 +6341,26 @@ function Library:Window(title, opts)
 	local win = S.window.new(title, opts)
 	win.Gui.Visible = menu_open
 
-	win.button = function(self, text, callback, icon)
-		return S.inputs.button(self, text, callback, icon)
+	win.button = function(self, text, callback, icon, opts)
+		return S.inputs.button(self, text, callback, icon, opts)
 	end
 	win.toggle = function(self, text, a, b, opts)
 		return S.inputs.toggle(self, text, a, b, opts)
 	end
-	win.slider = function(self, text, min, max, default, callback, step, icon)
-		return S.inputs.slider(self, text, min, max, default, callback, step, icon)
+	win.slider = function(self, text, min, max, default, callback, step, icon, opts)
+		return S.inputs.slider(self, text, min, max, default, callback, step, icon, opts)
 	end
 	win.keybind = function(self, text, default, callback, icon, opts)
 		return S.inputs.keybind(self, text, default, callback, icon, opts)
 	end
-	win.dropdown = function(self, text, options, default, callback, multi, icon)
-		return S.selects.dropdown(self, text, options, default, callback, multi, icon)
+	win.dropdown = function(self, text, options, default, callback, multi, icon, opts)
+		return S.selects.dropdown(self, text, options, default, callback, multi, icon, opts)
 	end
-	win.colorpicker = function(self, text, default, callback, icon)
-		return S.selects.colorpicker(self, text, default, callback, icon)
+	win.colorpicker = function(self, text, default, callback, icon, opts)
+		return S.selects.colorpicker(self, text, default, callback, icon, opts)
 	end
-	win.textbox = function(self, text, default, callback, icon)
-		return S.text.textbox(self, text, default, callback, icon)
+	win.textbox = function(self, text, default, callback, icon, opts)
+		return S.text.textbox(self, text, default, callback, icon, opts)
 	end
 	win.section = function(self, text, icon)
 		return S.text.section(self, text, icon)
@@ -5385,15 +6483,15 @@ local function focused_text_box()
 	return focused ~= nil
 end
 
-local menu_link = env.uis.InputBegan:Connect(function(input)
-	if input.UserInputType ~= Enum.UserInputType.Keyboard then
+local menu_link = env.uis.InputBegan:Connect(function(input, processed)
+	if processed then
 		return
 	end
 	if S.binding or focused_text_box() then
 		return
 	end
-	local name = input.KeyCode.Name
-	if name == "Unknown" then
+	local name = util.input_id(input)
+	if not name then
 		return
 	end
 	menu_held[name] = true
@@ -5412,10 +6510,10 @@ local menu_link = env.uis.InputBegan:Connect(function(input)
 end)
 
 local menu_release = env.uis.InputEnded:Connect(function(input)
-	if input.UserInputType ~= Enum.UserInputType.Keyboard then
+	local name = util.input_id(input)
+	if not name then
 		return
 	end
-	local name = input.KeyCode.Name
 	menu_held[name] = nil
 	if panic_key then
 		panic_held[name] = nil

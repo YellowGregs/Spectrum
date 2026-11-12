@@ -1,5 +1,6 @@
 local S = ...
 
+local env = S.env
 local util = S.util
 local style = S.style
 local icons = S.icons
@@ -144,6 +145,17 @@ function text.section(win, title, icon)
 		end
 	end)
 
+	win._nav_register(holder, {
+		kind = "section",
+		label = title,
+		is_enabled = function()
+			return true
+		end,
+		activate = function()
+			set_open(nil, true)
+		end,
+	})
+
 	win._focus_section(record)
 	win._fit(true)
 
@@ -217,7 +229,13 @@ function text.separator(win)
 	return bar
 end
 
-function text.textbox(win, title, default, callback, icon)
+function text.textbox(win, title, default, callback, icon, opts)
+	if type(icon) == "table" and opts == nil then
+		opts = icon
+		icon = opts.icon
+	end
+	opts = type(opts) == "table" and opts or {}
+	local disabled = opts.disabled == true
 	local mobile = win._mobile
 	local row = win._row(mobile and 58 or 34)
 	row.ClipsDescendants = true
@@ -251,6 +269,8 @@ function text.textbox(win, title, default, callback, icon)
 			BackgroundColor3 = values().raised,
 			BorderSizePixel = 0,
 			ClearTextOnFocus = false,
+			Active = not disabled,
+			TextEditable = not disabled,
 			Font = font,
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = "Enter text",
@@ -270,6 +290,8 @@ function text.textbox(win, title, default, callback, icon)
 			BackgroundColor3 = values().raised,
 			BorderSizePixel = 0,
 			ClearTextOnFocus = false,
+			Active = not disabled,
+			TextEditable = not disabled,
 			Font = font,
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = "Enter text",
@@ -301,22 +323,55 @@ function text.textbox(win, title, default, callback, icon)
 	box.FocusLost:Connect(function()
 		edge.Color = values().line
 		edge.Transparency = 0.2
+		if disabled then
+			return
+		end
 		win._store(stored, box.Text)
 		if callback then
 			callback(box.Text)
 		end
 	end)
 
-	style.paint(function()
-		box.BackgroundColor3 = values().raised
-		box.TextColor3 = values().text
-		box.PlaceholderColor3 = values().muted
-		edge.Color = values().line
-		name.TextColor3 = values().text
-		if emblem then
-			icons.tint(emblem, values().muted)
+	win._link(env.uis.InputBegan, function(input)
+		if not box:IsFocused() then
+			return
+		end
+		local code = input.KeyCode
+		local kind = input.UserInputType
+		local keyboard_release = kind == Enum.UserInputType.Keyboard and (code == Enum.KeyCode.Escape or code == Enum.KeyCode.Return or code == Enum.KeyCode.KeypadEnter)
+		local gamepad_release = string.match(kind.Name, "^Gamepad") and code == Enum.KeyCode.ButtonB
+		if keyboard_release or gamepad_release then
+			box:ReleaseFocus()
 		end
 	end)
+
+	style.paint(function()
+		box.BackgroundColor3 = values().raised
+		box.TextColor3 = disabled and values().muted or values().text
+		box.PlaceholderColor3 = values().muted
+		edge.Color = values().line
+		name.TextColor3 = disabled and values().muted or values().text
+		if emblem then
+			icons.tint(emblem, disabled and values().line or values().muted)
+		end
+	end)
+
+	local function set_disabled(value)
+		disabled = value == true
+		box.TextEditable = not disabled
+		box.Active = not disabled
+		if disabled and box:IsFocused() then
+			box:ReleaseFocus()
+		end
+		box.TextColor3 = disabled and values().muted or values().text
+		name.TextColor3 = disabled and values().muted or values().text
+		if emblem then
+			icons.tint(emblem, disabled and values().line or values().muted)
+		end
+		if win._nav_refresh then
+			win._nav_refresh()
+		end
+	end
 
 	stored = win._bind("text", title, {
 		set = function(value)
@@ -335,6 +390,9 @@ function text.textbox(win, title, default, callback, icon)
 	win._options(row, title, function()
 		return {
 			{ label = "Clear text", icon = "close", run = function()
+				if disabled then
+					return
+				end
 				box.Text = ""
 				win._store(stored, "")
 				if callback then
@@ -342,6 +400,9 @@ function text.textbox(win, title, default, callback, icon)
 				end
 			end },
 			{ label = "Reset to default", icon = "arrow", run = function()
+				if disabled then
+					return
+				end
 				box.Text = tostring(initial or "")
 				win._store(stored, box.Text)
 				if callback then
@@ -350,6 +411,18 @@ function text.textbox(win, title, default, callback, icon)
 			end },
 		}
 	end)
+	win._nav_register(row, {
+		kind = "textbox",
+		label = title,
+		is_enabled = function()
+			return not disabled
+		end,
+		activate = function()
+			if not disabled then
+				box:CaptureFocus()
+			end
+		end,
+	})
 	win._fit(true)
 
 	return {
@@ -360,7 +433,15 @@ function text.textbox(win, title, default, callback, icon)
 			return box.Text
 		end,
 		Focus = function()
-			box:CaptureFocus()
+			if not disabled then
+				box:CaptureFocus()
+			end
+		end,
+		SetDisabled = function(_, value)
+			set_disabled(value)
+		end,
+		GetDisabled = function()
+			return disabled
 		end,
 		Gui = row,
 	}
