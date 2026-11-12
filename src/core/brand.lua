@@ -1,9 +1,6 @@
 local S = ...
 
-local brand = {}
-
--- AFLogo.png is embedded at 256px so remote loads can show the brand
--- without shipping a Roblox asset ID.
+local brand = {
 local DATA = table.concat({
 	"iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABTGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8kZOcW8wkwMCQm1dSFOTu",
 	"pBARGaXA/oiBmUGEgZOBj0E2Mbm4wDfYLYQBCIoTy4uTS4pyGFDAt2sMjCD6sm5GYl7K3IkMtg4NG2wdSnQa5y1V6mPADzhTUouT",
