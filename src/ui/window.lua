@@ -423,7 +423,7 @@ function Window.new(title, opts)
 	})
 	util.new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
-		Padding = UDim.new(0, 2),
+		Padding = UDim.new(0, 4),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
 		Parent = rail,
@@ -505,7 +505,7 @@ function Window.new(title, opts)
 			AutoButtonColor = false,
 			AutomaticSize = Enum.AutomaticSize.X,
 			LayoutOrder = tab.order,
-			Size = UDim2.fromOffset(0, tab_h - 6),
+			Size = UDim2.fromOffset(0, tab_h - 4),
 			Font = font,
 			Text = tab.name,
 			TextColor3 = values().muted,
@@ -538,8 +538,8 @@ function Window.new(title, opts)
 			BackgroundColor3 = values().accent,
 			BorderSizePixel = 0,
 			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.new(0, 8, 1, -3),
-			Size = UDim2.new(1, -16, 0, 2),
+			Position = UDim2.new(0, 0, 1, -3),
+			Size = UDim2.new(1, 0, 0, 2),
 			Visible = false,
 			ZIndex = 5,
 			Parent = chip,
