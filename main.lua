@@ -17,7 +17,7 @@ local MODULES = {
 	"src/ui/text",
 	"src/init",
 }
-local CACHE_VERSION = "8"
+local CACHE_VERSION = "9"
 
 if not game:IsLoaded() then
 	game.Loaded:Wait()

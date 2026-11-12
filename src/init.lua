@@ -217,6 +217,10 @@ function Library:SetMobileButton(enabled)
 	return mobile_launcher ~= nil
 end
 
+function Library:GetMobileButton()
+	return mobile_launcher ~= nil
+end
+
 function Library:SetToggleKey(key)
 	if type(key) == "table" then
 		key = table.concat(key, "+")
