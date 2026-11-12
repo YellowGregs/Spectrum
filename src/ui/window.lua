@@ -487,8 +487,6 @@ function Window.new(title, opts)
 		tab.chip.BackgroundColor3 = values().hover
 		tab.chip.BackgroundTransparency = 1
 		tab.chip.TextColor3 = on and values().text or values().muted
-		tab.bar.Visible = on
-		tab.bar.BackgroundColor3 = values().accent
 		if tab.emblem then
 			icons.tint(tab.emblem, on and values().accent or values().muted)
 		end
@@ -536,18 +534,7 @@ function Window.new(title, opts)
 				icons.layer(emblem, 5)
 			end
 		end
-		local bar = util.new("Frame", {
-			BackgroundColor3 = values().accent,
-			BorderSizePixel = 0,
-			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.new(0, -pad_left, 1, -3),
-			Size = UDim2.new(1, pad_left + pad_right, 0, 2),
-			Visible = false,
-			ZIndex = 5,
-			Parent = chip,
-		})
 		tab.chip = chip
-		tab.bar = bar
 		tab.emblem = emblem
 		chip.MouseEnter:Connect(function()
 			if tab ~= active_tab then
