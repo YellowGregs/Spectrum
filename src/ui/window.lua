@@ -485,7 +485,7 @@ function Window.new(title, opts)
 		end
 		local on = tab == active_tab
 		tab.chip.BackgroundColor3 = values().hover
-		tab.chip.BackgroundTransparency = on and 0 or 1
+		tab.chip.BackgroundTransparency = 1
 		tab.chip.TextColor3 = on and values().text or values().muted
 		tab.bar.Visible = on
 		tab.bar.BackgroundColor3 = values().accent
@@ -520,9 +520,11 @@ function Window.new(title, opts)
 			MaxSize = Vector2.new(mobile and 132 or 152, tab_h),
 			Parent = chip,
 		})
+		local pad_left = tab.icon and 25 or 10
+		local pad_right = 10
 		util.new("UIPadding", {
-			PaddingLeft = UDim.new(0, tab.icon and 25 or 10),
-			PaddingRight = UDim.new(0, 10),
+			PaddingLeft = UDim.new(0, pad_left),
+			PaddingRight = UDim.new(0, pad_right),
 			Parent = chip,
 		})
 		local emblem
@@ -530,7 +532,7 @@ function Window.new(title, opts)
 			emblem = icons.image(chip, tab.icon, 12, values().muted)
 			if emblem then
 				emblem.AnchorPoint = Vector2.new(0, 0.5)
-				emblem.Position = UDim2.new(0, 9, 0.5, 0)
+				emblem.Position = UDim2.new(0, 9 - pad_left, 0.5, 0)
 				icons.layer(emblem, 5)
 			end
 		end
@@ -538,8 +540,8 @@ function Window.new(title, opts)
 			BackgroundColor3 = values().accent,
 			BorderSizePixel = 0,
 			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.new(0, 0, 1, -3),
-			Size = UDim2.new(1, 0, 0, 2),
+			Position = UDim2.new(0, -pad_left, 1, -3),
+			Size = UDim2.new(1, pad_left + pad_right, 0, 2),
 			Visible = false,
 			ZIndex = 5,
 			Parent = chip,
