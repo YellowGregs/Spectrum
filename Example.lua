@@ -29,44 +29,35 @@ end
 local main = Library:Window("Spectrum Example", { icon = "sliders" })
 local settings = Library:Window("Settings", { icon = "gear" })
 
--- section: a group row under a header
-main:section("Basics", "sliders")
+main:section("Basics", "sliders") -- section: a group row under a header
 
--- label: plain text
-main:label("Here's a quick tour. Swap in your own callbacks when you're ready.")
+main:label("Here is a quick tour, just swap in your own callbacks when you are ready") -- label: plain text
 
--- button: runs its callback when clicked
-main:button("Say hello", function()
+main:button("Say hello", function() -- button: runs its callback when clicked
 	log("Hello from Spectrum.")
 end, "arrow")
 
--- toggle: on/off switch
-main:toggle("Enable feature", false, function(state)
+main:toggle("Enable feature", false, function(state) -- toggle: on/off switch
 	log("Feature:", state)
 end, { icon = "check" })
 
--- slider: returns the current number
-main:slider("Speed", 1, 100, 16, function(value)
+main:slider("Speed", 1, 100, 16, function(value) -- slider: returns the current number
 	log("Speed:", value)
 end, 1, "speed")
 
--- dropdown: returns the selected option
-main:dropdown("Mode", { "Simple", "Compact", "Detailed" }, "Simple", function(picked)
+main:dropdown("Mode", { "Simple", "Compact", "Detailed" }, "Simple", function(picked) -- dropdown: returns the selected option
 	log("Mode:", picked)
 end, false, "sliders")
 
--- textbox: returns the text you type
-main:textbox("Name", "", function(text)
+main:textbox("Name", "", function(text) -- textbox: returns the text you type
 	log("Name:", text)
 end, "user")
 
--- keybinds: captures a key, mouse button, or gamepad button
-main:keybind("Action key", "F", function(key, pressed)
+main:keybind("Action key", "F", function(key, pressed) -- keybinds: captures a key, mouse button, or gamepad button
 	log("Action key:", key, pressed)
 end, "key")
 
--- multi dropdown: returns a list of selected options
-main:section("Lists", "target")
+main:section("Lists", "target") -- multi dropdown: returns a list of selected options
 main:dropdown("Channels", { "Alpha", "Bravo", "Charlie" }, { "Alpha" }, function(picks)
 	log("Channels:", table.concat(picks, ", ")) end, true, "target", {
 	searchable = true,
@@ -76,7 +67,7 @@ main:dropdown("Channels", { "Alpha", "Bravo", "Charlie" }, { "Alpha" }, function
 
 -- colorpicker: returns a Color3.
 settings:section("Appearance", "palette")
-settings:label("Changes show up right away.")
+settings:label("Changes show up right away")
 
 local defaults = Library:GetDesign()
 local accent = settings:colorpicker("Accent", defaults.accent, function(color)
@@ -84,35 +75,30 @@ local accent = settings:colorpicker("Accent", defaults.accent, function(color)
 end, "palette")
 Library:Design({ accent = accent:Get() })
 
--- toggle corner radius
-local compact = settings:toggle("Compact corners", false, function(state)
+local compact = settings:toggle("Compact corners", false, function(state) -- toggle corner radius
 	Library:Design({ radius = state and 2 or 4 })
 end, { icon = "sliders" })
 
--- just resets the theme and sync its controls
-settings:button("Reset theme", function()
+settings:button("Reset theme", function() -- just resets the theme and sync its controls
 	Library:Design(defaults)
 	accent:Set(defaults.accent)
 	compact:Set(false)
 	Library:Notify("Spectrum", "Theme reset.", 2, "info")
 end, "refresh")
 
--- separator: a thin divider.
-settings:separator()
-settings:label("Disabled controls keep their value, but their callback won't run.")
 
--- disabled button: visible, but it won't run its callback, and idk why i added this
-local locked = settings:button("Locked action", function()
+settings:separator() -- separator: a thin divider.
+settings:label("disabled controls keep their value, but their callback won't run.")
+
+local locked = settings:button("Locked action", function()-- disabled button: visible, but it won't run its callback
 	log("This should not run while the button is disabled.")
 end, "lock", { disabled = true })
 
--- turns that disabled state on and off from code, this one too idk why i added this
-settings:button("Toggle locked action", function()
+settings:button("Toggle locked action", function() -- turns that disabled state on and off from code
 	Library:SetDisabled(locked, not Library:GetDisabled(locked))
 end, "lock")
 
--- close: unloads the library and its interface
-settings:button("Close Spectrum", function()
+settings:button("Close Spectrum", function() -- close: unloads the library and its interface
 	Library:Destroy()
 end, "trash")
 
