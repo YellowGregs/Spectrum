@@ -26,7 +26,7 @@ local card = util.new("Frame", {
 	ZIndex = 2,
 	Parent = env.notes,
 })
-util.corner(card, 4)
+util.corner(card, 0)
 util.new("UIPadding", {
 	PaddingRight = UDim.new(0, 10),
 	Parent = card,
@@ -63,6 +63,7 @@ local function paint()
 	edge.Color = values().line
 	tick.BackgroundColor3 = values().accent
 	label.TextColor3 = values().text
+	label.Text = string.upper(text)
 end
 
 function watermark.set(value)

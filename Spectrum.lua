@@ -172,19 +172,19 @@ do
 local style = {}
 
 local defaults = {
-	accent = Color3.fromRGB(10, 132, 255),
-	background = Color3.fromRGB(16, 17, 20),
-	panel = Color3.fromRGB(28, 29, 33),
-	hover = Color3.fromRGB(37, 38, 43),
-	raised = Color3.fromRGB(23, 24, 28),
-	text = Color3.fromRGB(238, 239, 242),
-	muted = Color3.fromRGB(148, 150, 158),
-	line = Color3.fromRGB(46, 48, 54),
-	good = Color3.fromRGB(90, 214, 154),
-	warn = Color3.fromRGB(255, 190, 100),
-	bad = Color3.fromRGB(255, 96, 112),
-	ink = Color3.fromRGB(12, 15, 22),
-	radius = 4,
+	accent = Color3.fromRGB(230, 162, 58),
+	background = Color3.fromRGB(13, 14, 16),
+	panel = Color3.fromRGB(24, 26, 29),
+	hover = Color3.fromRGB(35, 38, 42),
+	raised = Color3.fromRGB(18, 20, 23),
+	text = Color3.fromRGB(232, 232, 228),
+	muted = Color3.fromRGB(126, 132, 138),
+	line = Color3.fromRGB(52, 56, 62),
+	good = Color3.fromRGB(116, 196, 122),
+	warn = Color3.fromRGB(230, 174, 78),
+	bad = Color3.fromRGB(214, 72, 66),
+	ink = Color3.fromRGB(15, 13, 9),
+	radius = 0,
 }
 
 local values = {}
@@ -2167,7 +2167,7 @@ local style = S.style
 local icons = S.icons
 local modal = S.modal
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
 
 local options = {}
 local panel
@@ -2212,9 +2212,9 @@ local function ensure()
 		Position = UDim2.fromOffset(11, 0),
 		Size = UDim2.new(1, -42, 1, 0),
 		Font = bold,
-		Text = "Options",
+		Text = "OPTIONS",
 		TextColor3 = values().text,
-		TextSize = util.size(10),
+		TextSize = util.size(9),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 22,
@@ -2232,7 +2232,7 @@ local function ensure()
 		ZIndex = 23,
 		Parent = header,
 	})
-	util.corner(close_hit, 3)
+	util.corner(close_hit, 0)
 	util.hover(close_hit)
 	close_button = icons.image(close_hit, "close", 9, values().muted)
 	if close_button then
@@ -2312,7 +2312,7 @@ function options.open(title, actions, anchor)
 	end
 	y = math.clamp(y, 6, math.max(6, view.Y - height - 6))
 
-	title_label.Text = tostring(title or "Options")
+			title_label.Text = string.upper(tostring(title or "OPTIONS"))
 	panel.Size = UDim2.fromOffset(width, height)
 	panel.Position = UDim2.fromOffset(math.floor(x - parent_pos.X), math.floor(y - parent_pos.Y))
 
@@ -2338,7 +2338,7 @@ function options.open(title, actions, anchor)
 		if action.accent then
 			row.TextColor3 = values().accent
 		end
-		util.corner(row, 4)
+		util.corner(row, 0)
 		util.hover(row)
 
 		local text = util.new("TextLabel", {
@@ -2346,7 +2346,7 @@ function options.open(title, actions, anchor)
 			Position = UDim2.fromOffset(9, 0),
 			Size = UDim2.new(1, -22, 1, 0),
 			Font = action.accent and bold or font,
-			Text = label,
+			Text = string.upper(label),
 			TextColor3 = action.accent and values().accent or values().text,
 			TextSize = util.size(10),
 			TextXAlignment = Enum.TextXAlignment.Left,
@@ -3012,7 +3012,7 @@ local util = S.util
 local style = S.style
 local icons = S.icons
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
 
 local holder = util.new("Frame", {
 	Name = "notifications",
@@ -3064,7 +3064,7 @@ local function notify(title, body, duration, kind)
 		Size = UDim2.fromScale(1, 1),
 		Parent = wrap,
 	})
-	util.corner(face, 6)
+	util.corner(face, 0)
 	local edge = util.stroke(face, style.values.line, 1)
 	util.shadow(face, 14, 0.55)
 
@@ -3078,7 +3078,7 @@ local function notify(title, body, duration, kind)
 		Size = UDim2.fromOffset(26, 26),
 		Parent = face,
 	})
-	util.corner(chip, 7)
+	util.corner(chip, 0)
 	local chip_edge = util.stroke(chip, tint, 0.45)
 	local badge = icons.kind(kind, chip, 14, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -3090,9 +3090,9 @@ local function notify(title, body, duration, kind)
 		Position = UDim2.fromOffset(48, 8),
 		Size = UDim2.new(1, -68, 0, 14),
 		Font = bold,
-		Text = title or "Spectrum",
+		Text = string.upper(tostring(title or "Spectrum")),
 		TextColor3 = style.values.text,
-		TextSize = 11,
+		TextSize = 10,
 		TextTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
@@ -3106,7 +3106,7 @@ local function notify(title, body, duration, kind)
 		Font = font,
 		Text = body or "",
 		TextColor3 = style.values.muted,
-		TextSize = 10,
+		TextSize = 9,
 		TextTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
@@ -3204,7 +3204,7 @@ do
 local env = S.env
 local util = S.util
 local style = S.style
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
 
 local tooltip = {}
 
@@ -3227,7 +3227,7 @@ local panel = util.new("Frame", {
 	ZIndex = 60,
 	Parent = env.modal,
 })
-util.corner(panel, 4)
+util.corner(panel, 0)
 local edge = util.stroke(panel, values().line, 0.15)
 util.shadow(panel, 12, 0.4)
 util.new("UISizeConstraint", {
@@ -3237,7 +3237,7 @@ util.new("UISizeConstraint", {
 util.new("UIPadding", {
 	PaddingTop = UDim.new(0, 6),
 	PaddingBottom = UDim.new(0, 6),
-	PaddingLeft = UDim.new(0, 8),
+	PaddingLeft = UDim.new(0, 10),
 	PaddingRight = UDim.new(0, 8),
 	Parent = panel,
 })
@@ -3250,7 +3250,7 @@ local label = util.new("TextLabel", {
 	Font = font,
 	Text = "",
 	TextColor3 = values().text,
-	TextSize = util.size(10),
+	TextSize = util.size(9),
 	TextWrapped = true,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	TextYAlignment = Enum.TextYAlignment.Top,
@@ -3400,7 +3400,7 @@ local card = util.new("Frame", {
 	ZIndex = 2,
 	Parent = env.notes,
 })
-util.corner(card, 4)
+util.corner(card, 0)
 util.new("UIPadding", {
 	PaddingRight = UDim.new(0, 10),
 	Parent = card,
@@ -3437,6 +3437,7 @@ local function paint()
 	edge.Color = values().line
 	tick.BackgroundColor3 = values().accent
 	label.TextColor3 = values().text
+	label.Text = string.upper(text)
 end
 
 function watermark.set(value)
@@ -3706,7 +3707,8 @@ local config = S.config
 local tooltip = S.tooltip
 local background = S.background
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
+local mono = Enum.Font.RobotoMono
 
 local Window = {}
 Window.roots = {}
@@ -3783,8 +3785,8 @@ function Window.new(title, opts)
 	if saved and type(saved.width) == "number" then
 		preferred = saved.width
 	end
-	local head = mobile and 38 or 34
-	local row_base = mobile and 40 or 32
+	local head = mobile and 34 or 30
+	local row_base = mobile and 36 or 30
 	local min_width = math.min(mobile and 210 or 252, math.max(160, vp.X - 20))
 	local width = math.clamp(preferred, min_width, math.max(min_width, vp.X - 20))
 	local cap = content_cap(vp, head)
@@ -3834,8 +3836,8 @@ function Window.new(title, opts)
 		ZIndex = 2,
 		Parent = root,
 	})
-	local edge = util.stroke(body, values().line, 0.3)
-	util.shadow(body, 18, 0.5)
+	local edge = util.stroke(body, values().line, 0.2)
+	util.shadow(body, 10, 0.65)
 
 	local backdrop = util.new("Frame", {
 		Name = "backdrop",
@@ -3895,6 +3897,14 @@ function Window.new(title, opts)
 		ZIndex = 3,
 		Parent = body,
 	})
+	local top_line = util.new("Frame", {
+		Name = "accent_line",
+		BackgroundColor3 = values().accent,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 0, 1),
+		ZIndex = 5,
+		Parent = header,
+	})
 	local seam = util.new("Frame", {
 		BackgroundColor3 = values().line,
 		BackgroundTransparency = 0.2,
@@ -3915,13 +3925,27 @@ function Window.new(title, opts)
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(19, 0),
-		Size = UDim2.new(1, -92, 1, 0),
+		Size = UDim2.new(1, -131, 1, 0),
 		Font = bold,
-		Text = title or "Window",
+		Text = string.upper(tostring(title or "Window")),
 		TextColor3 = values().text,
-		TextSize = util.size(11),
+		TextSize = util.size(10),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 4,
+		Parent = header,
+	})
+	local version = util.new("TextLabel", {
+		Name = "version",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -68, 0.5, 0),
+		Size = UDim2.fromOffset(42, head),
+		Font = mono,
+		Text = "v" .. tostring(S.library and S.library.Version or "3.1"),
+		TextColor3 = values().muted,
+		TextSize = util.size(8),
+		TextXAlignment = Enum.TextXAlignment.Right,
 		ZIndex = 4,
 		Parent = header,
 	})
@@ -3933,12 +3957,19 @@ function Window.new(title, opts)
 			emblem.Position = UDim2.fromOffset(10, head / 2 - 7)
 			emblem.ZIndex = 4
 			caption.Position = UDim2.fromOffset(31, 0)
-			caption.Size = UDim2.new(1, -104, 1, 0)
+			caption.Size = UDim2.new(1, -143, 1, 0)
 			style.paint(function()
 				icons.tint(emblem, values().accent)
 			end)
 		end
 	end
+
+	style.paint(function()
+		top_line.BackgroundColor3 = values().accent
+		mark.BackgroundColor3 = values().accent
+		caption.TextColor3 = values().text
+		version.TextColor3 = values().muted
+	end)
 
 	local function remember()
 		config.place(key, {
@@ -3962,7 +3993,7 @@ function Window.new(title, opts)
 			ZIndex = 5,
 			Parent = header,
 		})
-		util.corner(hit, 3)
+		util.corner(hit, 0)
 		util.hover(hit)
 		return hit
 	end
@@ -4003,6 +4034,14 @@ function Window.new(title, opts)
 		Size = UDim2.fromOffset(9, 1),
 		Parent = close_hit,
 	})
+	close_hit.MouseEnter:Connect(function()
+		close_a.BackgroundColor3 = values().bad
+		close_b.BackgroundColor3 = values().bad
+	end)
+	close_hit.MouseLeave:Connect(function()
+		close_a.BackgroundColor3 = values().muted
+		close_b.BackgroundColor3 = values().muted
+	end)
 
 	local grab = util.new("TextButton", {
 		Name = "grab",
@@ -4079,7 +4118,7 @@ function Window.new(title, opts)
 	end)
 	style.paint(paint_grip)
 
-	local tab_h = mobile and 34 or 30
+	local tab_h = mobile and 28 or 24
 	local tabs = {}
 	local default_tab = {
 		name = "Main",
@@ -4183,7 +4222,7 @@ function Window.new(title, opts)
 		local on = tab == active_tab
 		tab.chip.BackgroundColor3 = values().hover
 		tab.chip.BackgroundTransparency = 1
-		tab.chip.TextColor3 = on and values().text or values().muted
+		tab.chip.TextColor3 = on and values().accent or values().muted
 		if tab.emblem then
 			icons.tint(tab.emblem, on and values().accent or values().muted)
 		end
@@ -4200,23 +4239,23 @@ function Window.new(title, opts)
 			AutoButtonColor = false,
 			AutomaticSize = Enum.AutomaticSize.X,
 			LayoutOrder = tab.order,
-			Size = UDim2.fromOffset(0, tab_h - 4),
+			Size = UDim2.fromOffset(0, tab_h - 2),
 			Font = font,
-			Text = tab.name,
+			Text = string.upper(tab.name),
 			TextColor3 = values().muted,
-			TextSize = util.size(10),
+			TextSize = util.size(9),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 4,
 			Parent = rail,
 		})
-		util.corner(chip, 4)
+		util.corner(chip, 0)
 		util.new("UISizeConstraint", {
 			MaxSize = Vector2.new(mobile and 132 or 152, tab_h),
 			Parent = chip,
 		})
-		local pad_left = tab.icon and 25 or 10
-		local pad_right = 10
+		local pad_left = tab.icon and 21 or 7
+		local pad_right = 7
 		util.new("UIPadding", {
 			PaddingLeft = UDim.new(0, pad_left),
 			PaddingRight = UDim.new(0, pad_right),
@@ -4224,10 +4263,10 @@ function Window.new(title, opts)
 		})
 		local emblem
 		if tab.icon then
-			emblem = icons.image(chip, tab.icon, 12, values().muted)
+			emblem = icons.image(chip, tab.icon, 11, values().muted)
 			if emblem then
 				emblem.AnchorPoint = Vector2.new(0, 0.5)
-				emblem.Position = UDim2.new(0, 9 - pad_left, 0.5, 0)
+				emblem.Position = UDim2.new(0, 7 - pad_left, 0.5, 0)
 				icons.layer(emblem, 5)
 			end
 		end
@@ -5125,7 +5164,8 @@ local style = S.style
 local icons = S.icons
 local tooltip = S.tooltip
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
+local mono = Enum.Font.RobotoMono
 local inputs = {}
 
 local function values()
@@ -5138,9 +5178,9 @@ local function label(parent, text, y, height)
 		Position = UDim2.fromOffset(10, y or 0),
 		Size = UDim2.new(1, -90, 0, height or 14),
 		Font = font,
-		Text = tostring(text or ""),
+		Text = string.upper(tostring(text or "")),
 		TextColor3 = values().text,
-		TextSize = util.size(11),
+		TextSize = util.size(10),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
@@ -5190,13 +5230,14 @@ function inputs.button(win, text, callback, icon, opts)
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(1, -16, 0, mobile and 36 or 24),
 		Font = bold,
-		Text = tostring(text or "Button"),
+		Text = string.upper(tostring(text or "Button")),
 		TextColor3 = front,
-		TextSize = util.size(mobile and 11 or 9),
+		TextSize = util.size(mobile and 10 or 9),
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Parent = holder,
 	})
 	util.corner(btn)
+	local edge = util.stroke(btn, values().line, 0.25)
 	local emblem
 	if type(icon) == "string" and icon ~= "" then
 		emblem = icons.image(btn, icon, 14, style.on(values().accent))
@@ -5246,18 +5287,18 @@ function inputs.button(win, text, callback, icon, opts)
 			armed = true
 			arm_token = arm_token + 1
 			local mine = arm_token
-			btn.Text = confirm
+			btn.Text = string.upper(confirm)
 			task.delay(3, function()
 				if btn.Parent and armed and arm_token == mine then
 					armed = false
-					btn.Text = tostring(text or "Button")
+					btn.Text = string.upper(tostring(text or "Button"))
 				end
 			end)
 			return
 		end
 		armed = false
 		arm_token = arm_token + 1
-		btn.Text = tostring(text or "Button")
+		btn.Text = string.upper(tostring(text or "Button"))
 		if callback then
 			callback()
 		end
@@ -5292,13 +5333,13 @@ function inputs.button(win, text, callback, icon, opts)
 		util.tween(pop, 0.2, { Scale = 1 }, Enum.EasingStyle.Back)
 	end)
 
-	local function set_disabled(value)
+		local function set_disabled(value)
 		disabled = value == true
 		btn.Active = not disabled
 		if disabled then
 			held = false
 			armed = false
-			btn.Text = tostring(text or "Button")
+			btn.Text = string.upper(tostring(text or "Button"))
 			util.tween(pop, 0.1, { Scale = 1 })
 		end
 		if btn:GetAttribute("SpectrumDisabled") ~= disabled then
@@ -5315,6 +5356,9 @@ function inputs.button(win, text, callback, icon, opts)
 		set_disabled(btn:GetAttribute("SpectrumDisabled") == true)
 	end)
 	style.paint(paint)
+	style.paint(function()
+		edge.Color = values().line
+	end)
 
 	win._options(holder, text, function()
 		return {
@@ -5381,7 +5425,7 @@ function inputs.toggle(win, text, a, b, opts)
 	local pop
 	local sync
 	if checkbox then
-		local size = mobile and 20 or 16
+		local size = mobile and 18 or 15
 		local box = util.new("Frame", {
 			Name = "checkbox",
 			BackgroundColor3 = values().raised,
@@ -5392,7 +5436,7 @@ function inputs.toggle(win, text, a, b, opts)
 			ZIndex = 3,
 			Parent = row,
 		})
-		util.corner(box, 3)
+		util.corner(box, 0)
 		local edge = util.stroke(box, values().line, 0.15)
 		pop = util.new("UIScale", { Parent = box })
 		local check = util.new("Frame", {
@@ -5434,9 +5478,9 @@ function inputs.toggle(win, text, a, b, opts)
 			long.BackgroundColor3 = ink
 		end
 	else
-		local width = mobile and 40 or 36
-		local height = mobile and 20 or 18
-		local thumb_size = height - 4
+		local width = mobile and 34 or 30
+		local height = mobile and 16 or 14
+		local thumb_size = height - 2
 		local track = util.new("Frame", {
 			Name = "switch_track",
 			BackgroundColor3 = state and values().accent or values().raised,
@@ -5447,11 +5491,11 @@ function inputs.toggle(win, text, a, b, opts)
 			ZIndex = 3,
 			Parent = row,
 		})
-		util.corner(track, height / 2)
-		local edge = util.stroke(track, state and values().accent or values().line, state and 1 or 0.2)
+		util.corner(track, 0)
+		local edge = util.stroke(track, state and values().accent or values().line, 0.25)
 		local thumb = util.new("Frame", {
 			Name = "switch_thumb",
-			BackgroundColor3 = state and Color3.new(1, 1, 1) or values().muted,
+			BackgroundColor3 = state and values().ink or values().muted,
 			BorderSizePixel = 0,
 			AnchorPoint = Vector2.new(0, 0.5),
 			Position = UDim2.new(0, state and (width - thumb_size - 2) or 2, 0.5, 0),
@@ -5459,7 +5503,7 @@ function inputs.toggle(win, text, a, b, opts)
 			ZIndex = 4,
 			Parent = track,
 		})
-		util.corner(thumb, thumb_size / 2)
+		util.corner(thumb, 0)
 		pop = util.new("UIScale", { Parent = track })
 
 		sync = function()
@@ -5467,11 +5511,11 @@ function inputs.toggle(win, text, a, b, opts)
 			local accent = disabled and values().muted or values().accent
 			util.tween(thumb, 0.16, {
 				Position = UDim2.new(0, x, 0.5, 0),
-				BackgroundColor3 = state and (disabled and values().muted or Color3.new(1, 1, 1)) or values().muted,
+				BackgroundColor3 = state and (disabled and values().muted or values().ink) or values().muted,
 			}, Enum.EasingStyle.Quart)
 			util.tween(track, 0.14, { BackgroundColor3 = state and accent or values().raised })
 			edge.Color = state and accent or values().line
-			edge.Transparency = state and 1 or 0.2
+			edge.Transparency = 0.25
 		end
 	end
 
@@ -5642,10 +5686,10 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -10, 0, compact and 2 or (mobile and 6 or 4)),
 		Size = UDim2.fromOffset(88, 14),
-		Font = bold,
+		Font = mono,
 		Text = "",
 		TextColor3 = values().muted,
-		TextSize = util.size(10),
+		TextSize = util.size(9),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
@@ -5656,11 +5700,11 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		BackgroundColor3 = values().raised,
 		BorderSizePixel = 0,
 		Position = UDim2.new(0, 10, 0, track_y),
-		Size = UDim2.new(1, -20, 0, mobile and 5 or 4),
+		Size = UDim2.new(1, -20, 0, mobile and 4 or 3),
 		ZIndex = 3,
 		Parent = row,
 	})
-	util.corner(track, 3)
+	util.corner(track, 0)
 
 	local fill = util.new("Frame", {
 		BackgroundColor3 = values().accent,
@@ -5669,18 +5713,18 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		ZIndex = 4,
 		Parent = track,
 	})
-	util.corner(fill, 3)
+	util.corner(fill, 0)
 
 	local thumb = util.new("Frame", {
 		BackgroundColor3 = values().accent,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0, 0, 0.5, 0),
-		Size = UDim2.fromOffset(6, mobile and 16 or 13),
+		Size = UDim2.fromOffset(5, mobile and 15 or 12),
 		ZIndex = 5,
 		Parent = track,
 	})
-	util.corner(thumb, 3)
+	util.corner(thumb, 0)
 
 	local hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
@@ -5732,7 +5776,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		end
 		dragging = true
 		win._scroll.ScrollingEnabled = false
-		thumb.Size = UDim2.fromOffset(7, mobile and 18 or 15)
+		thumb.Size = UDim2.fromOffset(6, mobile and 16 or 13)
 		value = snap(input.Position.X)
 		paint_value(true)
 	end
@@ -5760,7 +5804,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		if dragging and (kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch) then
 			dragging = false
 			win._scroll.ScrollingEnabled = true
-			thumb.Size = UDim2.fromOffset(6, mobile and 16 or 13)
+			thumb.Size = UDim2.fromOffset(5, mobile and 15 or 12)
 			paint_value(false)
 		end
 	end)
@@ -5782,7 +5826,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		if disabled and dragging then
 			dragging = false
 			win._scroll.ScrollingEnabled = true
-			thumb.Size = UDim2.fromOffset(6, mobile and 16 or 13)
+			thumb.Size = UDim2.fromOffset(5, mobile and 15 or 12)
 		end
 		fill.BackgroundColor3 = disabled and values().muted or values().accent
 		thumb.BackgroundColor3 = disabled and values().muted or values().accent
@@ -5906,8 +5950,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		ClipsDescendants = true,
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -10, 0.5, 0),
-		Size = UDim2.fromOffset(mobile and 96 or 84, mobile and 30 or 22),
-		Font = bold,
+		Size = UDim2.fromOffset(mobile and 96 or 84, mobile and 28 or 21),
+		Font = mono,
 		Text = default or empty_text,
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
@@ -5917,7 +5961,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		ZIndex = 3,
 		Parent = row,
 	})
-	util.corner(pill, 3)
+	util.corner(pill, 0)
 	local edge = util.stroke(pill, values().line, 0.35)
 	util.hover(pill)
 
@@ -6264,7 +6308,8 @@ local modal = S.modal
 local icons = S.icons
 local tooltip = S.tooltip
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
+local mono = Enum.Font.RobotoMono
 local selects = {}
 local GuiService = game:GetService("GuiService")
 
@@ -6285,9 +6330,9 @@ local function caption(parent, title)
 		Position = UDim2.fromOffset(10, 0),
 		Size = UDim2.new(0.5, -20, 1, 0),
 		Font = font,
-		Text = tostring(title or ""),
+		Text = string.upper(tostring(title or "")),
 		TextColor3 = values().text,
-		TextSize = util.size(11),
+		TextSize = util.size(10),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
@@ -6345,7 +6390,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	local row = win._row(mobile and 40 or 38)
 	local name = caption(row, title)
 	name.Size = UDim2.new(0.48, -20, 1, 0)
-	name.TextSize = util.size(mobile and 11 or 12)
+	name.TextSize = util.size(10)
 	local emblem
 	if type(icon) == "string" and icon ~= "" then
 		emblem = icons.image(row, icon, 14, values().muted)
@@ -6363,10 +6408,10 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -29, 0.5, 0),
 		Size = UDim2.new(0.4, 0, 1, 0),
-		Font = font,
+		Font = mono,
 		Text = placeholder,
 		TextColor3 = values().muted,
-		TextSize = util.size(mobile and 10 or 11),
+		TextSize = util.size(9),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
@@ -6387,17 +6432,17 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -24, 0.5, 0),
 			Size = UDim2.fromOffset(mobile and 20 or 22, mobile and 16 or 18),
-			Font = bold,
+			Font = mono,
 			Text = "0",
 			TextColor3 = style.on(values().accent),
-			TextSize = util.size(mobile and 9 or 10),
+			TextSize = util.size(9),
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextYAlignment = Enum.TextYAlignment.Center,
 			Visible = false,
 			ZIndex = 4,
 			Parent = row,
 		})
-		util.corner(count_badge, 5)
+		util.corner(count_badge, 0)
 	end
 
 	local pad = mobile and 4 or 6
@@ -6420,7 +6465,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		ZIndex = 10,
 		Parent = env.modal,
 	})
-	util.corner(panel, 6)
+	util.corner(panel, 0)
 	local edge = util.stroke(panel, values().line, 0.05)
 	util.shadow(panel, 18, 0.4)
 	win._popover(panel)
@@ -6468,7 +6513,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				ZIndex = 13,
 				Parent = actions,
 			})
-			util.corner(btn, 4)
+			util.corner(btn, 0)
 			util.hover(btn)
 			local hit
 			if mobile then
@@ -6498,7 +6543,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			BackgroundColor3 = values().raised,
 			BorderSizePixel = 0,
 			ClearTextOnFocus = false,
-			Font = font,
+			Font = mono,
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = "Search...",
 			Position = UDim2.fromOffset(pad, pad + bulk_h + bulk_gap),
@@ -6510,7 +6555,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			ZIndex = 13,
 			Parent = panel,
 		})
-		util.corner(search, 4)
+		util.corner(search, 0)
 		util.new("UIPadding", {
 			PaddingLeft = UDim.new(0, 8),
 			PaddingRight = UDim.new(0, 8),
@@ -6687,16 +6732,16 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				end
 			end
 			if picked == 0 then
-				readout.Text = placeholder
+				readout.Text = string.upper(placeholder)
 			elseif picked == 1 then
-				readout.Text = first_name
+				readout.Text = string.upper(first_name)
 			elseif picked == 2 then
-				readout.Text = first_name .. " +1"
+				readout.Text = string.upper(first_name) .. " +1"
 			else
-				readout.Text = picked .. " selected"
+				readout.Text = tostring(picked) .. " SELECTED"
 			end
 		else
-			readout.Text = single or placeholder
+			readout.Text = string.upper(single or placeholder)
 		end
 		if disabled then
 			readout.TextColor3 = values().muted
@@ -6913,9 +6958,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			LayoutOrder = index,
 			Size = UDim2.new(1, 0, 0, item_h),
 			Font = font,
-			Text = option,
+			Text = string.upper(option),
 			TextColor3 = values().text,
-			TextSize = util.size(mobile and 11 or 12),
+			TextSize = util.size(10),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 12,
@@ -6940,7 +6985,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				ZIndex = 13,
 				Parent = item,
 			})
-			util.corner(mark, 4)
+			util.corner(mark, 0)
 			mark_edges[option] = util.stroke(mark, values().line, 0.25)
 			check = icons.check(mark, mark_size - 5, style.on(values().accent))
 			check.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -7304,7 +7349,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 3,
 		Parent = row,
 	})
-	util.corner(swatch, 3)
+	util.corner(swatch, 0)
 	util.stroke(swatch, Color3.new(1, 1, 1), 0.7)
 
 	local pad = 8
@@ -7325,7 +7370,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 10,
 		Parent = env.modal,
 	})
-	util.corner(panel, 6)
+	util.corner(panel, 0)
 	local edge = util.stroke(panel, values().line, 0.05)
 	util.shadow(panel, 18, 0.4)
 	win._popover(panel)
@@ -7339,7 +7384,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 3,
 		Parent = panel,
 	})
-	util.corner(field, 2)
+	util.corner(field, 0)
 
 	local light = util.new("Frame", {
 		BackgroundColor3 = Color3.new(1, 1, 1),
@@ -7356,7 +7401,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		}),
 		Parent = light,
 	})
-	util.corner(light, 2)
+	util.corner(light, 0)
 
 	local dark = util.new("Frame", {
 		BackgroundColor3 = Color3.new(0, 0, 0),
@@ -7374,7 +7419,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Rotation = 90,
 		Parent = dark,
 	})
-	util.corner(dark, 2)
+	util.corner(dark, 0)
 
 	local cursor = util.new("Frame", {
 		BackgroundTransparency = 1,
@@ -7383,7 +7428,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 6,
 		Parent = field,
 	})
-	util.corner(cursor, 8)
+	util.corner(cursor, 0)
 	local ring = util.stroke(cursor, Color3.new(1, 1, 1), 0.15)
 	ring.Thickness = 2
 
@@ -7407,7 +7452,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 3,
 		Parent = panel,
 	})
-	util.corner(hue_bar, 2)
+	util.corner(hue_bar, 0)
 	for index = 0, 47 do
 		util.new("Frame", {
 			BackgroundColor3 = Color3.fromHSV(index / 48, 1, 1),
@@ -7428,7 +7473,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 4,
 		Parent = hue_bar,
 	})
-	util.corner(knob, 2)
+	util.corner(knob, 0)
 
 	local hue_hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
@@ -7450,7 +7495,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 3,
 		Parent = panel,
 	})
-	util.corner(preview, 3)
+	util.corner(preview, 0)
 	util.stroke(preview, values().line, 0.2)
 
 	local hex = util.new("TextBox", {
@@ -7468,7 +7513,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 3,
 		Parent = panel,
 	})
-	util.corner(hex, 3)
+	util.corner(hex, 0)
 	local hex_edge = util.stroke(hex, values().line, 0.2)
 	util.new("UIPadding", {
 		PaddingLeft = UDim.new(0, 8),
@@ -7540,7 +7585,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				ZIndex = 3,
 				Parent = holder,
 			})
-			util.corner(swatch, 3)
+			util.corner(swatch, 0)
 			util.stroke(swatch, values().line, 0.2)
 			swatch.Activated:Connect(function()
 				if disabled then
@@ -7571,7 +7616,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				ZIndex = 3,
 				Parent = holder,
 			})
-			util.corner(slot, 3)
+			util.corner(slot, 0)
 			util.stroke(slot, values().line, 0.2)
 			recent_slots[index] = slot
 			slot.Activated:Connect(function()
@@ -7908,7 +7953,8 @@ local style = S.style
 local icons = S.icons
 local tooltip = S.tooltip
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
+local mono = Enum.Font.RobotoMono
 local text = {}
 
 local function values()
@@ -7921,9 +7967,9 @@ local function label(parent, title)
 		Position = UDim2.fromOffset(10, 0),
 		Size = UDim2.new(1, -90, 0, 14),
 		Font = font,
-		Text = tostring(title or ""),
+		Text = string.upper(tostring(title or "")),
 		TextColor3 = values().text,
-		TextSize = util.size(11),
+		TextSize = util.size(10),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
@@ -7932,11 +7978,11 @@ local function label(parent, title)
 end
 
 function text.section(win, title, icon)
-	local height = win._mobile and 32 or 28
+	local height = win._mobile and 30 or 26
 	local holder = win._slot(height, true)
 	local record = win._new_section()
 	local band = util.new("Frame", {
-		BackgroundColor3 = values().panel,
+		BackgroundColor3 = values().raised,
 		BorderSizePixel = 0,
 		Size = UDim2.fromScale(1, 1),
 		ZIndex = 2,
@@ -7950,14 +7996,23 @@ function text.section(win, title, icon)
 		ZIndex = 3,
 		Parent = band,
 	})
+	local top = util.new("Frame", {
+		BackgroundColor3 = values().line,
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+		Position = UDim2.new(0, 0, 0, 0),
+		Size = UDim2.new(1, 0, 0, 1),
+		ZIndex = 3,
+		Parent = band,
+	})
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(20, 0),
 		Size = UDim2.new(1, -44, 1, 0),
 		Font = bold,
-		Text = tostring(title or "Section"),
+		Text = string.upper(tostring(title or "Section")),
 		TextColor3 = values().text,
-		TextSize = util.size(11),
+		TextSize = util.size(9),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
@@ -8002,7 +8057,7 @@ function text.section(win, title, icon)
 	local hovered = false
 	local function tint_band(on)
 		hovered = on
-		util.tween(band, 0.1, { BackgroundColor3 = on and values().hover or values().panel })
+		util.tween(band, 0.1, { BackgroundColor3 = on and values().hover or values().raised })
 	end
 	hit.MouseEnter:Connect(function()
 		tint_band(true)
@@ -8038,11 +8093,11 @@ function text.section(win, title, icon)
 	end)
 
 	style.paint(function()
-		band.BackgroundColor3 = values().panel
+		band.BackgroundColor3 = hovered and values().hover or values().raised
 		tick.BackgroundColor3 = values().accent
 		caption.TextColor3 = values().text
+		top.BackgroundColor3 = values().line
 		bottom.BackgroundColor3 = values().line
-		band.BackgroundColor3 = hovered and values().hover or values().panel
 		if emblem then
 			icons.tint(emblem, values().accent)
 		end
@@ -8096,7 +8151,7 @@ function text.label(win, body)
 		Font = font,
 		Text = tostring(body or ""),
 		TextColor3 = values().muted,
-		TextSize = util.size(10),
+		TextSize = util.size(9),
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
@@ -8182,14 +8237,14 @@ function text.textbox(win, title, default, callback, icon, opts)
 			ClearTextOnFocus = clear_focus,
 			Active = not disabled,
 			TextEditable = not disabled,
-			Font = font,
+			Font = mono,
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = placeholder,
 			Position = UDim2.new(0, 10, 0, 27),
 			Size = UDim2.new(1, -20, 0, 26),
 			Text = tostring(default or ""),
 			TextColor3 = values().text,
-			TextSize = util.size(11),
+			TextSize = util.size(10),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 3,
@@ -8203,15 +8258,15 @@ function text.textbox(win, title, default, callback, icon, opts)
 			ClearTextOnFocus = clear_focus,
 			Active = not disabled,
 			TextEditable = not disabled,
-			Font = font,
+			Font = mono,
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = placeholder,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -10, 0.5, 0),
-			Size = UDim2.new(0.52, 0, 0, 22),
+			Size = UDim2.new(0.52, 0, 0, 21),
 			Text = tostring(default or ""),
 			TextColor3 = values().text,
-			TextSize = util.size(11),
+			TextSize = util.size(10),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 3,
@@ -8224,7 +8279,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 		PaddingRight = UDim.new(0, 8),
 		Parent = box,
 	})
-	local edge = util.stroke(box, values().line, 0.2)
+	local edge = util.stroke(box, values().line, 0.15)
 	local stored
 	local fixing = false
 

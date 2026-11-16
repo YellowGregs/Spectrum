@@ -5,7 +5,7 @@ local util = S.util
 local style = S.style
 local icons = S.icons
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
 
 local holder = util.new("Frame", {
 	Name = "notifications",
@@ -57,7 +57,7 @@ local function notify(title, body, duration, kind)
 		Size = UDim2.fromScale(1, 1),
 		Parent = wrap,
 	})
-	util.corner(face, 6)
+	util.corner(face, 0)
 	local edge = util.stroke(face, style.values.line, 1)
 	util.shadow(face, 14, 0.55)
 
@@ -71,7 +71,7 @@ local function notify(title, body, duration, kind)
 		Size = UDim2.fromOffset(26, 26),
 		Parent = face,
 	})
-	util.corner(chip, 7)
+	util.corner(chip, 0)
 	local chip_edge = util.stroke(chip, tint, 0.45)
 	local badge = icons.kind(kind, chip, 14, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -83,9 +83,9 @@ local function notify(title, body, duration, kind)
 		Position = UDim2.fromOffset(48, 8),
 		Size = UDim2.new(1, -68, 0, 14),
 		Font = bold,
-		Text = title or "Spectrum",
+		Text = string.upper(tostring(title or "Spectrum")),
 		TextColor3 = style.values.text,
-		TextSize = 11,
+		TextSize = 10,
 		TextTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
@@ -99,7 +99,7 @@ local function notify(title, body, duration, kind)
 		Font = font,
 		Text = body or "",
 		TextColor3 = style.values.muted,
-		TextSize = 10,
+		TextSize = 9,
 		TextTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,

@@ -3,7 +3,7 @@ local S = ...
 local env = S.env
 local util = S.util
 local style = S.style
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
 
 local tooltip = {}
 
@@ -26,7 +26,7 @@ local panel = util.new("Frame", {
 	ZIndex = 60,
 	Parent = env.modal,
 })
-util.corner(panel, 4)
+util.corner(panel, 0)
 local edge = util.stroke(panel, values().line, 0.15)
 util.shadow(panel, 12, 0.4)
 util.new("UISizeConstraint", {
@@ -36,7 +36,7 @@ util.new("UISizeConstraint", {
 util.new("UIPadding", {
 	PaddingTop = UDim.new(0, 6),
 	PaddingBottom = UDim.new(0, 6),
-	PaddingLeft = UDim.new(0, 8),
+	PaddingLeft = UDim.new(0, 10),
 	PaddingRight = UDim.new(0, 8),
 	Parent = panel,
 })
@@ -49,7 +49,7 @@ local label = util.new("TextLabel", {
 	Font = font,
 	Text = "",
 	TextColor3 = values().text,
-	TextSize = util.size(10),
+	TextSize = util.size(9),
 	TextWrapped = true,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	TextYAlignment = Enum.TextYAlignment.Top,

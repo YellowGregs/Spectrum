@@ -6,7 +6,8 @@ local style = S.style
 local icons = S.icons
 local tooltip = S.tooltip
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
+local mono = Enum.Font.RobotoMono
 local text = {}
 
 local function values()
@@ -19,9 +20,9 @@ local function label(parent, title)
 		Position = UDim2.fromOffset(10, 0),
 		Size = UDim2.new(1, -90, 0, 14),
 		Font = font,
-		Text = tostring(title or ""),
+		Text = string.upper(tostring(title or "")),
 		TextColor3 = values().text,
-		TextSize = util.size(11),
+		TextSize = util.size(10),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
@@ -30,11 +31,11 @@ local function label(parent, title)
 end
 
 function text.section(win, title, icon)
-	local height = win._mobile and 32 or 28
+	local height = win._mobile and 30 or 26
 	local holder = win._slot(height, true)
 	local record = win._new_section()
 	local band = util.new("Frame", {
-		BackgroundColor3 = values().panel,
+		BackgroundColor3 = values().raised,
 		BorderSizePixel = 0,
 		Size = UDim2.fromScale(1, 1),
 		ZIndex = 2,
@@ -48,14 +49,23 @@ function text.section(win, title, icon)
 		ZIndex = 3,
 		Parent = band,
 	})
+	local top = util.new("Frame", {
+		BackgroundColor3 = values().line,
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+		Position = UDim2.new(0, 0, 0, 0),
+		Size = UDim2.new(1, 0, 0, 1),
+		ZIndex = 3,
+		Parent = band,
+	})
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(20, 0),
 		Size = UDim2.new(1, -44, 1, 0),
 		Font = bold,
-		Text = tostring(title or "Section"),
+		Text = string.upper(tostring(title or "Section")),
 		TextColor3 = values().text,
-		TextSize = util.size(11),
+		TextSize = util.size(9),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
@@ -100,7 +110,7 @@ function text.section(win, title, icon)
 	local hovered = false
 	local function tint_band(on)
 		hovered = on
-		util.tween(band, 0.1, { BackgroundColor3 = on and values().hover or values().panel })
+		util.tween(band, 0.1, { BackgroundColor3 = on and values().hover or values().raised })
 	end
 	hit.MouseEnter:Connect(function()
 		tint_band(true)
@@ -136,11 +146,11 @@ function text.section(win, title, icon)
 	end)
 
 	style.paint(function()
-		band.BackgroundColor3 = values().panel
+		band.BackgroundColor3 = hovered and values().hover or values().raised
 		tick.BackgroundColor3 = values().accent
 		caption.TextColor3 = values().text
+		top.BackgroundColor3 = values().line
 		bottom.BackgroundColor3 = values().line
-		band.BackgroundColor3 = hovered and values().hover or values().panel
 		if emblem then
 			icons.tint(emblem, values().accent)
 		end
@@ -194,7 +204,7 @@ function text.label(win, body)
 		Font = font,
 		Text = tostring(body or ""),
 		TextColor3 = values().muted,
-		TextSize = util.size(10),
+		TextSize = util.size(9),
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
@@ -280,14 +290,14 @@ function text.textbox(win, title, default, callback, icon, opts)
 			ClearTextOnFocus = clear_focus,
 			Active = not disabled,
 			TextEditable = not disabled,
-			Font = font,
+			Font = mono,
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = placeholder,
 			Position = UDim2.new(0, 10, 0, 27),
 			Size = UDim2.new(1, -20, 0, 26),
 			Text = tostring(default or ""),
 			TextColor3 = values().text,
-			TextSize = util.size(11),
+			TextSize = util.size(10),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 3,
@@ -301,15 +311,15 @@ function text.textbox(win, title, default, callback, icon, opts)
 			ClearTextOnFocus = clear_focus,
 			Active = not disabled,
 			TextEditable = not disabled,
-			Font = font,
+			Font = mono,
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = placeholder,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -10, 0.5, 0),
-			Size = UDim2.new(0.52, 0, 0, 22),
+			Size = UDim2.new(0.52, 0, 0, 21),
 			Text = tostring(default or ""),
 			TextColor3 = values().text,
-			TextSize = util.size(11),
+			TextSize = util.size(10),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 3,
@@ -322,7 +332,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 		PaddingRight = UDim.new(0, 8),
 		Parent = box,
 	})
-	local edge = util.stroke(box, values().line, 0.2)
+	local edge = util.stroke(box, values().line, 0.15)
 	local stored
 	local fixing = false
 

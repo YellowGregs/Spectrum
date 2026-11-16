@@ -3,19 +3,19 @@ local S = ...
 local style = {}
 
 local defaults = {
-	accent = Color3.fromRGB(10, 132, 255),
-	background = Color3.fromRGB(16, 17, 20),
-	panel = Color3.fromRGB(28, 29, 33),
-	hover = Color3.fromRGB(37, 38, 43),
-	raised = Color3.fromRGB(23, 24, 28),
-	text = Color3.fromRGB(238, 239, 242),
-	muted = Color3.fromRGB(148, 150, 158),
-	line = Color3.fromRGB(46, 48, 54),
-	good = Color3.fromRGB(90, 214, 154),
-	warn = Color3.fromRGB(255, 190, 100),
-	bad = Color3.fromRGB(255, 96, 112),
-	ink = Color3.fromRGB(12, 15, 22),
-	radius = 4,
+	accent = Color3.fromRGB(230, 162, 58),
+	background = Color3.fromRGB(13, 14, 16),
+	panel = Color3.fromRGB(24, 26, 29),
+	hover = Color3.fromRGB(35, 38, 42),
+	raised = Color3.fromRGB(18, 20, 23),
+	text = Color3.fromRGB(232, 232, 228),
+	muted = Color3.fromRGB(126, 132, 138),
+	line = Color3.fromRGB(52, 56, 62),
+	good = Color3.fromRGB(116, 196, 122),
+	warn = Color3.fromRGB(230, 174, 78),
+	bad = Color3.fromRGB(214, 72, 66),
+	ink = Color3.fromRGB(15, 13, 9),
+	radius = 0,
 }
 
 local values = {}

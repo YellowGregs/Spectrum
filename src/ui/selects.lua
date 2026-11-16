@@ -7,7 +7,8 @@ local modal = S.modal
 local icons = S.icons
 local tooltip = S.tooltip
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
+local mono = Enum.Font.RobotoMono
 local selects = {}
 local GuiService = game:GetService("GuiService")
 
@@ -28,9 +29,9 @@ local function caption(parent, title)
 		Position = UDim2.fromOffset(10, 0),
 		Size = UDim2.new(0.5, -20, 1, 0),
 		Font = font,
-		Text = tostring(title or ""),
+		Text = string.upper(tostring(title or "")),
 		TextColor3 = values().text,
-		TextSize = util.size(11),
+		TextSize = util.size(10),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
@@ -88,7 +89,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	local row = win._row(mobile and 40 or 38)
 	local name = caption(row, title)
 	name.Size = UDim2.new(0.48, -20, 1, 0)
-	name.TextSize = util.size(mobile and 11 or 12)
+	name.TextSize = util.size(10)
 	local emblem
 	if type(icon) == "string" and icon ~= "" then
 		emblem = icons.image(row, icon, 14, values().muted)
@@ -106,10 +107,10 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -29, 0.5, 0),
 		Size = UDim2.new(0.4, 0, 1, 0),
-		Font = font,
+		Font = mono,
 		Text = placeholder,
 		TextColor3 = values().muted,
-		TextSize = util.size(mobile and 10 or 11),
+		TextSize = util.size(9),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
@@ -130,17 +131,17 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -24, 0.5, 0),
 			Size = UDim2.fromOffset(mobile and 20 or 22, mobile and 16 or 18),
-			Font = bold,
+			Font = mono,
 			Text = "0",
 			TextColor3 = style.on(values().accent),
-			TextSize = util.size(mobile and 9 or 10),
+			TextSize = util.size(9),
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextYAlignment = Enum.TextYAlignment.Center,
 			Visible = false,
 			ZIndex = 4,
 			Parent = row,
 		})
-		util.corner(count_badge, 5)
+		util.corner(count_badge, 0)
 	end
 
 	local pad = mobile and 4 or 6
@@ -163,7 +164,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		ZIndex = 10,
 		Parent = env.modal,
 	})
-	util.corner(panel, 6)
+	util.corner(panel, 0)
 	local edge = util.stroke(panel, values().line, 0.05)
 	util.shadow(panel, 18, 0.4)
 	win._popover(panel)
@@ -211,7 +212,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				ZIndex = 13,
 				Parent = actions,
 			})
-			util.corner(btn, 4)
+			util.corner(btn, 0)
 			util.hover(btn)
 			local hit
 			if mobile then
@@ -241,7 +242,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			BackgroundColor3 = values().raised,
 			BorderSizePixel = 0,
 			ClearTextOnFocus = false,
-			Font = font,
+			Font = mono,
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = "Search...",
 			Position = UDim2.fromOffset(pad, pad + bulk_h + bulk_gap),
@@ -253,7 +254,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			ZIndex = 13,
 			Parent = panel,
 		})
-		util.corner(search, 4)
+		util.corner(search, 0)
 		util.new("UIPadding", {
 			PaddingLeft = UDim.new(0, 8),
 			PaddingRight = UDim.new(0, 8),
@@ -430,16 +431,16 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				end
 			end
 			if picked == 0 then
-				readout.Text = placeholder
+				readout.Text = string.upper(placeholder)
 			elseif picked == 1 then
-				readout.Text = first_name
+				readout.Text = string.upper(first_name)
 			elseif picked == 2 then
-				readout.Text = first_name .. " +1"
+				readout.Text = string.upper(first_name) .. " +1"
 			else
-				readout.Text = picked .. " selected"
+				readout.Text = tostring(picked) .. " SELECTED"
 			end
 		else
-			readout.Text = single or placeholder
+			readout.Text = string.upper(single or placeholder)
 		end
 		if disabled then
 			readout.TextColor3 = values().muted
@@ -656,9 +657,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			LayoutOrder = index,
 			Size = UDim2.new(1, 0, 0, item_h),
 			Font = font,
-			Text = option,
+			Text = string.upper(option),
 			TextColor3 = values().text,
-			TextSize = util.size(mobile and 11 or 12),
+			TextSize = util.size(10),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 12,
@@ -683,7 +684,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				ZIndex = 13,
 				Parent = item,
 			})
-			util.corner(mark, 4)
+			util.corner(mark, 0)
 			mark_edges[option] = util.stroke(mark, values().line, 0.25)
 			check = icons.check(mark, mark_size - 5, style.on(values().accent))
 			check.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1047,7 +1048,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 3,
 		Parent = row,
 	})
-	util.corner(swatch, 3)
+	util.corner(swatch, 0)
 	util.stroke(swatch, Color3.new(1, 1, 1), 0.7)
 
 	local pad = 8
@@ -1068,7 +1069,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 10,
 		Parent = env.modal,
 	})
-	util.corner(panel, 6)
+	util.corner(panel, 0)
 	local edge = util.stroke(panel, values().line, 0.05)
 	util.shadow(panel, 18, 0.4)
 	win._popover(panel)
@@ -1082,7 +1083,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 3,
 		Parent = panel,
 	})
-	util.corner(field, 2)
+	util.corner(field, 0)
 
 	local light = util.new("Frame", {
 		BackgroundColor3 = Color3.new(1, 1, 1),
@@ -1099,7 +1100,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		}),
 		Parent = light,
 	})
-	util.corner(light, 2)
+	util.corner(light, 0)
 
 	local dark = util.new("Frame", {
 		BackgroundColor3 = Color3.new(0, 0, 0),
@@ -1117,7 +1118,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Rotation = 90,
 		Parent = dark,
 	})
-	util.corner(dark, 2)
+	util.corner(dark, 0)
 
 	local cursor = util.new("Frame", {
 		BackgroundTransparency = 1,
@@ -1126,7 +1127,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 6,
 		Parent = field,
 	})
-	util.corner(cursor, 8)
+	util.corner(cursor, 0)
 	local ring = util.stroke(cursor, Color3.new(1, 1, 1), 0.15)
 	ring.Thickness = 2
 
@@ -1150,7 +1151,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 3,
 		Parent = panel,
 	})
-	util.corner(hue_bar, 2)
+	util.corner(hue_bar, 0)
 	for index = 0, 47 do
 		util.new("Frame", {
 			BackgroundColor3 = Color3.fromHSV(index / 48, 1, 1),
@@ -1171,7 +1172,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 4,
 		Parent = hue_bar,
 	})
-	util.corner(knob, 2)
+	util.corner(knob, 0)
 
 	local hue_hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
@@ -1193,7 +1194,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 3,
 		Parent = panel,
 	})
-	util.corner(preview, 3)
+	util.corner(preview, 0)
 	util.stroke(preview, values().line, 0.2)
 
 	local hex = util.new("TextBox", {
@@ -1211,7 +1212,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		ZIndex = 3,
 		Parent = panel,
 	})
-	util.corner(hex, 3)
+	util.corner(hex, 0)
 	local hex_edge = util.stroke(hex, values().line, 0.2)
 	util.new("UIPadding", {
 		PaddingLeft = UDim.new(0, 8),
@@ -1283,7 +1284,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				ZIndex = 3,
 				Parent = holder,
 			})
-			util.corner(swatch, 3)
+			util.corner(swatch, 0)
 			util.stroke(swatch, values().line, 0.2)
 			swatch.Activated:Connect(function()
 				if disabled then
@@ -1314,7 +1315,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				ZIndex = 3,
 				Parent = holder,
 			})
-			util.corner(slot, 3)
+			util.corner(slot, 0)
 			util.stroke(slot, values().line, 0.2)
 			recent_slots[index] = slot
 			slot.Activated:Connect(function()

@@ -6,7 +6,7 @@ local style = S.style
 local icons = S.icons
 local modal = S.modal
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
 
 local options = {}
 local panel
@@ -51,9 +51,9 @@ local function ensure()
 		Position = UDim2.fromOffset(11, 0),
 		Size = UDim2.new(1, -42, 1, 0),
 		Font = bold,
-		Text = "Options",
+		Text = "OPTIONS",
 		TextColor3 = values().text,
-		TextSize = util.size(10),
+		TextSize = util.size(9),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 22,
@@ -71,7 +71,7 @@ local function ensure()
 		ZIndex = 23,
 		Parent = header,
 	})
-	util.corner(close_hit, 3)
+	util.corner(close_hit, 0)
 	util.hover(close_hit)
 	close_button = icons.image(close_hit, "close", 9, values().muted)
 	if close_button then
@@ -151,7 +151,7 @@ function options.open(title, actions, anchor)
 	end
 	y = math.clamp(y, 6, math.max(6, view.Y - height - 6))
 
-	title_label.Text = tostring(title or "Options")
+			title_label.Text = string.upper(tostring(title or "OPTIONS"))
 	panel.Size = UDim2.fromOffset(width, height)
 	panel.Position = UDim2.fromOffset(math.floor(x - parent_pos.X), math.floor(y - parent_pos.Y))
 
@@ -177,7 +177,7 @@ function options.open(title, actions, anchor)
 		if action.accent then
 			row.TextColor3 = values().accent
 		end
-		util.corner(row, 4)
+		util.corner(row, 0)
 		util.hover(row)
 
 		local text = util.new("TextLabel", {
@@ -185,7 +185,7 @@ function options.open(title, actions, anchor)
 			Position = UDim2.fromOffset(9, 0),
 			Size = UDim2.new(1, -22, 1, 0),
 			Font = action.accent and bold or font,
-			Text = label,
+			Text = string.upper(label),
 			TextColor3 = action.accent and values().accent or values().text,
 			TextSize = util.size(10),
 			TextXAlignment = Enum.TextXAlignment.Left,

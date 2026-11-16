@@ -9,7 +9,8 @@ local config = S.config
 local tooltip = S.tooltip
 local background = S.background
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
+local mono = Enum.Font.RobotoMono
 
 local Window = {}
 Window.roots = {}
@@ -86,8 +87,8 @@ function Window.new(title, opts)
 	if saved and type(saved.width) == "number" then
 		preferred = saved.width
 	end
-	local head = mobile and 38 or 34
-	local row_base = mobile and 40 or 32
+	local head = mobile and 34 or 30
+	local row_base = mobile and 36 or 30
 	local min_width = math.min(mobile and 210 or 252, math.max(160, vp.X - 20))
 	local width = math.clamp(preferred, min_width, math.max(min_width, vp.X - 20))
 	local cap = content_cap(vp, head)
@@ -137,8 +138,8 @@ function Window.new(title, opts)
 		ZIndex = 2,
 		Parent = root,
 	})
-	local edge = util.stroke(body, values().line, 0.3)
-	util.shadow(body, 18, 0.5)
+	local edge = util.stroke(body, values().line, 0.2)
+	util.shadow(body, 10, 0.65)
 
 	local backdrop = util.new("Frame", {
 		Name = "backdrop",
@@ -198,6 +199,14 @@ function Window.new(title, opts)
 		ZIndex = 3,
 		Parent = body,
 	})
+	local top_line = util.new("Frame", {
+		Name = "accent_line",
+		BackgroundColor3 = values().accent,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 0, 1),
+		ZIndex = 5,
+		Parent = header,
+	})
 	local seam = util.new("Frame", {
 		BackgroundColor3 = values().line,
 		BackgroundTransparency = 0.2,
@@ -218,13 +227,27 @@ function Window.new(title, opts)
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(19, 0),
-		Size = UDim2.new(1, -92, 1, 0),
+		Size = UDim2.new(1, -131, 1, 0),
 		Font = bold,
-		Text = title or "Window",
+		Text = string.upper(tostring(title or "Window")),
 		TextColor3 = values().text,
-		TextSize = util.size(11),
+		TextSize = util.size(10),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 4,
+		Parent = header,
+	})
+	local version = util.new("TextLabel", {
+		Name = "version",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -68, 0.5, 0),
+		Size = UDim2.fromOffset(42, head),
+		Font = mono,
+		Text = "v" .. tostring(S.library and S.library.Version or "3.1"),
+		TextColor3 = values().muted,
+		TextSize = util.size(8),
+		TextXAlignment = Enum.TextXAlignment.Right,
 		ZIndex = 4,
 		Parent = header,
 	})
@@ -236,12 +259,19 @@ function Window.new(title, opts)
 			emblem.Position = UDim2.fromOffset(10, head / 2 - 7)
 			emblem.ZIndex = 4
 			caption.Position = UDim2.fromOffset(31, 0)
-			caption.Size = UDim2.new(1, -104, 1, 0)
+			caption.Size = UDim2.new(1, -143, 1, 0)
 			style.paint(function()
 				icons.tint(emblem, values().accent)
 			end)
 		end
 	end
+
+	style.paint(function()
+		top_line.BackgroundColor3 = values().accent
+		mark.BackgroundColor3 = values().accent
+		caption.TextColor3 = values().text
+		version.TextColor3 = values().muted
+	end)
 
 	local function remember()
 		config.place(key, {
@@ -265,7 +295,7 @@ function Window.new(title, opts)
 			ZIndex = 5,
 			Parent = header,
 		})
-		util.corner(hit, 3)
+		util.corner(hit, 0)
 		util.hover(hit)
 		return hit
 	end
@@ -306,6 +336,14 @@ function Window.new(title, opts)
 		Size = UDim2.fromOffset(9, 1),
 		Parent = close_hit,
 	})
+	close_hit.MouseEnter:Connect(function()
+		close_a.BackgroundColor3 = values().bad
+		close_b.BackgroundColor3 = values().bad
+	end)
+	close_hit.MouseLeave:Connect(function()
+		close_a.BackgroundColor3 = values().muted
+		close_b.BackgroundColor3 = values().muted
+	end)
 
 	local grab = util.new("TextButton", {
 		Name = "grab",
@@ -382,7 +420,7 @@ function Window.new(title, opts)
 	end)
 	style.paint(paint_grip)
 
-	local tab_h = mobile and 34 or 30
+	local tab_h = mobile and 28 or 24
 	local tabs = {}
 	local default_tab = {
 		name = "Main",
@@ -486,7 +524,7 @@ function Window.new(title, opts)
 		local on = tab == active_tab
 		tab.chip.BackgroundColor3 = values().hover
 		tab.chip.BackgroundTransparency = 1
-		tab.chip.TextColor3 = on and values().text or values().muted
+		tab.chip.TextColor3 = on and values().accent or values().muted
 		if tab.emblem then
 			icons.tint(tab.emblem, on and values().accent or values().muted)
 		end
@@ -503,23 +541,23 @@ function Window.new(title, opts)
 			AutoButtonColor = false,
 			AutomaticSize = Enum.AutomaticSize.X,
 			LayoutOrder = tab.order,
-			Size = UDim2.fromOffset(0, tab_h - 4),
+			Size = UDim2.fromOffset(0, tab_h - 2),
 			Font = font,
-			Text = tab.name,
+			Text = string.upper(tab.name),
 			TextColor3 = values().muted,
-			TextSize = util.size(10),
+			TextSize = util.size(9),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 4,
 			Parent = rail,
 		})
-		util.corner(chip, 4)
+		util.corner(chip, 0)
 		util.new("UISizeConstraint", {
 			MaxSize = Vector2.new(mobile and 132 or 152, tab_h),
 			Parent = chip,
 		})
-		local pad_left = tab.icon and 25 or 10
-		local pad_right = 10
+		local pad_left = tab.icon and 21 or 7
+		local pad_right = 7
 		util.new("UIPadding", {
 			PaddingLeft = UDim.new(0, pad_left),
 			PaddingRight = UDim.new(0, pad_right),
@@ -527,10 +565,10 @@ function Window.new(title, opts)
 		})
 		local emblem
 		if tab.icon then
-			emblem = icons.image(chip, tab.icon, 12, values().muted)
+			emblem = icons.image(chip, tab.icon, 11, values().muted)
 			if emblem then
 				emblem.AnchorPoint = Vector2.new(0, 0.5)
-				emblem.Position = UDim2.new(0, 9 - pad_left, 0.5, 0)
+				emblem.Position = UDim2.new(0, 7 - pad_left, 0.5, 0)
 				icons.layer(emblem, 5)
 			end
 		end

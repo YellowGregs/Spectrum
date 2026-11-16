@@ -6,7 +6,8 @@ local style = S.style
 local icons = S.icons
 local tooltip = S.tooltip
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local font = Enum.Font.RobotoCondensed
+local mono = Enum.Font.RobotoMono
 local inputs = {}
 
 local function values()
@@ -19,9 +20,9 @@ local function label(parent, text, y, height)
 		Position = UDim2.fromOffset(10, y or 0),
 		Size = UDim2.new(1, -90, 0, height or 14),
 		Font = font,
-		Text = tostring(text or ""),
+		Text = string.upper(tostring(text or "")),
 		TextColor3 = values().text,
-		TextSize = util.size(11),
+		TextSize = util.size(10),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
@@ -71,13 +72,14 @@ function inputs.button(win, text, callback, icon, opts)
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(1, -16, 0, mobile and 36 or 24),
 		Font = bold,
-		Text = tostring(text or "Button"),
+		Text = string.upper(tostring(text or "Button")),
 		TextColor3 = front,
-		TextSize = util.size(mobile and 11 or 9),
+		TextSize = util.size(mobile and 10 or 9),
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Parent = holder,
 	})
 	util.corner(btn)
+	local edge = util.stroke(btn, values().line, 0.25)
 	local emblem
 	if type(icon) == "string" and icon ~= "" then
 		emblem = icons.image(btn, icon, 14, style.on(values().accent))
@@ -127,18 +129,18 @@ function inputs.button(win, text, callback, icon, opts)
 			armed = true
 			arm_token = arm_token + 1
 			local mine = arm_token
-			btn.Text = confirm
+			btn.Text = string.upper(confirm)
 			task.delay(3, function()
 				if btn.Parent and armed and arm_token == mine then
 					armed = false
-					btn.Text = tostring(text or "Button")
+					btn.Text = string.upper(tostring(text or "Button"))
 				end
 			end)
 			return
 		end
 		armed = false
 		arm_token = arm_token + 1
-		btn.Text = tostring(text or "Button")
+		btn.Text = string.upper(tostring(text or "Button"))
 		if callback then
 			callback()
 		end
@@ -173,13 +175,13 @@ function inputs.button(win, text, callback, icon, opts)
 		util.tween(pop, 0.2, { Scale = 1 }, Enum.EasingStyle.Back)
 	end)
 
-	local function set_disabled(value)
+		local function set_disabled(value)
 		disabled = value == true
 		btn.Active = not disabled
 		if disabled then
 			held = false
 			armed = false
-			btn.Text = tostring(text or "Button")
+			btn.Text = string.upper(tostring(text or "Button"))
 			util.tween(pop, 0.1, { Scale = 1 })
 		end
 		if btn:GetAttribute("SpectrumDisabled") ~= disabled then
@@ -196,6 +198,9 @@ function inputs.button(win, text, callback, icon, opts)
 		set_disabled(btn:GetAttribute("SpectrumDisabled") == true)
 	end)
 	style.paint(paint)
+	style.paint(function()
+		edge.Color = values().line
+	end)
 
 	win._options(holder, text, function()
 		return {
@@ -262,7 +267,7 @@ function inputs.toggle(win, text, a, b, opts)
 	local pop
 	local sync
 	if checkbox then
-		local size = mobile and 20 or 16
+		local size = mobile and 18 or 15
 		local box = util.new("Frame", {
 			Name = "checkbox",
 			BackgroundColor3 = values().raised,
@@ -273,7 +278,7 @@ function inputs.toggle(win, text, a, b, opts)
 			ZIndex = 3,
 			Parent = row,
 		})
-		util.corner(box, 3)
+		util.corner(box, 0)
 		local edge = util.stroke(box, values().line, 0.15)
 		pop = util.new("UIScale", { Parent = box })
 		local check = util.new("Frame", {
@@ -315,9 +320,9 @@ function inputs.toggle(win, text, a, b, opts)
 			long.BackgroundColor3 = ink
 		end
 	else
-		local width = mobile and 40 or 36
-		local height = mobile and 20 or 18
-		local thumb_size = height - 4
+		local width = mobile and 34 or 30
+		local height = mobile and 16 or 14
+		local thumb_size = height - 2
 		local track = util.new("Frame", {
 			Name = "switch_track",
 			BackgroundColor3 = state and values().accent or values().raised,
@@ -328,11 +333,11 @@ function inputs.toggle(win, text, a, b, opts)
 			ZIndex = 3,
 			Parent = row,
 		})
-		util.corner(track, height / 2)
-		local edge = util.stroke(track, state and values().accent or values().line, state and 1 or 0.2)
+		util.corner(track, 0)
+		local edge = util.stroke(track, state and values().accent or values().line, 0.25)
 		local thumb = util.new("Frame", {
 			Name = "switch_thumb",
-			BackgroundColor3 = state and Color3.new(1, 1, 1) or values().muted,
+			BackgroundColor3 = state and values().ink or values().muted,
 			BorderSizePixel = 0,
 			AnchorPoint = Vector2.new(0, 0.5),
 			Position = UDim2.new(0, state and (width - thumb_size - 2) or 2, 0.5, 0),
@@ -340,7 +345,7 @@ function inputs.toggle(win, text, a, b, opts)
 			ZIndex = 4,
 			Parent = track,
 		})
-		util.corner(thumb, thumb_size / 2)
+		util.corner(thumb, 0)
 		pop = util.new("UIScale", { Parent = track })
 
 		sync = function()
@@ -348,11 +353,11 @@ function inputs.toggle(win, text, a, b, opts)
 			local accent = disabled and values().muted or values().accent
 			util.tween(thumb, 0.16, {
 				Position = UDim2.new(0, x, 0.5, 0),
-				BackgroundColor3 = state and (disabled and values().muted or Color3.new(1, 1, 1)) or values().muted,
+				BackgroundColor3 = state and (disabled and values().muted or values().ink) or values().muted,
 			}, Enum.EasingStyle.Quart)
 			util.tween(track, 0.14, { BackgroundColor3 = state and accent or values().raised })
 			edge.Color = state and accent or values().line
-			edge.Transparency = state and 1 or 0.2
+			edge.Transparency = 0.25
 		end
 	end
 
@@ -523,10 +528,10 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -10, 0, compact and 2 or (mobile and 6 or 4)),
 		Size = UDim2.fromOffset(88, 14),
-		Font = bold,
+		Font = mono,
 		Text = "",
 		TextColor3 = values().muted,
-		TextSize = util.size(10),
+		TextSize = util.size(9),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 3,
@@ -537,11 +542,11 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		BackgroundColor3 = values().raised,
 		BorderSizePixel = 0,
 		Position = UDim2.new(0, 10, 0, track_y),
-		Size = UDim2.new(1, -20, 0, mobile and 5 or 4),
+		Size = UDim2.new(1, -20, 0, mobile and 4 or 3),
 		ZIndex = 3,
 		Parent = row,
 	})
-	util.corner(track, 3)
+	util.corner(track, 0)
 
 	local fill = util.new("Frame", {
 		BackgroundColor3 = values().accent,
@@ -550,18 +555,18 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		ZIndex = 4,
 		Parent = track,
 	})
-	util.corner(fill, 3)
+	util.corner(fill, 0)
 
 	local thumb = util.new("Frame", {
 		BackgroundColor3 = values().accent,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0, 0, 0.5, 0),
-		Size = UDim2.fromOffset(6, mobile and 16 or 13),
+		Size = UDim2.fromOffset(5, mobile and 15 or 12),
 		ZIndex = 5,
 		Parent = track,
 	})
-	util.corner(thumb, 3)
+	util.corner(thumb, 0)
 
 	local hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
@@ -613,7 +618,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		end
 		dragging = true
 		win._scroll.ScrollingEnabled = false
-		thumb.Size = UDim2.fromOffset(7, mobile and 18 or 15)
+		thumb.Size = UDim2.fromOffset(6, mobile and 16 or 13)
 		value = snap(input.Position.X)
 		paint_value(true)
 	end
@@ -641,7 +646,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		if dragging and (kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch) then
 			dragging = false
 			win._scroll.ScrollingEnabled = true
-			thumb.Size = UDim2.fromOffset(6, mobile and 16 or 13)
+			thumb.Size = UDim2.fromOffset(5, mobile and 15 or 12)
 			paint_value(false)
 		end
 	end)
@@ -663,7 +668,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		if disabled and dragging then
 			dragging = false
 			win._scroll.ScrollingEnabled = true
-			thumb.Size = UDim2.fromOffset(6, mobile and 16 or 13)
+			thumb.Size = UDim2.fromOffset(5, mobile and 15 or 12)
 		end
 		fill.BackgroundColor3 = disabled and values().muted or values().accent
 		thumb.BackgroundColor3 = disabled and values().muted or values().accent
@@ -787,8 +792,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		ClipsDescendants = true,
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -10, 0.5, 0),
-		Size = UDim2.fromOffset(mobile and 96 or 84, mobile and 30 or 22),
-		Font = bold,
+		Size = UDim2.fromOffset(mobile and 96 or 84, mobile and 28 or 21),
+		Font = mono,
 		Text = default or empty_text,
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
@@ -798,7 +803,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		ZIndex = 3,
 		Parent = row,
 	})
-	util.corner(pill, 3)
+	util.corner(pill, 0)
 	local edge = util.stroke(pill, values().line, 0.35)
 	util.hover(pill)
 
