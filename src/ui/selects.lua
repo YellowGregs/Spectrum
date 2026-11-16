@@ -6,7 +6,6 @@ local style = S.style
 local modal = S.modal
 local icons = S.icons
 local tooltip = S.tooltip
-local bold = Enum.Font.GothamBold
 local font = Enum.Font.RobotoCondensed
 local mono = Enum.Font.RobotoMono
 local selects = {}
@@ -100,7 +99,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	util.corner(well, 0)
 	util.depth(well, 0.35)
 	util.shadow(well, 6, 0.9)
-	util.stroke(well, values().line, 0.55)
+	local field_edge = util.stroke(well, values().line, 0.55)
 	local name = caption(row, title)
 	name.Size = UDim2.new(0.48, -20, 1, 0)
 	name.TextSize = util.size(10)
@@ -136,31 +135,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	chevron.Position = UDim2.new(1, -12, 0.5, 0)
 	chevron.ZIndex = 3
 
-	local count_badge
-	if multi then
-		count_badge = util.new("TextLabel", {
-			Name = "count_badge",
-			BackgroundColor3 = values().accent,
-			BorderSizePixel = 0,
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -24, 0.5, 0),
-			Size = UDim2.fromOffset(mobile and 20 or 22, mobile and 16 or 18),
-			Font = mono,
-			Text = "0",
-			TextColor3 = style.on(values().accent),
-			TextSize = util.size(9),
-			TextXAlignment = Enum.TextXAlignment.Center,
-			TextYAlignment = Enum.TextYAlignment.Center,
-			Visible = false,
-			ZIndex = 4,
-			Parent = row,
-		})
-		util.corner(count_badge, 0)
-		util.depth(count_badge, 0.35)
-	end
-
 	local pad = mobile and 4 or 6
-	local item_h = mobile and 34 or 32
+	local item_h = mobile and 32 or 30
 	local bulk_h = (multi and #choices > 0) and (mobile and 28 or 30) or 0
 	local bulk_gap = bulk_h > 0 and (mobile and 1 or 2) or 0
 	local search_h = searchable and (mobile and 30 or 26) or 0
@@ -186,6 +162,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	win._popover(panel)
 
 	local bulk_seam
+	local bulk_count
 	local select_all_action
 	local clear_action
 	local select_all_hit
@@ -193,11 +170,27 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	if bulk_h > 0 then
 		local actions = util.new("Frame", {
 			Name = "bulk_actions",
-			BackgroundTransparency = 1,
+			BackgroundColor3 = values().raised,
+			BackgroundTransparency = 0.55,
+			BorderSizePixel = 0,
 			Position = UDim2.fromOffset(pad, pad),
 			Size = UDim2.new(1, -pad * 2, 0, bulk_h),
 			ZIndex = 12,
 			Parent = panel,
+		})
+		bulk_count = util.new("TextLabel", {
+			Name = "bulk_count",
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset(2, 0),
+			Size = UDim2.new(1, mobile and -84 or -96, 1, 0),
+			Font = font,
+			Text = "SELECT OPTIONS",
+			TextColor3 = values().muted,
+			TextSize = util.size(9),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			ZIndex = 13,
+			Parent = actions,
 		})
 		bulk_seam = util.new("Frame", {
 			Name = "bulk_seam",
@@ -247,8 +240,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			end
 			return btn, hit
 		end
-		clear_action, clear_hit = action("clear", "Clear", mobile and 42 or 48, 0)
-		select_all_action, select_all_hit = action("select_all", "Select all", mobile and 58 or 64, -(mobile and 46 or 52))
+		clear_action, clear_hit = action("clear", "Clear", mobile and 40 or 44, 0)
+		select_all_action, select_all_hit = action("select_all", "All", mobile and 26 or 30, -(mobile and 46 or 50))
 	end
 
 	local search
@@ -332,6 +325,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	local checks = {}
 	local marks = {}
 	local mark_edges = {}
+	local item_edges = {}
 	local key
 	local open = false
 	local set_open
@@ -468,9 +462,13 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 
 	local function refresh()
 		local picked = 0
+		local selectable = 0
 		for _, option in ipairs(choices) do
 			if picks[option] then
 				picked = picked + 1
+			end
+			if not disabled_options[option] then
+				selectable = selectable + 1
 			end
 		end
 		if multi then
@@ -488,43 +486,52 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			elseif picked == 2 then
 				readout.Text = string.upper(first_name) .. " +1"
 			else
-				readout.Text = tostring(picked) .. " SELECTED"
+				readout.Text = string.upper(first_name) .. " +" .. tostring(picked - 1)
 			end
 		else
 			readout.Text = string.upper(single or placeholder)
 		end
 		if disabled then
 			readout.TextColor3 = values().muted
-		elseif multi then
-			readout.TextColor3 = picked > 0 and values().accent or values().muted
+		elseif (multi and picked > 0) or (not multi and single) then
+			readout.TextColor3 = values().text
 		else
-			readout.TextColor3 = single and values().text or values().muted
+			readout.TextColor3 = values().muted
 		end
-		readout.Font = (multi and picked > 0 or single) and bold or font
-		if count_badge then
-			count_badge.Visible = picked > 0
-			count_badge.Text = tostring(picked)
-			local lane = picked > 0
-			readout.Position = UDim2.new(1, lane and -48 or -29, 0.5, 0)
-			readout.Size = UDim2.new(0.4, lane and -24 or 0, 1, 0)
+		readout.Font = font
+		if bulk_count then
+			if picked == 0 then
+				bulk_count.Text = "SELECT OPTIONS"
+				bulk_count.TextColor3 = values().muted
+			elseif selectable > 0 and picked >= selectable then
+				bulk_count.Text = "ALL SELECTED"
+				bulk_count.TextColor3 = values().text
+			else
+				bulk_count.Text = tostring(picked) .. " SELECTED"
+				bulk_count.TextColor3 = values().text
+			end
 		end
 		if select_all_action then
-			select_all_action.TextTransparency = picked < #choices and 0 or 0.55
+			select_all_action.TextTransparency = picked < selectable and 0 or 0.55
 			clear_action.TextTransparency = picked > 0 and 0 or 0.55
 		end
 		for option, item in pairs(items) do
 			local on = multi and picks[option] or single == option
 			local option_disabled = disabled_options[option] == true
-			item.TextColor3 = option_disabled and values().muted or (on and values().accent or values().text)
-			item.Font = (on and not option_disabled) and bold or font
-			item.BackgroundColor3 = on and values().hover:Lerp(values().accent, 0.12) or values().hover
-			item.BackgroundTransparency = on and 0.72 or 1
+			item.TextColor3 = option_disabled and values().muted or values().text
+			item.Font = font
+			item.BackgroundColor3 = on and values().hover:Lerp(values().accent, 0.1) or values().hover
+			item.BackgroundTransparency = on and 0.6 or 1
+			local item_edge = item_edges[option]
+			if item_edge then
+				item_edge.Transparency = on and 0.45 or 1
+			end
 			if marks[option] then
 				marks[option].BackgroundColor3 = on and values().accent or values().raised
 				local mark_edge = mark_edges[option]
 				if mark_edge then
 					mark_edge.Color = on and values().accent or values().line
-					mark_edge.Transparency = on and 1 or 0.25
+					mark_edge.Transparency = on and 1 or 0.35
 				end
 			end
 			if checks[option] then
@@ -657,7 +664,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			local limit_bottom = math.max(head_limit, view.Y - 6)
 			local max_width = math.max(160, view.X - 16)
 			local min_width = math.min(mobile and 180 or 240, max_width)
-			local width = math.clamp(math.max(size.X + 8, min_width), min_width, max_width)
+			local width_cap = mobile and 300 or 360
+			local width = math.clamp(math.min(size.X + 8, width_cap), min_width, max_width)
 			local x = math.clamp(mobile and (row_left - 4) or row_left, 8, math.max(8, view.X - width - 8))
 			local room_below = math.max(0, limit_bottom - row_bottom - 4)
 			local room_above = math.max(0, row_top - 4 - head_limit)
@@ -677,6 +685,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			panel.Visible = true
 			util.tween(panel, 0.13, { Size = UDim2.fromOffset(math.floor(width), math.floor(height)) })
 			util.tween(chevron, 0.15, { Rotation = 180 })
+			field_edge.Color = values().accent
+			field_edge.Transparency = 0.25
 			if search then
 				search.Text = ""
 				apply_filter()
@@ -696,6 +706,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			modal.drop(close)
 			util.tween(panel, 0.1, { Size = UDim2.fromOffset(panel.Size.X.Offset, 0) })
 			util.tween(chevron, 0.15, { Rotation = 0 })
+			field_edge.Color = values().line
+			field_edge.Transparency = 0.55
 			task.delay(0.12, function()
 				if not open and panel.Parent then
 					panel.Visible = false
@@ -721,10 +733,11 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			ZIndex = 12,
 			Parent = area,
 		})
-		local mark_size = 16
+		local mark_size = 14
+		item_edges[option] = util.stroke(item, values().accent, 1)
 		util.new("UIPadding", {
-			PaddingLeft = UDim.new(0, multi and (mark_size + 20) or 12),
-			PaddingRight = UDim.new(0, multi and 12 or 26),
+			PaddingLeft = UDim.new(0, 12),
+			PaddingRight = UDim.new(0, multi and (mark_size + 22) or 26),
 			Parent = item,
 		})
 		item.MouseEnter:Connect(function()
@@ -749,16 +762,16 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				Name = "mark",
 				BackgroundColor3 = values().raised,
 				BorderSizePixel = 0,
-				AnchorPoint = Vector2.new(0, 0.5),
-				Position = UDim2.new(0, -(mark_size + 10), 0.5, 0),
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, -12, 0.5, 0),
 				Size = UDim2.fromOffset(mark_size, mark_size),
 				ZIndex = 13,
 				Parent = item,
 			})
 			util.corner(mark, 0)
 			util.depth(mark, 0.3)
-			mark_edges[option] = util.stroke(mark, values().line, 0.25)
-			check = icons.check(mark, mark_size - 5, style.on(values().accent))
+			mark_edges[option] = util.stroke(mark, values().line, 0.35)
+			check = icons.check(mark, mark_size - 4, style.on(values().accent))
 			check.AnchorPoint = Vector2.new(0.5, 0.5)
 			check.Position = UDim2.fromScale(0.5, 0.5)
 			icons.layer(check, 4)
@@ -766,7 +779,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		else
 			check = icons.check(item, 10, values().accent)
 			check.AnchorPoint = Vector2.new(1, 0.5)
-			check.Position = UDim2.new(1, -10, 0.5, 0)
+			check.Position = UDim2.new(1, -12, 0.5, 0)
 			icons.layer(check, 4)
 		end
 		check.Visible = false
@@ -958,15 +971,15 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			end
 		end
 		well.BackgroundColor3 = values().raised
+		field_edge.Color = open and values().accent or values().line
 		if emblem then
 			icons.tint(emblem, disabled and values().line or values().muted)
 		end
+		if bulk_count then
+			bulk_count.Parent.BackgroundColor3 = values().raised
+		end
 		if bulk_seam then
 			bulk_seam.BackgroundColor3 = values().line
-		end
-		if count_badge then
-			count_badge.BackgroundColor3 = values().accent
-			count_badge.TextColor3 = style.on(values().accent)
 		end
 		if select_all_action then
 			select_all_action.BackgroundColor3 = values().hover
@@ -976,6 +989,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		end
 		for option, item in pairs(items) do
 			item.BackgroundColor3 = values().hover
+			if item_edges[option] then
+				item_edges[option].Color = values().accent
+			end
 			if marks[option] then
 				local on = picks[option] == true
 				marks[option].BackgroundColor3 = on and values().accent or values().raised
