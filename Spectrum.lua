@@ -165,6 +165,7 @@ function env.viewport()
 end
 
 S.env = env
+
 end
 
 do
@@ -177,7 +178,7 @@ local defaults = {
 	panel = Color3.fromRGB(24, 26, 29),
 	hover = Color3.fromRGB(35, 38, 42),
 	raised = Color3.fromRGB(18, 20, 23),
-	text = Color3.fromRGB(232, 232, 228),
+	text = Color3.fromRGB(201, 204, 208),
 	muted = Color3.fromRGB(126, 132, 138),
 	line = Color3.fromRGB(52, 56, 62),
 	good = Color3.fromRGB(116, 196, 122),
@@ -260,6 +261,7 @@ end
 
 style.values = values
 S.style = style
+
 end
 
 do
@@ -311,13 +313,76 @@ function util.shadow(object, blur, transparency)
 		local shade = Instance.new("UIShadow")
 		shade.BlurRadius = blur or 14
 		shade.Transparency = transparency or 0.55
-		shade.Offset = Vector2.new(0, 4)
+		shade.Offset = Vector2.new(0, math.max(2, math.floor((blur or 14) / 4)))
 		shade.Color = Color3.new(0, 0, 0)
 		shade.Parent = object
 	end)
 	if not built then
 		return
 	end
+end
+
+function util.depth(object, strength)
+	if not object then
+		return
+	end
+	strength = strength or 1
+	local z = (object.ZIndex or 1) + 1
+	local top = util.new("Frame", {
+		Name = "depth_top",
+		BackgroundColor3 = white,
+		BackgroundTransparency = math.clamp(0.92 - 0.04 * strength, 0.55, 0.98),
+		BorderSizePixel = 0,
+		Position = UDim2.new(0, 0, 0, 0),
+		Size = UDim2.new(1, 0, 0, 1),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	local bottom = util.new("Frame", {
+		Name = "depth_bottom",
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = math.clamp(0.72 - 0.04 * strength, 0.45, 0.9),
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, -1),
+		Size = UDim2.new(1, 0, 0, 1),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	return top, bottom
+end
+
+function util.inset(object, strength)
+	if not object then
+		return
+	end
+	strength = strength or 1
+	local z = (object.ZIndex or 1) + 1
+	local top = util.new("Frame", {
+		Name = "inset_top",
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = math.clamp(0.7 - 0.04 * strength, 0.42, 0.9),
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 0, 1),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	local bottom = util.new("Frame", {
+		Name = "inset_bottom",
+		BackgroundColor3 = white,
+		BackgroundTransparency = math.clamp(0.92 - 0.03 * strength, 0.6, 0.98),
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, -1),
+		Size = UDim2.new(1, 0, 0, 1),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	return top, bottom
 end
 
 function util.tween(object, time, props, ease, direction)
@@ -487,6 +552,7 @@ end)
 util.viewport = env.viewport
 util.mobile = env.mobile
 S.util = util
+
 end
 
 do
@@ -1243,6 +1309,7 @@ function icons.tint(object, color)
 end
 
 S.icons = icons
+
 end
 
 do
@@ -1782,6 +1849,7 @@ function brand.logo()
 end
 
 S.brand = brand
+
 end
 
 do
@@ -2106,6 +2174,7 @@ function background.active()
 end
 
 S.background = background
+
 end
 
 do
@@ -2157,6 +2226,7 @@ end
 
 blocker.Activated:Connect(modal.dismiss)
 S.modal = modal
+
 end
 
 do
@@ -2197,8 +2267,9 @@ local function ensure()
 		ZIndex = 20,
 		Parent = env.modal,
 	})
+	util.depth(panel, 0.4)
 	edge = util.stroke(panel, values().line, 0.05)
-	util.shadow(panel, 18, 0.4)
+	util.shadow(panel, 24, 0.28)
 
 	local header = util.new("Frame", {
 		Name = "header",
@@ -2460,6 +2531,7 @@ style.paint(function()
 end)
 
 S.options = options
+
 end
 
 do
@@ -2784,6 +2856,7 @@ function config.profile()
 end
 
 S.config = config
+
 end
 
 do
@@ -2854,8 +2927,9 @@ function launcher.mount(on_toggle)
 		Parent = env.launcher,
 	})
 	util.corner(button, 0)
+	util.depth(button, 0.4)
 	local edge = util.stroke(button, values().line, 0.05)
-	util.shadow(button, 14, 0.5)
+	util.shadow(button, 18, 0.4)
 
 	local menu = icons.image(button, "menu", 19, values().text)
 	menu.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -3004,6 +3078,7 @@ function launcher.mount(on_toggle)
 end
 
 S.launcher = launcher
+
 end
 
 do
@@ -3067,7 +3142,7 @@ local function notify(title, body, duration, kind)
 	})
 	util.corner(face, 0)
 	local edge = util.stroke(face, style.values.line, 1)
-	util.shadow(face, 14, 0.55)
+	util.shadow(face, 20, 0.4)
 
 	local chip = util.new("Frame", {
 		Name = "chip",
@@ -3080,6 +3155,7 @@ local function notify(title, body, duration, kind)
 		Parent = face,
 	})
 	util.corner(chip, 0)
+	util.depth(chip, 0.3)
 	local chip_edge = util.stroke(chip, tint, 0.45)
 	local badge = icons.kind(kind, chip, 14, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -3198,6 +3274,7 @@ local function notify(title, body, duration, kind)
 end
 
 S.notify = notify
+
 end
 
 do
@@ -3229,8 +3306,9 @@ local panel = util.new("Frame", {
 	Parent = env.modal,
 })
 util.corner(panel, 0)
+util.depth(panel, 0.35)
 local edge = util.stroke(panel, values().line, 0.15)
-util.shadow(panel, 12, 0.4)
+util.shadow(panel, 18, 0.3)
 util.new("UISizeConstraint", {
 	MaxSize = Vector2.new(260, 320),
 	Parent = panel,
@@ -3357,7 +3435,15 @@ function tooltip.hide()
 	hide()
 end
 
-env.uis.InputBegan:Connect(function(input)
+function tooltip.destroy()
+	hide()
+	if input_link then
+		input_link:Disconnect()
+		input_link = nil
+	end
+end
+
+local input_link = env.uis.InputBegan:Connect(function(input)
 	local kind = input.UserInputType
 	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 		hide()
@@ -3371,6 +3457,7 @@ style.paint(function()
 end)
 
 S.tooltip = tooltip
+
 end
 
 do
@@ -3402,12 +3489,13 @@ local card = util.new("Frame", {
 	Parent = env.notes,
 })
 util.corner(card, 0)
+util.depth(card, 0.3)
 util.new("UIPadding", {
 	PaddingRight = UDim.new(0, 10),
 	Parent = card,
 })
 local edge = util.stroke(card, values().line, 0.25)
-util.shadow(card, 10, 0.55)
+util.shadow(card, 14, 0.45)
 local tick = util.new("Frame", {
 	BackgroundColor3 = values().accent,
 	BorderSizePixel = 0,
@@ -3462,6 +3550,7 @@ style.paint(paint)
 paint()
 
 S.watermark = watermark
+
 end
 
 do
@@ -3695,6 +3784,7 @@ function splash.mount()
 end
 
 S.splash = splash
+
 end
 
 do
@@ -3838,7 +3928,8 @@ function Window.new(title, opts)
 		Parent = root,
 	})
 	local edge = util.stroke(body, values().line, 0.2)
-	util.shadow(body, 10, 0.65)
+	util.shadow(body, 20, 0.3)
+	util.depth(body, 0.2)
 
 	local backdrop = util.new("Frame", {
 		Name = "backdrop",
@@ -3898,14 +3989,7 @@ function Window.new(title, opts)
 		ZIndex = 3,
 		Parent = body,
 	})
-	local top_line = util.new("Frame", {
-		Name = "accent_line",
-		BackgroundColor3 = values().accent,
-		BorderSizePixel = 0,
-		Size = UDim2.new(1, 0, 0, 1),
-		ZIndex = 5,
-		Parent = header,
-	})
+	util.shadow(header, 8, 0.8)
 	local seam = util.new("Frame", {
 		BackgroundColor3 = values().line,
 		BackgroundTransparency = 0.2,
@@ -3943,7 +4027,7 @@ function Window.new(title, opts)
 		Position = UDim2.new(1, -68, 0.5, 0),
 		Size = UDim2.fromOffset(42, head),
 		Font = mono,
-		Text = "v" .. tostring(S.library and S.library.Version or "3.1"),
+		Text = "v" .. tostring(S.library and S.library.Version or "1.0"),
 		TextColor3 = values().muted,
 		TextSize = util.size(8),
 		TextXAlignment = Enum.TextXAlignment.Right,
@@ -3966,7 +4050,6 @@ function Window.new(title, opts)
 	end
 
 	style.paint(function()
-		top_line.BackgroundColor3 = values().accent
 		mark.BackgroundColor3 = values().accent
 		caption.TextColor3 = values().text
 		version.TextColor3 = values().muted
@@ -5155,6 +5238,7 @@ function Window.new(title, opts)
 end
 
 S.window = Window
+
 end
 
 do
@@ -5246,6 +5330,8 @@ function inputs.button(win, text, callback, icon, opts)
 		Parent = holder,
 	})
 	util.corner(btn)
+	util.depth(btn, 0.55)
+	util.shadow(btn, 8, 0.8)
 	local edge = util.stroke(btn, values().line, 0.25)
 	local held = false
 	local function paint_edge()
@@ -5483,6 +5569,7 @@ function inputs.toggle(win, text, a, b, opts)
 			Parent = row,
 		})
 		util.corner(box, 0)
+		util.depth(box, 0.35)
 		local edge = util.stroke(box, values().line, 0.15)
 		pop = util.new("UIScale", { Parent = box })
 		local check = util.new("Frame", {
@@ -5538,6 +5625,7 @@ function inputs.toggle(win, text, a, b, opts)
 			Parent = row,
 		})
 		util.corner(track, 0)
+		util.inset(track, 0.4)
 		local edge = util.stroke(track, state and values().accent or values().line, 0.25)
 		local thumb = util.new("Frame", {
 			Name = "switch_thumb",
@@ -5550,6 +5638,7 @@ function inputs.toggle(win, text, a, b, opts)
 			Parent = track,
 		})
 		util.corner(thumb, 0)
+		util.depth(thumb, 0.5)
 		pop = util.new("UIScale", { Parent = track })
 
 		sync = function()
@@ -5751,6 +5840,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		Parent = row,
 	})
 	util.corner(track, 0)
+	util.inset(track, 0.45)
 
 	local fill = util.new("Frame", {
 		BackgroundColor3 = values().accent,
@@ -5771,6 +5861,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		Parent = track,
 	})
 	util.corner(thumb, 0)
+	util.depth(thumb, 0.4)
 
 	local hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
@@ -6008,6 +6099,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		Parent = row,
 	})
 	util.corner(pill, 0)
+	util.depth(pill, 0.35)
 	local edge = util.stroke(pill, values().line, 0.35)
 	util.hover(pill)
 
@@ -6343,6 +6435,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 end
 
 S.inputs = inputs
+
 end
 
 do
@@ -6434,6 +6527,20 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		end
 	end
 	local row = win._row(mobile and 40 or 38)
+	local well = util.new("Frame", {
+		Name = "field",
+		BackgroundColor3 = values().raised,
+		BackgroundTransparency = 0.45,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(4, 3),
+		Size = UDim2.new(1, -8, 1, -6),
+		ZIndex = 2,
+		Parent = row,
+	})
+	util.corner(well, 0)
+	util.depth(well, 0.35)
+	util.shadow(well, 6, 0.9)
+	util.stroke(well, values().line, 0.55)
 	local name = caption(row, title)
 	name.Size = UDim2.new(0.48, -20, 1, 0)
 	name.TextSize = util.size(10)
@@ -6489,6 +6596,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			Parent = row,
 		})
 		util.corner(count_badge, 0)
+		util.depth(count_badge, 0.35)
 	end
 
 	local pad = mobile and 4 or 6
@@ -6512,8 +6620,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		Parent = env.modal,
 	})
 	util.corner(panel, 0)
+	util.depth(panel, 0.4)
 	local edge = util.stroke(panel, values().line, 0.05)
-	util.shadow(panel, 18, 0.4)
+	util.shadow(panel, 24, 0.28)
 	win._popover(panel)
 
 	local bulk_seam
@@ -6551,7 +6660,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				Position = UDim2.new(1, offset, 0.5, 0),
 				Size = UDim2.fromOffset(width, bulk_h),
 				Font = font,
-				Text = text,
+				Text = string.upper(text),
 				TextColor3 = values().muted,
 				TextSize = util.size(mobile and 9 or 10),
 				TextXAlignment = Enum.TextXAlignment.Center,
@@ -6591,7 +6700,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			ClearTextOnFocus = false,
 			Font = mono,
 			PlaceholderColor3 = values().muted,
-			PlaceholderText = "Search...",
+			PlaceholderText = "SEARCH",
 			Position = UDim2.fromOffset(pad, pad + bulk_h + bulk_gap),
 			Size = UDim2.new(1, -pad * 2, 0, search_h),
 			Text = "",
@@ -6602,11 +6711,42 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			Parent = panel,
 		})
 		util.corner(search, 0)
+		util.inset(search, 0.3)
 		util.new("UIPadding", {
-			PaddingLeft = UDim.new(0, 8),
-			PaddingRight = UDim.new(0, 8),
+			PaddingLeft = UDim.new(0, 24),
+			PaddingRight = UDim.new(0, 22),
 			Parent = search,
 		})
+		local search_icon = icons.image(search, "search", 12, values().muted)
+		if search_icon then
+			search_icon.AnchorPoint = Vector2.new(0, 0.5)
+			search_icon.Position = UDim2.new(0, -17, 0.5, 0)
+			icons.layer(search_icon, 14)
+		end
+		local search_clear = util.new("TextButton", {
+			Name = "clear",
+			BackgroundTransparency = 1,
+			AutoButtonColor = false,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, 17, 0.5, 0),
+			Size = UDim2.fromOffset(18, 18),
+			Text = "",
+			ZIndex = 14,
+			Parent = search,
+		})
+		local clear_icon = icons.close(search_clear, 8, values().muted)
+		if clear_icon then
+			clear_icon.AnchorPoint = Vector2.new(0.5, 0.5)
+			clear_icon.Position = UDim2.fromScale(0.5, 0.5)
+			icons.layer(clear_icon, 15)
+		end
+		search_clear.Activated:Connect(function()
+			if not disabled then
+				search.Text = ""
+			end
+		end)
+		search.clear = search_clear
+		search.icon = search_icon
 	end
 
 	local area = util.new("ScrollingFrame", {
@@ -6667,7 +6807,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 
 	local function paint_active()
 		for option, item in pairs(items) do
-			item.BackgroundTransparency = option == active_option and 0 or 1
+			local selected = (multi and picks[option]) or (not multi and single == option)
+			item.BackgroundTransparency = option == active_option and 0 or (selected and 0.72 or 1)
 		end
 	end
 
@@ -6749,6 +6890,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 
 	local function apply_filter()
+		if search and search.clear then
+			search.clear.Visible = search.Text ~= ""
+		end
 		for option, item in pairs(items) do
 			local show = not search or search.Text == "" or string.find(string.lower(option), string.lower(search.Text), 1, true) ~= nil
 			item.Visible = show
@@ -6813,6 +6957,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			local option_disabled = disabled_options[option] == true
 			item.TextColor3 = option_disabled and values().muted or (on and values().accent or values().text)
 			item.Font = (on and not option_disabled) and bold or font
+			item.BackgroundColor3 = on and values().hover:Lerp(values().accent, 0.12) or values().hover
+			item.BackgroundTransparency = on and 0.72 or 1
 			if marks[option] then
 				marks[option].BackgroundColor3 = on and values().accent or values().raised
 				local mark_edge = mark_edges[option]
@@ -6824,6 +6970,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			if checks[option] then
 				checks[option].Visible = on
 			end
+		end
+		if active_option and items[active_option] then
+			items[active_option].BackgroundTransparency = 0
 		end
 	end
 
@@ -7018,7 +7167,22 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			PaddingRight = UDim.new(0, multi and 12 or 26),
 			Parent = item,
 		})
-		util.hover(item)
+		item.MouseEnter:Connect(function()
+			if not disabled then
+				item.BackgroundTransparency = 0
+			end
+		end)
+		item.MouseLeave:Connect(refresh)
+		item.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch and not disabled then
+				item.BackgroundTransparency = 0
+			end
+		end)
+		item.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch then
+				refresh()
+			end
+		end)
 		local check
 		if multi then
 			local mark = util.new("Frame", {
@@ -7032,6 +7196,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				Parent = item,
 			})
 			util.corner(mark, 0)
+			util.depth(mark, 0.3)
 			mark_edges[option] = util.stroke(mark, values().line, 0.25)
 			check = icons.check(mark, mark_size - 5, style.on(values().accent))
 			check.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -7221,7 +7386,18 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			search.BackgroundColor3 = values().raised
 			search.TextColor3 = values().text
 			search.PlaceholderColor3 = values().muted
+			if search.icon then
+				icons.tint(search.icon, values().muted)
+			end
+			if search.clear then
+				for _, child in ipairs(search.clear:GetDescendants()) do
+					if child:IsA("Frame") then
+						child.BackgroundColor3 = values().muted
+					end
+				end
+			end
 		end
+		well.BackgroundColor3 = values().raised
 		if emblem then
 			icons.tint(emblem, disabled and values().line or values().muted)
 		end
@@ -7402,9 +7578,12 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	local field_h = mobile and 100 or 94
 	local panel_w = mobile and 240 or 226
 	local bottom_y = pad + field_h + 29
+	local rgb_h = 24
+	local rgb_y = bottom_y + 34
 	local swatch_size = mobile and 18 or 16
 	local swatch_step = swatch_size + 6
-	local panel_h = bottom_y + 36 + preset_rows * 24
+	local swatch_y = rgb_y + rgb_h + 8
+	local panel_h = swatch_y + preset_rows * 24 + 4
 
 	local panel = util.new("Frame", {
 		Name = "colorpicker",
@@ -7417,8 +7596,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = env.modal,
 	})
 	util.corner(panel, 0)
+	util.depth(panel, 0.4)
 	local edge = util.stroke(panel, values().line, 0.05)
-	util.shadow(panel, 18, 0.4)
+	util.shadow(panel, 24, 0.28)
 	win._popover(panel)
 	local pop = util.new("UIScale", { Parent = panel })
 
@@ -7431,6 +7611,8 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(field, 0)
+	util.inset(field, 0.25)
+	util.stroke(field, values().line, 0.45)
 
 	local light = util.new("Frame", {
 		BackgroundColor3 = Color3.new(1, 1, 1),
@@ -7499,16 +7681,15 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(hue_bar, 0)
-	for index = 0, 47 do
-		util.new("Frame", {
-			BackgroundColor3 = Color3.fromHSV(index / 48, 1, 1),
-			BorderSizePixel = 0,
-			Position = UDim2.fromScale(index / 48, 0),
-			Size = UDim2.new(1 / 48 + 0.004, 0, 1, 0),
-			ZIndex = 3,
-			Parent = hue_bar,
-		})
+	local hue_stops = {}
+	for index = 0, 12 do
+		hue_stops[#hue_stops + 1] = ColorSequenceKeypoint.new(index / 12, Color3.fromHSV(index / 12, 1, 1))
 	end
+	util.new("UIGradient", {
+		Color = ColorSequence.new(hue_stops),
+		Parent = hue_bar,
+	})
+	util.stroke(hue_bar, values().line, 0.55)
 
 	local knob = util.new("Frame", {
 		BackgroundColor3 = Color3.new(1, 1, 1),
@@ -7542,7 +7723,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(preview, 0)
+	util.depth(preview, 0.4)
 	util.stroke(preview, values().line, 0.2)
+	util.shadow(preview, 6, 0.8)
 
 	local hex = util.new("TextBox", {
 		BackgroundColor3 = values().raised,
@@ -7551,7 +7734,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		TextEditable = not disabled,
 		Font = Enum.Font.Code,
 		Position = UDim2.fromOffset(pad + 36, bottom_y),
-		Size = UDim2.new(1, -(pad * 2 + 36), 0, 28),
+		Size = UDim2.new(1, -(pad * 2 + 36 + 2 * 28 + 8), 0, 28),
 		Text = "#000000",
 		TextColor3 = values().text,
 		TextSize = util.size(11),
@@ -7560,11 +7743,90 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(hex, 0)
+	util.inset(hex, 0.3)
 	local hex_edge = util.stroke(hex, values().line, 0.2)
 	util.new("UIPadding", {
 		PaddingLeft = UDim.new(0, 8),
 		PaddingRight = UDim.new(0, 6),
 		Parent = hex,
+	})
+
+	local function small_action(name, icon_name, x, tip)
+		local btn = util.new("TextButton", {
+			Name = name,
+			BackgroundColor3 = values().raised,
+			BorderSizePixel = 0,
+			AutoButtonColor = false,
+			Active = not disabled,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, x, 0, bottom_y),
+			Size = UDim2.fromOffset(28, 28),
+			Text = "",
+			ZIndex = 3,
+			Parent = panel,
+		})
+		util.corner(btn, 0)
+		util.depth(btn, 0.3)
+		local stroke = util.stroke(btn, values().line, 0.3)
+		local image = icons.image(btn, icon_name, 13, values().muted)
+		if image then
+			image.AnchorPoint = Vector2.new(0.5, 0.5)
+			image.Position = UDim2.fromScale(0.5, 0.5)
+			icons.layer(image, 4)
+		end
+		btn.MouseEnter:Connect(function()
+			if btn.Active then
+				util.tween(btn, 0.08, { BackgroundColor3 = values().hover })
+			end
+		end)
+		btn.MouseLeave:Connect(function()
+			util.tween(btn, 0.08, { BackgroundColor3 = values().raised })
+		end)
+		if tooltip and tip then
+			tooltip.attach(btn, tip)
+		end
+		return btn, stroke, image
+	end
+
+	local copy_btn, copy_edge, copy_icon = small_action("copy_hex", "copy", -(pad + 28 + 4), "Copy the hex value")
+	local random_btn, random_edge, random_icon = small_action("random_color", "refresh", -pad, "Pick a random color")
+
+	local rgb_label = util.new("TextLabel", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(pad, rgb_y),
+		Size = UDim2.fromOffset(30, rgb_h),
+		Font = mono,
+		Text = "RGB",
+		TextColor3 = values().muted,
+		TextSize = util.size(8),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 3,
+		Parent = panel,
+	})
+	local rgb = util.new("TextBox", {
+		BackgroundColor3 = values().raised,
+		BorderSizePixel = 0,
+		ClearTextOnFocus = false,
+		TextEditable = not disabled,
+		Font = mono,
+		Position = UDim2.fromOffset(pad + 30, rgb_y),
+		Size = UDim2.new(1, -(pad * 2 + 30), 0, rgb_h),
+		Text = "230, 162, 58",
+		PlaceholderText = "R, G, B",
+		PlaceholderColor3 = values().muted,
+		TextColor3 = values().text,
+		TextSize = util.size(9),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 3,
+		Parent = panel,
+	})
+	util.corner(rgb, 0)
+	util.inset(rgb, 0.3)
+	local rgb_edge = util.stroke(rgb, values().line, 0.3)
+	util.new("UIPadding", {
+		PaddingLeft = UDim.new(0, 6),
+		PaddingRight = UDim.new(0, 6),
+		Parent = rgb,
 	})
 
 	local function color()
@@ -7607,7 +7869,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		return util.new("Frame", {
 			Name = "swatches",
 			BackgroundTransparency = 1,
-			Position = UDim2.fromOffset(pad, bottom_y + 34 + (index - 1) * 24),
+			Position = UDim2.fromOffset(pad, swatch_y + (index - 1) * 24),
 			Size = UDim2.new(1, -pad * 2, 0, swatch_size),
 			ZIndex = 3,
 			Parent = panel,
@@ -7632,6 +7894,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				Parent = holder,
 			})
 			util.corner(swatch, 0)
+			util.depth(swatch, 0.2)
 			util.stroke(swatch, values().line, 0.2)
 			swatch.Activated:Connect(function()
 				if disabled then
@@ -7663,6 +7926,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				Parent = holder,
 			})
 			util.corner(slot, 0)
+			util.depth(slot, 0.2)
 			util.stroke(slot, values().line, 0.2)
 			recent_slots[index] = slot
 			slot.Activated:Connect(function()
@@ -7680,21 +7944,80 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		end
 	end
 	function refresh(fire)
+		local picked = color()
 		cursor.Position = UDim2.fromScale(sat, 1 - val)
 		knob.Position = UDim2.new(hue, 0, 0.5, 0)
 		field.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-		preview.BackgroundColor3 = color()
-		swatch.BackgroundColor3 = color()
+		preview.BackgroundColor3 = picked
+		swatch.BackgroundColor3 = picked
 		if not hex:IsFocused() then
-			hex.Text = "#" .. string.upper(color():ToHex())
+			hex.Text = "#" .. string.upper(picked:ToHex())
+		end
+		if not rgb:IsFocused() then
+			local r = math.floor(picked.R * 255 + 0.5)
+			local g = math.floor(picked.G * 255 + 0.5)
+			local b = math.floor(picked.B * 255 + 0.5)
+			rgb.Text = string.format("%d, %d, %d", r, g, b)
 		end
 		if fire then
-			win._store(key, "#" .. string.upper(color():ToHex()))
+			win._store(key, "#" .. string.upper(picked:ToHex()))
 			if callback then
-				callback(color())
+				callback(picked)
 			end
 		end
 	end
+
+	local function commit_rgb()
+		local parts = {}
+		for value in string.gmatch(rgb.Text, "%-?%d+") do
+			parts[#parts + 1] = tonumber(value)
+		end
+		if #parts < 3 then
+			refresh(false)
+			return
+		end
+		local r = math.clamp(parts[1] or 0, 0, 255)
+		local g = math.clamp(parts[2] or 0, 0, 255)
+		local b = math.clamp(parts[3] or 0, 0, 255)
+		hue, sat, val = Color3.toHSV(Color3.fromRGB(r, g, b))
+		refresh(true)
+		add_recent(color())
+	end
+
+	rgb.Focused:Connect(function()
+		rgb_edge.Color = values().accent
+		rgb_edge.Transparency = 0.15
+	end)
+	rgb.FocusLost:Connect(function()
+		rgb_edge.Color = values().line
+		rgb_edge.Transparency = 0.3
+		if not disabled then
+			commit_rgb()
+		end
+	end)
+
+	copy_btn.Activated:Connect(function()
+		if disabled or type(setclipboard) ~= "function" then
+			return
+		end
+		pcall(function()
+			setclipboard(hex.Text)
+		end)
+		if S.notify then
+			S.notify("Color", "Copied " .. hex.Text, 1.5, "good")
+		end
+	end)
+
+	random_btn.Activated:Connect(function()
+		if disabled then
+			return
+		end
+		hue = math.random()
+		sat = 0.45 + math.random() * 0.55
+		val = 0.65 + math.random() * 0.35
+		refresh(true)
+		add_recent(color())
+	end)
 
 	local function apply(value)
 		local picked
@@ -7882,6 +8205,10 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		field_hit.Active = not disabled
 		hue_hit.Active = not disabled
 		hex.TextEditable = not disabled
+		rgb.TextEditable = not disabled
+		rgb.Active = not disabled
+		copy_btn.Active = not disabled
+		random_btn.Active = not disabled
 		if disabled then
 			set_open(false)
 			field_drag = false
@@ -7891,9 +8218,16 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 			end
 		end
 		hex.TextColor3 = disabled and values().muted or values().text
+		rgb.TextColor3 = disabled and values().muted or values().text
 		name.TextColor3 = disabled and values().muted or values().text
 		if emblem then
 			icons.tint(emblem, disabled and values().line or values().muted)
+		end
+		if copy_icon then
+			icons.tint(copy_icon, disabled and values().line or values().muted)
+		end
+		if random_icon then
+			icons.tint(random_icon, disabled and values().line or values().muted)
 		end
 		swatch.BackgroundTransparency = disabled and 0.4 or 0
 		if win._nav_refresh then
@@ -7907,6 +8241,21 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		hex.BackgroundColor3 = values().raised
 		hex.TextColor3 = disabled and values().muted or values().text
 		hex_edge.Color = values().line
+		rgb.BackgroundColor3 = values().raised
+		rgb.TextColor3 = disabled and values().muted or values().text
+		rgb.PlaceholderColor3 = values().muted
+		rgb_edge.Color = values().line
+		rgb_label.TextColor3 = values().muted
+		copy_btn.BackgroundColor3 = values().raised
+		copy_edge.Color = values().line
+		random_btn.BackgroundColor3 = values().raised
+		random_edge.Color = values().line
+		if copy_icon then
+			icons.tint(copy_icon, disabled and values().line or values().muted)
+		end
+		if random_icon then
+			icons.tint(random_icon, disabled and values().line or values().muted)
+		end
 		hit.BackgroundColor3 = values().hover
 		name.TextColor3 = disabled and values().muted or values().text
 		if emblem then
@@ -7989,6 +8338,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 end
 
 S.selects = selects
+
 end
 
 do
@@ -8034,6 +8384,7 @@ function text.section(win, title, icon)
 		ZIndex = 2,
 		Parent = holder,
 	})
+	util.depth(band, 0.35)
 	local tick = util.new("Frame", {
 		BackgroundColor3 = values().accent,
 		BorderSizePixel = 0,
@@ -8320,6 +8671,8 @@ function text.textbox(win, title, default, callback, icon, opts)
 		})
 	end
 	util.corner(box)
+	util.inset(box, 0.45)
+	util.shadow(box, 6, 0.82)
 	util.new("UIPadding", {
 		PaddingLeft = UDim.new(0, 8),
 		PaddingRight = UDim.new(0, 8),
@@ -8495,6 +8848,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 end
 
 S.text = text
+
 end
 
 do
@@ -8503,7 +8857,12 @@ local env = S.env
 local config = S.config
 local util = S.util
 local Library = {}
-Library.Version = "3.1"
+Library.Version = "1.0"
+
+local previous = shared.Spectrum
+if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
+	pcall(previous.Destroy, previous)
+end
 
 config.load()
 local DEFAULT_MENU_KEY = "RightControl+LeftShift"
@@ -8841,11 +9200,7 @@ end)
 
 function Library:Destroy()
 	config.flush()
-	S.splash_open = false
-	if splash and splash.destroy then
-		splash.destroy()
-		splash = nil
-	end
+	S.binding = false
 	if menu_link then
 		menu_link:Disconnect()
 		menu_link = nil
@@ -8854,20 +9209,45 @@ function Library:Destroy()
 		menu_release:Disconnect()
 		menu_release = nil
 	end
+	if S.tooltip then
+		pcall(function()
+			if S.tooltip.destroy then
+				S.tooltip.destroy()
+			else
+				S.tooltip.hide()
+			end
+		end)
+	end
+	S.splash_open = false
+	if splash and splash.destroy then
+		pcall(splash.destroy)
+		splash = nil
+	end
 	if mobile_launcher then
-		mobile_launcher.destroy()
+		pcall(mobile_launcher.destroy)
 		mobile_launcher = nil
 	end
-	for _, root in ipairs(S.window.roots) do
-		if root.Parent then
-			root:Destroy()
-		end
+	local roots = table.clone(S.window.roots)
+	for _, root in ipairs(roots) do
+		pcall(function()
+			if root.Parent then
+				root:Destroy()
+			end
+		end)
 	end
-	S.env.windows:Destroy()
-	S.env.modal:Destroy()
-	S.env.notes:Destroy()
-	S.env.launcher:Destroy()
-	S.env.splash:Destroy()
+	table.clear(S.window.roots)
+	table.clear(S.window.windows)
+	for _, layer in ipairs({ S.env.windows, S.env.modal, S.env.notes, S.env.launcher, S.env.splash }) do
+		pcall(function()
+			layer:Destroy()
+		end)
+	end
+	if S.modal then
+		pcall(S.modal.dismiss)
+	end
+	if S.options and S.options.close then
+		pcall(S.options.close)
+	end
 	if shared.Spectrum == Library then
 		shared.Spectrum = nil
 	end
@@ -8898,6 +9278,7 @@ end
 
 shared.Spectrum = Library
 S.library = Library
+
 end
 
 return S.library

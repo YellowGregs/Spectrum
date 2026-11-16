@@ -66,8 +66,9 @@ function launcher.mount(on_toggle)
 		Parent = env.launcher,
 	})
 	util.corner(button, 0)
+	util.depth(button, 0.4)
 	local edge = util.stroke(button, values().line, 0.05)
-	util.shadow(button, 14, 0.5)
+	util.shadow(button, 18, 0.4)
 
 	local menu = icons.image(button, "menu", 19, values().text)
 	menu.AnchorPoint = Vector2.new(0.5, 0.5)

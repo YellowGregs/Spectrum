@@ -47,13 +47,76 @@ function util.shadow(object, blur, transparency)
 		local shade = Instance.new("UIShadow")
 		shade.BlurRadius = blur or 14
 		shade.Transparency = transparency or 0.55
-		shade.Offset = Vector2.new(0, 4)
+		shade.Offset = Vector2.new(0, math.max(2, math.floor((blur or 14) / 4)))
 		shade.Color = Color3.new(0, 0, 0)
 		shade.Parent = object
 	end)
 	if not built then
 		return
 	end
+end
+
+function util.depth(object, strength)
+	if not object then
+		return
+	end
+	strength = strength or 1
+	local z = (object.ZIndex or 1) + 1
+	local top = util.new("Frame", {
+		Name = "depth_top",
+		BackgroundColor3 = white,
+		BackgroundTransparency = math.clamp(0.92 - 0.04 * strength, 0.55, 0.98),
+		BorderSizePixel = 0,
+		Position = UDim2.new(0, 0, 0, 0),
+		Size = UDim2.new(1, 0, 0, 1),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	local bottom = util.new("Frame", {
+		Name = "depth_bottom",
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = math.clamp(0.72 - 0.04 * strength, 0.45, 0.9),
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, -1),
+		Size = UDim2.new(1, 0, 0, 1),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	return top, bottom
+end
+
+function util.inset(object, strength)
+	if not object then
+		return
+	end
+	strength = strength or 1
+	local z = (object.ZIndex or 1) + 1
+	local top = util.new("Frame", {
+		Name = "inset_top",
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = math.clamp(0.7 - 0.04 * strength, 0.42, 0.9),
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 0, 1),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	local bottom = util.new("Frame", {
+		Name = "inset_bottom",
+		BackgroundColor3 = white,
+		BackgroundTransparency = math.clamp(0.92 - 0.03 * strength, 0.6, 0.98),
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, -1),
+		Size = UDim2.new(1, 0, 0, 1),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	return top, bottom
 end
 
 function util.tween(object, time, props, ease, direction)

@@ -139,7 +139,8 @@ function Window.new(title, opts)
 		Parent = root,
 	})
 	local edge = util.stroke(body, values().line, 0.2)
-	util.shadow(body, 10, 0.65)
+	util.shadow(body, 20, 0.3)
+	util.depth(body, 0.2)
 
 	local backdrop = util.new("Frame", {
 		Name = "backdrop",
@@ -199,14 +200,7 @@ function Window.new(title, opts)
 		ZIndex = 3,
 		Parent = body,
 	})
-	local top_line = util.new("Frame", {
-		Name = "accent_line",
-		BackgroundColor3 = values().accent,
-		BorderSizePixel = 0,
-		Size = UDim2.new(1, 0, 0, 1),
-		ZIndex = 5,
-		Parent = header,
-	})
+	util.shadow(header, 8, 0.8)
 	local seam = util.new("Frame", {
 		BackgroundColor3 = values().line,
 		BackgroundTransparency = 0.2,
@@ -244,7 +238,7 @@ function Window.new(title, opts)
 		Position = UDim2.new(1, -68, 0.5, 0),
 		Size = UDim2.fromOffset(42, head),
 		Font = mono,
-		Text = "v" .. tostring(S.library and S.library.Version or "3.1"),
+		Text = "v" .. tostring(S.library and S.library.Version or "1.0"),
 		TextColor3 = values().muted,
 		TextSize = util.size(8),
 		TextXAlignment = Enum.TextXAlignment.Right,
@@ -267,7 +261,6 @@ function Window.new(title, opts)
 	end
 
 	style.paint(function()
-		top_line.BackgroundColor3 = values().accent
 		mark.BackgroundColor3 = values().accent
 		caption.TextColor3 = values().text
 		version.TextColor3 = values().muted

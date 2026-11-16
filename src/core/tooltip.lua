@@ -27,8 +27,9 @@ local panel = util.new("Frame", {
 	Parent = env.modal,
 })
 util.corner(panel, 0)
+util.depth(panel, 0.35)
 local edge = util.stroke(panel, values().line, 0.15)
-util.shadow(panel, 12, 0.4)
+util.shadow(panel, 18, 0.3)
 util.new("UISizeConstraint", {
 	MaxSize = Vector2.new(260, 320),
 	Parent = panel,
@@ -155,7 +156,15 @@ function tooltip.hide()
 	hide()
 end
 
-env.uis.InputBegan:Connect(function(input)
+function tooltip.destroy()
+	hide()
+	if input_link then
+		input_link:Disconnect()
+		input_link = nil
+	end
+end
+
+local input_link = env.uis.InputBegan:Connect(function(input)
 	local kind = input.UserInputType
 	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 		hide()

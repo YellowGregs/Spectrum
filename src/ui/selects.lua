@@ -87,6 +87,20 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		end
 	end
 	local row = win._row(mobile and 40 or 38)
+	local well = util.new("Frame", {
+		Name = "field",
+		BackgroundColor3 = values().raised,
+		BackgroundTransparency = 0.45,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(4, 3),
+		Size = UDim2.new(1, -8, 1, -6),
+		ZIndex = 2,
+		Parent = row,
+	})
+	util.corner(well, 0)
+	util.depth(well, 0.35)
+	util.shadow(well, 6, 0.9)
+	util.stroke(well, values().line, 0.55)
 	local name = caption(row, title)
 	name.Size = UDim2.new(0.48, -20, 1, 0)
 	name.TextSize = util.size(10)
@@ -142,6 +156,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			Parent = row,
 		})
 		util.corner(count_badge, 0)
+		util.depth(count_badge, 0.35)
 	end
 
 	local pad = mobile and 4 or 6
@@ -165,8 +180,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		Parent = env.modal,
 	})
 	util.corner(panel, 0)
+	util.depth(panel, 0.4)
 	local edge = util.stroke(panel, values().line, 0.05)
-	util.shadow(panel, 18, 0.4)
+	util.shadow(panel, 24, 0.28)
 	win._popover(panel)
 
 	local bulk_seam
@@ -204,7 +220,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				Position = UDim2.new(1, offset, 0.5, 0),
 				Size = UDim2.fromOffset(width, bulk_h),
 				Font = font,
-				Text = text,
+				Text = string.upper(text),
 				TextColor3 = values().muted,
 				TextSize = util.size(mobile and 9 or 10),
 				TextXAlignment = Enum.TextXAlignment.Center,
@@ -244,7 +260,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			ClearTextOnFocus = false,
 			Font = mono,
 			PlaceholderColor3 = values().muted,
-			PlaceholderText = "Search...",
+			PlaceholderText = "SEARCH",
 			Position = UDim2.fromOffset(pad, pad + bulk_h + bulk_gap),
 			Size = UDim2.new(1, -pad * 2, 0, search_h),
 			Text = "",
@@ -255,11 +271,42 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			Parent = panel,
 		})
 		util.corner(search, 0)
+		util.inset(search, 0.3)
 		util.new("UIPadding", {
-			PaddingLeft = UDim.new(0, 8),
-			PaddingRight = UDim.new(0, 8),
+			PaddingLeft = UDim.new(0, 24),
+			PaddingRight = UDim.new(0, 22),
 			Parent = search,
 		})
+		local search_icon = icons.image(search, "search", 12, values().muted)
+		if search_icon then
+			search_icon.AnchorPoint = Vector2.new(0, 0.5)
+			search_icon.Position = UDim2.new(0, -17, 0.5, 0)
+			icons.layer(search_icon, 14)
+		end
+		local search_clear = util.new("TextButton", {
+			Name = "clear",
+			BackgroundTransparency = 1,
+			AutoButtonColor = false,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, 17, 0.5, 0),
+			Size = UDim2.fromOffset(18, 18),
+			Text = "",
+			ZIndex = 14,
+			Parent = search,
+		})
+		local clear_icon = icons.close(search_clear, 8, values().muted)
+		if clear_icon then
+			clear_icon.AnchorPoint = Vector2.new(0.5, 0.5)
+			clear_icon.Position = UDim2.fromScale(0.5, 0.5)
+			icons.layer(clear_icon, 15)
+		end
+		search_clear.Activated:Connect(function()
+			if not disabled then
+				search.Text = ""
+			end
+		end)
+		search.clear = search_clear
+		search.icon = search_icon
 	end
 
 	local area = util.new("ScrollingFrame", {
@@ -320,7 +367,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 
 	local function paint_active()
 		for option, item in pairs(items) do
-			item.BackgroundTransparency = option == active_option and 0 or 1
+			local selected = (multi and picks[option]) or (not multi and single == option)
+			item.BackgroundTransparency = option == active_option and 0 or (selected and 0.72 or 1)
 		end
 	end
 
@@ -402,6 +450,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 
 	local function apply_filter()
+		if search and search.clear then
+			search.clear.Visible = search.Text ~= ""
+		end
 		for option, item in pairs(items) do
 			local show = not search or search.Text == "" or string.find(string.lower(option), string.lower(search.Text), 1, true) ~= nil
 			item.Visible = show
@@ -466,6 +517,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			local option_disabled = disabled_options[option] == true
 			item.TextColor3 = option_disabled and values().muted or (on and values().accent or values().text)
 			item.Font = (on and not option_disabled) and bold or font
+			item.BackgroundColor3 = on and values().hover:Lerp(values().accent, 0.12) or values().hover
+			item.BackgroundTransparency = on and 0.72 or 1
 			if marks[option] then
 				marks[option].BackgroundColor3 = on and values().accent or values().raised
 				local mark_edge = mark_edges[option]
@@ -477,6 +530,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			if checks[option] then
 				checks[option].Visible = on
 			end
+		end
+		if active_option and items[active_option] then
+			items[active_option].BackgroundTransparency = 0
 		end
 	end
 
@@ -671,7 +727,22 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			PaddingRight = UDim.new(0, multi and 12 or 26),
 			Parent = item,
 		})
-		util.hover(item)
+		item.MouseEnter:Connect(function()
+			if not disabled then
+				item.BackgroundTransparency = 0
+			end
+		end)
+		item.MouseLeave:Connect(refresh)
+		item.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch and not disabled then
+				item.BackgroundTransparency = 0
+			end
+		end)
+		item.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch then
+				refresh()
+			end
+		end)
 		local check
 		if multi then
 			local mark = util.new("Frame", {
@@ -685,6 +756,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				Parent = item,
 			})
 			util.corner(mark, 0)
+			util.depth(mark, 0.3)
 			mark_edges[option] = util.stroke(mark, values().line, 0.25)
 			check = icons.check(mark, mark_size - 5, style.on(values().accent))
 			check.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -874,7 +946,18 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			search.BackgroundColor3 = values().raised
 			search.TextColor3 = values().text
 			search.PlaceholderColor3 = values().muted
+			if search.icon then
+				icons.tint(search.icon, values().muted)
+			end
+			if search.clear then
+				for _, child in ipairs(search.clear:GetDescendants()) do
+					if child:IsA("Frame") then
+						child.BackgroundColor3 = values().muted
+					end
+				end
+			end
 		end
+		well.BackgroundColor3 = values().raised
 		if emblem then
 			icons.tint(emblem, disabled and values().line or values().muted)
 		end
@@ -1055,9 +1138,12 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	local field_h = mobile and 100 or 94
 	local panel_w = mobile and 240 or 226
 	local bottom_y = pad + field_h + 29
+	local rgb_h = 24
+	local rgb_y = bottom_y + 34
 	local swatch_size = mobile and 18 or 16
 	local swatch_step = swatch_size + 6
-	local panel_h = bottom_y + 36 + preset_rows * 24
+	local swatch_y = rgb_y + rgb_h + 8
+	local panel_h = swatch_y + preset_rows * 24 + 4
 
 	local panel = util.new("Frame", {
 		Name = "colorpicker",
@@ -1070,8 +1156,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = env.modal,
 	})
 	util.corner(panel, 0)
+	util.depth(panel, 0.4)
 	local edge = util.stroke(panel, values().line, 0.05)
-	util.shadow(panel, 18, 0.4)
+	util.shadow(panel, 24, 0.28)
 	win._popover(panel)
 	local pop = util.new("UIScale", { Parent = panel })
 
@@ -1084,6 +1171,8 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(field, 0)
+	util.inset(field, 0.25)
+	util.stroke(field, values().line, 0.45)
 
 	local light = util.new("Frame", {
 		BackgroundColor3 = Color3.new(1, 1, 1),
@@ -1152,16 +1241,15 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(hue_bar, 0)
-	for index = 0, 47 do
-		util.new("Frame", {
-			BackgroundColor3 = Color3.fromHSV(index / 48, 1, 1),
-			BorderSizePixel = 0,
-			Position = UDim2.fromScale(index / 48, 0),
-			Size = UDim2.new(1 / 48 + 0.004, 0, 1, 0),
-			ZIndex = 3,
-			Parent = hue_bar,
-		})
+	local hue_stops = {}
+	for index = 0, 12 do
+		hue_stops[#hue_stops + 1] = ColorSequenceKeypoint.new(index / 12, Color3.fromHSV(index / 12, 1, 1))
 	end
+	util.new("UIGradient", {
+		Color = ColorSequence.new(hue_stops),
+		Parent = hue_bar,
+	})
+	util.stroke(hue_bar, values().line, 0.55)
 
 	local knob = util.new("Frame", {
 		BackgroundColor3 = Color3.new(1, 1, 1),
@@ -1195,7 +1283,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(preview, 0)
+	util.depth(preview, 0.4)
 	util.stroke(preview, values().line, 0.2)
+	util.shadow(preview, 6, 0.8)
 
 	local hex = util.new("TextBox", {
 		BackgroundColor3 = values().raised,
@@ -1204,7 +1294,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		TextEditable = not disabled,
 		Font = Enum.Font.Code,
 		Position = UDim2.fromOffset(pad + 36, bottom_y),
-		Size = UDim2.new(1, -(pad * 2 + 36), 0, 28),
+		Size = UDim2.new(1, -(pad * 2 + 36 + 2 * 28 + 8), 0, 28),
 		Text = "#000000",
 		TextColor3 = values().text,
 		TextSize = util.size(11),
@@ -1213,11 +1303,90 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(hex, 0)
+	util.inset(hex, 0.3)
 	local hex_edge = util.stroke(hex, values().line, 0.2)
 	util.new("UIPadding", {
 		PaddingLeft = UDim.new(0, 8),
 		PaddingRight = UDim.new(0, 6),
 		Parent = hex,
+	})
+
+	local function small_action(name, icon_name, x, tip)
+		local btn = util.new("TextButton", {
+			Name = name,
+			BackgroundColor3 = values().raised,
+			BorderSizePixel = 0,
+			AutoButtonColor = false,
+			Active = not disabled,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, x, 0, bottom_y),
+			Size = UDim2.fromOffset(28, 28),
+			Text = "",
+			ZIndex = 3,
+			Parent = panel,
+		})
+		util.corner(btn, 0)
+		util.depth(btn, 0.3)
+		local stroke = util.stroke(btn, values().line, 0.3)
+		local image = icons.image(btn, icon_name, 13, values().muted)
+		if image then
+			image.AnchorPoint = Vector2.new(0.5, 0.5)
+			image.Position = UDim2.fromScale(0.5, 0.5)
+			icons.layer(image, 4)
+		end
+		btn.MouseEnter:Connect(function()
+			if btn.Active then
+				util.tween(btn, 0.08, { BackgroundColor3 = values().hover })
+			end
+		end)
+		btn.MouseLeave:Connect(function()
+			util.tween(btn, 0.08, { BackgroundColor3 = values().raised })
+		end)
+		if tooltip and tip then
+			tooltip.attach(btn, tip)
+		end
+		return btn, stroke, image
+	end
+
+	local copy_btn, copy_edge, copy_icon = small_action("copy_hex", "copy", -(pad + 28 + 4), "Copy the hex value")
+	local random_btn, random_edge, random_icon = small_action("random_color", "refresh", -pad, "Pick a random color")
+
+	local rgb_label = util.new("TextLabel", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(pad, rgb_y),
+		Size = UDim2.fromOffset(30, rgb_h),
+		Font = mono,
+		Text = "RGB",
+		TextColor3 = values().muted,
+		TextSize = util.size(8),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 3,
+		Parent = panel,
+	})
+	local rgb = util.new("TextBox", {
+		BackgroundColor3 = values().raised,
+		BorderSizePixel = 0,
+		ClearTextOnFocus = false,
+		TextEditable = not disabled,
+		Font = mono,
+		Position = UDim2.fromOffset(pad + 30, rgb_y),
+		Size = UDim2.new(1, -(pad * 2 + 30), 0, rgb_h),
+		Text = "230, 162, 58",
+		PlaceholderText = "R, G, B",
+		PlaceholderColor3 = values().muted,
+		TextColor3 = values().text,
+		TextSize = util.size(9),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 3,
+		Parent = panel,
+	})
+	util.corner(rgb, 0)
+	util.inset(rgb, 0.3)
+	local rgb_edge = util.stroke(rgb, values().line, 0.3)
+	util.new("UIPadding", {
+		PaddingLeft = UDim.new(0, 6),
+		PaddingRight = UDim.new(0, 6),
+		Parent = rgb,
 	})
 
 	local function color()
@@ -1260,7 +1429,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		return util.new("Frame", {
 			Name = "swatches",
 			BackgroundTransparency = 1,
-			Position = UDim2.fromOffset(pad, bottom_y + 34 + (index - 1) * 24),
+			Position = UDim2.fromOffset(pad, swatch_y + (index - 1) * 24),
 			Size = UDim2.new(1, -pad * 2, 0, swatch_size),
 			ZIndex = 3,
 			Parent = panel,
@@ -1285,6 +1454,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				Parent = holder,
 			})
 			util.corner(swatch, 0)
+			util.depth(swatch, 0.2)
 			util.stroke(swatch, values().line, 0.2)
 			swatch.Activated:Connect(function()
 				if disabled then
@@ -1316,6 +1486,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				Parent = holder,
 			})
 			util.corner(slot, 0)
+			util.depth(slot, 0.2)
 			util.stroke(slot, values().line, 0.2)
 			recent_slots[index] = slot
 			slot.Activated:Connect(function()
@@ -1333,21 +1504,80 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		end
 	end
 	function refresh(fire)
+		local picked = color()
 		cursor.Position = UDim2.fromScale(sat, 1 - val)
 		knob.Position = UDim2.new(hue, 0, 0.5, 0)
 		field.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-		preview.BackgroundColor3 = color()
-		swatch.BackgroundColor3 = color()
+		preview.BackgroundColor3 = picked
+		swatch.BackgroundColor3 = picked
 		if not hex:IsFocused() then
-			hex.Text = "#" .. string.upper(color():ToHex())
+			hex.Text = "#" .. string.upper(picked:ToHex())
+		end
+		if not rgb:IsFocused() then
+			local r = math.floor(picked.R * 255 + 0.5)
+			local g = math.floor(picked.G * 255 + 0.5)
+			local b = math.floor(picked.B * 255 + 0.5)
+			rgb.Text = string.format("%d, %d, %d", r, g, b)
 		end
 		if fire then
-			win._store(key, "#" .. string.upper(color():ToHex()))
+			win._store(key, "#" .. string.upper(picked:ToHex()))
 			if callback then
-				callback(color())
+				callback(picked)
 			end
 		end
 	end
+
+	local function commit_rgb()
+		local parts = {}
+		for value in string.gmatch(rgb.Text, "%-?%d+") do
+			parts[#parts + 1] = tonumber(value)
+		end
+		if #parts < 3 then
+			refresh(false)
+			return
+		end
+		local r = math.clamp(parts[1] or 0, 0, 255)
+		local g = math.clamp(parts[2] or 0, 0, 255)
+		local b = math.clamp(parts[3] or 0, 0, 255)
+		hue, sat, val = Color3.toHSV(Color3.fromRGB(r, g, b))
+		refresh(true)
+		add_recent(color())
+	end
+
+	rgb.Focused:Connect(function()
+		rgb_edge.Color = values().accent
+		rgb_edge.Transparency = 0.15
+	end)
+	rgb.FocusLost:Connect(function()
+		rgb_edge.Color = values().line
+		rgb_edge.Transparency = 0.3
+		if not disabled then
+			commit_rgb()
+		end
+	end)
+
+	copy_btn.Activated:Connect(function()
+		if disabled or type(setclipboard) ~= "function" then
+			return
+		end
+		pcall(function()
+			setclipboard(hex.Text)
+		end)
+		if S.notify then
+			S.notify("Color", "Copied " .. hex.Text, 1.5, "good")
+		end
+	end)
+
+	random_btn.Activated:Connect(function()
+		if disabled then
+			return
+		end
+		hue = math.random()
+		sat = 0.45 + math.random() * 0.55
+		val = 0.65 + math.random() * 0.35
+		refresh(true)
+		add_recent(color())
+	end)
 
 	local function apply(value)
 		local picked
@@ -1535,6 +1765,10 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		field_hit.Active = not disabled
 		hue_hit.Active = not disabled
 		hex.TextEditable = not disabled
+		rgb.TextEditable = not disabled
+		rgb.Active = not disabled
+		copy_btn.Active = not disabled
+		random_btn.Active = not disabled
 		if disabled then
 			set_open(false)
 			field_drag = false
@@ -1544,9 +1778,16 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 			end
 		end
 		hex.TextColor3 = disabled and values().muted or values().text
+		rgb.TextColor3 = disabled and values().muted or values().text
 		name.TextColor3 = disabled and values().muted or values().text
 		if emblem then
 			icons.tint(emblem, disabled and values().line or values().muted)
+		end
+		if copy_icon then
+			icons.tint(copy_icon, disabled and values().line or values().muted)
+		end
+		if random_icon then
+			icons.tint(random_icon, disabled and values().line or values().muted)
 		end
 		swatch.BackgroundTransparency = disabled and 0.4 or 0
 		if win._nav_refresh then
@@ -1560,6 +1801,21 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		hex.BackgroundColor3 = values().raised
 		hex.TextColor3 = disabled and values().muted or values().text
 		hex_edge.Color = values().line
+		rgb.BackgroundColor3 = values().raised
+		rgb.TextColor3 = disabled and values().muted or values().text
+		rgb.PlaceholderColor3 = values().muted
+		rgb_edge.Color = values().line
+		rgb_label.TextColor3 = values().muted
+		copy_btn.BackgroundColor3 = values().raised
+		copy_edge.Color = values().line
+		random_btn.BackgroundColor3 = values().raised
+		random_edge.Color = values().line
+		if copy_icon then
+			icons.tint(copy_icon, disabled and values().line or values().muted)
+		end
+		if random_icon then
+			icons.tint(random_icon, disabled and values().line or values().muted)
+		end
 		hit.BackgroundColor3 = values().hover
 		name.TextColor3 = disabled and values().muted or values().text
 		if emblem then

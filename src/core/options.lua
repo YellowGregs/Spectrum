@@ -36,8 +36,9 @@ local function ensure()
 		ZIndex = 20,
 		Parent = env.modal,
 	})
+	util.depth(panel, 0.4)
 	edge = util.stroke(panel, values().line, 0.05)
-	util.shadow(panel, 18, 0.4)
+	util.shadow(panel, 24, 0.28)
 
 	local header = util.new("Frame", {
 		Name = "header",

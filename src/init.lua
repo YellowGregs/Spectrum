@@ -4,7 +4,12 @@ local env = S.env
 local config = S.config
 local util = S.util
 local Library = {}
-Library.Version = "3.1"
+Library.Version = "1.0"
+
+local previous = shared.Spectrum
+if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
+	pcall(previous.Destroy, previous)
+end
 
 config.load()
 local DEFAULT_MENU_KEY = "RightControl+LeftShift"
@@ -342,11 +347,7 @@ end)
 
 function Library:Destroy()
 	config.flush()
-	S.splash_open = false
-	if splash and splash.destroy then
-		splash.destroy()
-		splash = nil
-	end
+	S.binding = false
 	if menu_link then
 		menu_link:Disconnect()
 		menu_link = nil
@@ -355,20 +356,45 @@ function Library:Destroy()
 		menu_release:Disconnect()
 		menu_release = nil
 	end
+	if S.tooltip then
+		pcall(function()
+			if S.tooltip.destroy then
+				S.tooltip.destroy()
+			else
+				S.tooltip.hide()
+			end
+		end)
+	end
+	S.splash_open = false
+	if splash and splash.destroy then
+		pcall(splash.destroy)
+		splash = nil
+	end
 	if mobile_launcher then
-		mobile_launcher.destroy()
+		pcall(mobile_launcher.destroy)
 		mobile_launcher = nil
 	end
-	for _, root in ipairs(S.window.roots) do
-		if root.Parent then
-			root:Destroy()
-		end
+	local roots = table.clone(S.window.roots)
+	for _, root in ipairs(roots) do
+		pcall(function()
+			if root.Parent then
+				root:Destroy()
+			end
+		end)
 	end
-	S.env.windows:Destroy()
-	S.env.modal:Destroy()
-	S.env.notes:Destroy()
-	S.env.launcher:Destroy()
-	S.env.splash:Destroy()
+	table.clear(S.window.roots)
+	table.clear(S.window.windows)
+	for _, layer in ipairs({ S.env.windows, S.env.modal, S.env.notes, S.env.launcher, S.env.splash }) do
+		pcall(function()
+			layer:Destroy()
+		end)
+	end
+	if S.modal then
+		pcall(S.modal.dismiss)
+	end
+	if S.options and S.options.close then
+		pcall(S.options.close)
+	end
 	if shared.Spectrum == Library then
 		shared.Spectrum = nil
 	end
