@@ -7681,14 +7681,17 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(hue_bar, 0)
-	local hue_stops = {}
-	for index = 0, 12 do
-		hue_stops[#hue_stops + 1] = ColorSequenceKeypoint.new(index / 12, Color3.fromHSV(index / 12, 1, 1))
+	for index = 0, 95 do
+		util.new("Frame", {
+			BackgroundColor3 = Color3.fromHSV(index / 96, 1, 1),
+			BorderSizePixel = 0,
+			Active = false,
+			Position = UDim2.fromScale(index / 96, 0),
+			Size = UDim2.new(1 / 96 + 0.002, 0, 1, 0),
+			ZIndex = 3,
+			Parent = hue_bar,
+		})
 	end
-	util.new("UIGradient", {
-		Color = ColorSequence.new(hue_stops),
-		Parent = hue_bar,
-	})
 	util.stroke(hue_bar, values().line, 0.55)
 
 	local knob = util.new("Frame", {
