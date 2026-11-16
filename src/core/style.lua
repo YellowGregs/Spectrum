@@ -13,7 +13,7 @@ local defaults = {
 	line = Color3.fromRGB(52, 56, 62),
 	good = Color3.fromRGB(116, 196, 122),
 	warn = Color3.fromRGB(230, 174, 78),
-	bad = Color3.fromRGB(214, 72, 66),
+	bad = Color3.fromRGB(176, 52, 46),
 	ink = Color3.fromRGB(15, 13, 9),
 	radius = 0,
 }

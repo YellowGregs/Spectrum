@@ -7,7 +7,7 @@ local icons = S.icons
 local config = S.config
 
 local launcher = {}
-local SIZE = 46
+local SIZE = 40
 
 local function values()
 	return style.values
@@ -65,7 +65,7 @@ function launcher.mount(on_toggle)
 		ZIndex = 2,
 		Parent = env.launcher,
 	})
-	util.corner(button, 13)
+	util.corner(button, 0)
 	local edge = util.stroke(button, values().line, 0.05)
 	util.shadow(button, 14, 0.5)
 
@@ -95,10 +95,11 @@ function launcher.mount(on_toggle)
 		end
 		button.BackgroundColor3 = values().panel
 		edge.Color = open and values().accent or values().line
+		edge.Transparency = open and 0.45 or 0.15
 		menu.Visible = not open
 		close.Visible = open
 		icons.tint(menu, values().text)
-		icons.tint(close, values().text)
+		icons.tint(close, open and values().accent or values().text)
 	end
 
 	local function remember()

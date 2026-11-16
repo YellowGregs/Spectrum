@@ -315,7 +315,7 @@ function Window.new(title, opts)
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(1, 9),
+		Size = UDim2.fromOffset(1, open and 0 or 9),
 		Parent = fold_hit,
 	})
 	local close_a = util.new("Frame", {
@@ -664,7 +664,7 @@ function Window.new(title, opts)
 		open = state
 		layout_chrome()
 		scroll.Visible = true
-		util.tween(fold_bar_v, 0.15, { Size = UDim2.fromOffset(1, open and 9 or 0) })
+		util.tween(fold_bar_v, 0.15, { Size = UDim2.fromOffset(1, open and 0 or 9) })
 		fit(true)
 		if not open then
 			task.delay(0.24, function()
@@ -1385,7 +1385,7 @@ function Window.new(title, opts)
 			if state.open ~= nil then
 				open = state.open ~= false
 				scroll.Visible = open
-				fold_bar_v.Size = UDim2.fromOffset(1, open and 9 or 0)
+				fold_bar_v.Size = UDim2.fromOffset(1, open and 0 or 9)
 			end
 			fit(false)
 		end,

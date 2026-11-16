@@ -57,14 +57,22 @@ function inputs.button(win, text, callback, icon, opts)
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
 	local variant = tostring(opts.variant or opts.style or "primary"):lower()
+	local danger = variant == "danger" or variant == "destructive"
+	local primary = not danger and variant ~= "secondary" and variant ~= "surface"
 	local confirm = type(opts.confirm) == "string" and opts.confirm ~= "" and opts.confirm
 		or (opts.confirm == true and "Click again to confirm" or nil)
-	local _, front = style.variant(variant)
+	local function danger_ink()
+		return values().bad:Lerp(Color3.new(1, 1, 1), 0.35)
+	end
+	local front = disabled and values().muted
+		or (primary and values().accent)
+		or (danger and danger_ink())
+		or values().text
 	local mobile = win._mobile
 	local holder = win._slot(mobile and 46 or 32)
 	local btn = util.new("TextButton", {
 		Name = "button",
-		BackgroundColor3 = values().accent,
+		BackgroundColor3 = values().raised,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Active = not disabled,
@@ -80,9 +88,20 @@ function inputs.button(win, text, callback, icon, opts)
 	})
 	util.corner(btn)
 	local edge = util.stroke(btn, values().line, 0.25)
+	local held = false
+	local function paint_edge()
+		if disabled then
+			edge.Color = values().line
+			edge.Transparency = 0.25
+			return
+		end
+		local tone = primary and values().accent or danger and values().bad
+		edge.Color = tone or values().line
+		edge.Transparency = tone and (held and 0.12 or 0.35) or 0.25
+	end
 	local emblem
 	if type(icon) == "string" and icon ~= "" then
-		emblem = icons.image(btn, icon, 14, style.on(values().accent))
+		emblem = icons.image(btn, icon, 14, front)
 		if emblem then
 			emblem.AnchorPoint = Vector2.new(0, 0.5)
 			emblem.Position = UDim2.new(0, 10, 0.5, 0)
@@ -90,7 +109,6 @@ function inputs.button(win, text, callback, icon, opts)
 		end
 	end
 	local pop = util.new("UIScale", { Parent = btn })
-	local held = false
 	local armed = false
 	local arm_token = 0
 
@@ -98,19 +116,38 @@ function inputs.button(win, text, callback, icon, opts)
 		if disabled then
 			return values().muted
 		end
-		local _, tone = style.variant(variant)
-		return tone
+		if held then
+			if primary then
+				return style.on(values().accent)
+			end
+			if danger then
+				return style.on(values().bad)
+			end
+			return values().text
+		end
+		if primary then
+			return values().accent
+		end
+		if danger then
+			return danger_ink()
+		end
+		return values().text
 	end
 
 	local function face()
 		if disabled then
 			return values().raised
 		end
-		local back = style.variant(variant)
 		if held then
-			return back:Lerp(Color3.new(1, 1, 1), 0.14)
+			if primary then
+				return values().accent
+			end
+			if danger then
+				return values().bad
+			end
+			return values().hover
 		end
-		return back
+		return values().raised
 	end
 
 	local function paint()
@@ -155,11 +192,19 @@ function inputs.button(win, text, callback, icon, opts)
 			return
 		end
 		held = true
-		util.tween(btn, 0.12, { BackgroundColor3 = face() })
+		util.tween(btn, 0.12, { BackgroundColor3 = face(), TextColor3 = ink() })
+		if emblem then
+			icons.tint(emblem, ink())
+		end
+		paint_edge()
 	end)
 	btn.MouseLeave:Connect(function()
 		held = false
-		util.tween(btn, 0.15, { BackgroundColor3 = face() })
+		util.tween(btn, 0.15, { BackgroundColor3 = face(), TextColor3 = ink() })
+		if emblem then
+			icons.tint(emblem, ink())
+		end
+		paint_edge()
 	end)
 	btn.Activated:Connect(run)
 	btn.MouseButton1Down:Connect(function()
@@ -175,7 +220,7 @@ function inputs.button(win, text, callback, icon, opts)
 		util.tween(pop, 0.2, { Scale = 1 }, Enum.EasingStyle.Back)
 	end)
 
-		local function set_disabled(value)
+	local function set_disabled(value)
 		disabled = value == true
 		btn.Active = not disabled
 		if disabled then
@@ -188,6 +233,7 @@ function inputs.button(win, text, callback, icon, opts)
 			btn:SetAttribute("SpectrumDisabled", disabled)
 		end
 		paint()
+		paint_edge()
 		if win._nav_refresh then
 			win._nav_refresh()
 		end
@@ -197,10 +243,9 @@ function inputs.button(win, text, callback, icon, opts)
 	btn:GetAttributeChangedSignal("SpectrumDisabled"):Connect(function()
 		set_disabled(btn:GetAttribute("SpectrumDisabled") == true)
 	end)
+	paint_edge()
 	style.paint(paint)
-	style.paint(function()
-		edge.Color = values().line
-	end)
+	style.paint(paint_edge)
 
 	win._options(holder, text, function()
 		return {
