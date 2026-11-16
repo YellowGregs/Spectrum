@@ -252,6 +252,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 
 	local search
+	local search_icon
+	local search_clear
 	if searchable then
 		search = util.new("TextBox", {
 			Name = "dropdown_search",
@@ -277,13 +279,13 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			PaddingRight = UDim.new(0, 22),
 			Parent = search,
 		})
-		local search_icon = icons.image(search, "search", 12, values().muted)
+		search_icon = icons.image(search, "search", 12, values().muted)
 		if search_icon then
 			search_icon.AnchorPoint = Vector2.new(0, 0.5)
 			search_icon.Position = UDim2.new(0, -17, 0.5, 0)
 			icons.layer(search_icon, 14)
 		end
-		local search_clear = util.new("TextButton", {
+		search_clear = util.new("TextButton", {
 			Name = "clear",
 			BackgroundTransparency = 1,
 			AutoButtonColor = false,
@@ -305,8 +307,6 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				search.Text = ""
 			end
 		end)
-		search.clear = search_clear
-		search.icon = search_icon
 	end
 
 	local area = util.new("ScrollingFrame", {
@@ -450,8 +450,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 
 	local function apply_filter()
-		if search and search.clear then
-			search.clear.Visible = search.Text ~= ""
+		if search and search_clear then
+			search_clear.Visible = search.Text ~= ""
 		end
 		for option, item in pairs(items) do
 			local show = not search or search.Text == "" or string.find(string.lower(option), string.lower(search.Text), 1, true) ~= nil
@@ -946,11 +946,11 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			search.BackgroundColor3 = values().raised
 			search.TextColor3 = values().text
 			search.PlaceholderColor3 = values().muted
-			if search.icon then
-				icons.tint(search.icon, values().muted)
+			if search_icon then
+				icons.tint(search_icon, values().muted)
 			end
-			if search.clear then
-				for _, child in ipairs(search.clear:GetDescendants()) do
+			if search_clear then
+				for _, child in ipairs(search_clear:GetDescendants()) do
 					if child:IsA("Frame") then
 						child.BackgroundColor3 = values().muted
 					end
