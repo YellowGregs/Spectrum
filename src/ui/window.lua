@@ -10,7 +10,6 @@ local tooltip = S.tooltip
 local background = S.background
 local bold = Enum.Font.GothamBold
 local font = Enum.Font.RobotoCondensed
-local mono = Enum.Font.RobotoMono
 
 local Window = {}
 Window.roots = {}
@@ -222,7 +221,7 @@ function Window.new(title, opts)
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(19, 0),
-		Size = UDim2.new(1, -131, 1, 0),
+		Size = UDim2.new(1, -62, 1, 0),
 		Font = bold,
 		Text = string.upper(tostring(title or "Window")),
 		TextColor3 = values().text,
@@ -232,21 +231,6 @@ function Window.new(title, opts)
 		ZIndex = 4,
 		Parent = header,
 	})
-	local version = util.new("TextLabel", {
-		Name = "version",
-		BackgroundTransparency = 1,
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -68, 0.5, 0),
-		Size = UDim2.fromOffset(42, head),
-		Font = mono,
-		Text = "v" .. tostring(S.library and S.library.Version or "1.0"),
-		TextColor3 = values().muted,
-		TextSize = util.size(8),
-		TextXAlignment = Enum.TextXAlignment.Right,
-		ZIndex = 4,
-		Parent = header,
-	})
-
 	if type(opts.icon) == "string" and opts.icon ~= "" then
 		local emblem = icons.image(header, opts.icon, 15, values().accent)
 		if emblem then
@@ -254,7 +238,7 @@ function Window.new(title, opts)
 			emblem.Position = UDim2.fromOffset(10, head / 2 - 7)
 			emblem.ZIndex = 4
 			caption.Position = UDim2.fromOffset(31, 0)
-			caption.Size = UDim2.new(1, -143, 1, 0)
+			caption.Size = UDim2.new(1, -74, 1, 0)
 			style.paint(function()
 				icons.tint(emblem, values().accent)
 			end)
@@ -264,7 +248,6 @@ function Window.new(title, opts)
 	style.paint(function()
 		mark.BackgroundColor3 = values().accent
 		caption.TextColor3 = values().text
-		version.TextColor3 = values().muted
 	end)
 
 	local function remember()

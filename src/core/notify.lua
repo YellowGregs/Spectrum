@@ -12,7 +12,7 @@ local holder = util.new("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -12, 1, -12),
-	Size = UDim2.fromOffset(env.mobile and 272 or 260, 0),
+	Size = UDim2.fromOffset(env.mobile and 282 or 300, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	Parent = env.notes,
 })
@@ -39,7 +39,7 @@ local function notify(title, body, duration, kind)
 		tint = style.values.bad
 	end
 
-	local height = env.mobile and 64 or 58
+	local height = env.mobile and 66 or 62
 	local wrap = util.new("Frame", {
 		Name = "note",
 		BackgroundTransparency = 1,
@@ -53,38 +53,47 @@ local function notify(title, body, duration, kind)
 		BackgroundColor3 = style.values.panel,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Position = UDim2.fromOffset(8, 0),
+		Position = UDim2.fromOffset(0, 0),
 		Size = UDim2.fromScale(1, 1),
+		ClipsDescendants = true,
 		Parent = wrap,
 	})
 	util.corner(face, 0)
-	local edge = util.stroke(face, style.values.line, 1)
-	util.depth(face, 0.5)
-	util.shadow(face, 20, 0.3)
+	local edge = util.stroke(face, tint, 1)
+	util.depth(face, 0.6)
+	util.shadow(face, 22, 0.28)
+
+	local accent = util.new("Frame", {
+		Name = "accent",
+		BackgroundColor3 = tint,
+		BorderSizePixel = 0,
+		Size = UDim2.new(0, 3, 1, 0),
+		Parent = face,
+	})
 
 	local chip = util.new("Frame", {
 		Name = "chip",
 		BackgroundColor3 = tint,
-		BackgroundTransparency = 0.84,
+		BackgroundTransparency = 0.82,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 12, 0.5, 0),
-		Size = UDim2.fromOffset(26, 26),
+		Position = UDim2.new(0, 16, 0.5, 0),
+		Size = UDim2.fromOffset(30, 30),
 		Parent = face,
 	})
 	util.corner(chip, 0)
-	util.depth(chip, 0.6)
-	util.shadow(chip, 5, 0.55)
-	local chip_edge = util.stroke(chip, tint, 0.45)
-	local badge = icons.kind(kind, chip, 14, tint)
+	util.depth(chip, 0.65)
+	util.shadow(chip, 6, 0.52)
+	local chip_edge = util.stroke(chip, tint, 0.35)
+	local badge = icons.kind(kind, chip, 15, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
 	badge.Position = UDim2.new(0.5, 0, 0.5, 0)
 	icons.layer(badge, 2)
 
 	local heading = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(48, 8),
-		Size = UDim2.new(1, -68, 0, 14),
+		Position = UDim2.fromOffset(56, 10),
+		Size = UDim2.new(1, -100, 0, 14),
 		Font = bold,
 		Text = string.upper(tostring(title or "Spectrum")),
 		TextColor3 = style.values.text,
@@ -97,8 +106,8 @@ local function notify(title, body, duration, kind)
 
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(48, 25),
-		Size = UDim2.new(1, -68, 0, 26),
+		Position = UDim2.fromOffset(56, 28),
+		Size = UDim2.new(1, -100, 0, 26),
 		Font = font,
 		Text = body or "",
 		TextColor3 = style.values.muted,
@@ -114,8 +123,8 @@ local function notify(title, body, duration, kind)
 	local close_hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -8, 0, 8),
-		Size = UDim2.fromOffset(18, 18),
+		Position = UDim2.new(1, -9, 0, 8),
+		Size = UDim2.fromOffset(20, 20),
 		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 5,
@@ -125,13 +134,19 @@ local function notify(title, body, duration, kind)
 	close_icon.AnchorPoint = Vector2.new(0.5, 0.5)
 	close_icon.Position = UDim2.new(0.5, 0, 0.5, 0)
 	icons.layer(close_icon, 6)
+	close_hit.MouseEnter:Connect(function()
+		icons.tint(close_icon, style.values.bad)
+	end)
+	close_hit.MouseLeave:Connect(function()
+		icons.tint(close_icon, style.values.muted)
+	end)
 
 	local rail = util.new("Frame", {
 		BackgroundColor3 = style.values.line,
 		BackgroundTransparency = 0.7,
 		BorderSizePixel = 0,
-		Position = UDim2.new(0, 12, 1, -5),
-		Size = UDim2.new(1, -24, 0, 2),
+		Position = UDim2.new(0, 0, 1, -2),
+		Size = UDim2.new(1, 0, 0, 2),
 		Parent = face,
 	})
 
@@ -154,6 +169,7 @@ local function notify(title, body, duration, kind)
 		util.tween(caption, 0.14, { TextTransparency = 1 })
 		util.tween(chip, 0.14, { BackgroundTransparency = 1 })
 		util.tween(chip_edge, 0.14, { Transparency = 1 })
+		util.tween(accent, 0.14, { BackgroundTransparency = 1 })
 		util.tween(rail, 0.14, { BackgroundTransparency = 1 })
 		util.tween(line, 0.14, { BackgroundTransparency = 1 })
 		for _, child in ipairs(badge:GetDescendants()) do
@@ -183,7 +199,7 @@ local function notify(title, body, duration, kind)
 	close_hit.Activated:Connect(close)
 
 	util.tween(face, 0.2, { BackgroundTransparency = 0, Position = UDim2.fromOffset(0, 0) })
-	util.tween(edge, 0.2, { Transparency = 0.8 })
+	util.tween(edge, 0.2, { Transparency = 0.62 })
 	util.tween(heading, 0.2, { TextTransparency = 0 })
 	util.tween(caption, 0.2, { TextTransparency = 0 })
 	util.tween(line, duration, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Linear, Enum.EasingDirection.In)

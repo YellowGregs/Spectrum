@@ -8,8 +8,8 @@ local font = Enum.Font.RobotoCondensed
 local tooltip = {}
 
 local DELAY = 0.35
-local GAP = 6
-local EDGE = 6
+local GAP = 7
+local EDGE = 8
 
 local function values()
 	return style.values
@@ -29,16 +29,25 @@ local panel = util.new("Frame", {
 util.corner(panel, 0)
 util.depth(panel, 0.65)
 local edge = util.stroke(panel, values().line, 0.15)
-util.shadow(panel, 22, 0.22)
+util.shadow(panel, 24, 0.2)
 util.new("UISizeConstraint", {
-	MaxSize = Vector2.new(260, 320),
+	MinSize = Vector2.new(112, 32),
+	MaxSize = Vector2.new(300, 320),
 	Parent = panel,
 })
 util.new("UIPadding", {
-	PaddingTop = UDim.new(0, 6),
-	PaddingBottom = UDim.new(0, 6),
-	PaddingLeft = UDim.new(0, 10),
-	PaddingRight = UDim.new(0, 8),
+	PaddingTop = UDim.new(0, 8),
+	PaddingBottom = UDim.new(0, 8),
+	PaddingLeft = UDim.new(0, 14),
+	PaddingRight = UDim.new(0, 12),
+	Parent = panel,
+})
+local accent = util.new("Frame", {
+	Name = "accent",
+	BackgroundColor3 = values().accent,
+	BorderSizePixel = 0,
+	Size = UDim2.new(0, 2, 1, 0),
+	ZIndex = 62,
 	Parent = panel,
 })
 
@@ -50,7 +59,7 @@ local label = util.new("TextLabel", {
 	Font = font,
 	Text = "",
 	TextColor3 = values().text,
-	TextSize = util.size(9),
+	TextSize = util.size(10),
 	TextWrapped = true,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	TextYAlignment = Enum.TextYAlignment.Top,
@@ -92,7 +101,7 @@ local function show(target, body)
 	end
 	current = target
 	label.Text = body
-	label.Size = UDim2.fromOffset(math.clamp(math.floor(#body * 5.6) + 6, 44, 236), 0)
+	label.Size = UDim2.fromOffset(math.clamp(math.floor(#body * 6.3) + 12, 104, 252), 0)
 	panel.Visible = true
 	place(target)
 	task.defer(function()
@@ -175,6 +184,7 @@ style.paint(function()
 	panel.BackgroundColor3 = values().panel
 	edge.Color = values().line
 	label.TextColor3 = values().text
+	accent.BackgroundColor3 = values().accent
 end)
 
 S.tooltip = tooltip

@@ -3240,7 +3240,7 @@ local holder = util.new("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -12, 1, -12),
-	Size = UDim2.fromOffset(env.mobile and 272 or 260, 0),
+	Size = UDim2.fromOffset(env.mobile and 282 or 300, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	Parent = env.notes,
 })
@@ -3267,7 +3267,7 @@ local function notify(title, body, duration, kind)
 		tint = style.values.bad
 	end
 
-	local height = env.mobile and 64 or 58
+	local height = env.mobile and 66 or 62
 	local wrap = util.new("Frame", {
 		Name = "note",
 		BackgroundTransparency = 1,
@@ -3281,38 +3281,47 @@ local function notify(title, body, duration, kind)
 		BackgroundColor3 = style.values.panel,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Position = UDim2.fromOffset(8, 0),
+		Position = UDim2.fromOffset(0, 0),
 		Size = UDim2.fromScale(1, 1),
+		ClipsDescendants = true,
 		Parent = wrap,
 	})
 	util.corner(face, 0)
-	local edge = util.stroke(face, style.values.line, 1)
-	util.depth(face, 0.5)
-	util.shadow(face, 20, 0.3)
+	local edge = util.stroke(face, tint, 1)
+	util.depth(face, 0.6)
+	util.shadow(face, 22, 0.28)
+
+	local accent = util.new("Frame", {
+		Name = "accent",
+		BackgroundColor3 = tint,
+		BorderSizePixel = 0,
+		Size = UDim2.new(0, 3, 1, 0),
+		Parent = face,
+	})
 
 	local chip = util.new("Frame", {
 		Name = "chip",
 		BackgroundColor3 = tint,
-		BackgroundTransparency = 0.84,
+		BackgroundTransparency = 0.82,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 12, 0.5, 0),
-		Size = UDim2.fromOffset(26, 26),
+		Position = UDim2.new(0, 16, 0.5, 0),
+		Size = UDim2.fromOffset(30, 30),
 		Parent = face,
 	})
 	util.corner(chip, 0)
-	util.depth(chip, 0.6)
-	util.shadow(chip, 5, 0.55)
-	local chip_edge = util.stroke(chip, tint, 0.45)
-	local badge = icons.kind(kind, chip, 14, tint)
+	util.depth(chip, 0.65)
+	util.shadow(chip, 6, 0.52)
+	local chip_edge = util.stroke(chip, tint, 0.35)
+	local badge = icons.kind(kind, chip, 15, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
 	badge.Position = UDim2.new(0.5, 0, 0.5, 0)
 	icons.layer(badge, 2)
 
 	local heading = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(48, 8),
-		Size = UDim2.new(1, -68, 0, 14),
+		Position = UDim2.fromOffset(56, 10),
+		Size = UDim2.new(1, -100, 0, 14),
 		Font = bold,
 		Text = string.upper(tostring(title or "Spectrum")),
 		TextColor3 = style.values.text,
@@ -3325,8 +3334,8 @@ local function notify(title, body, duration, kind)
 
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(48, 25),
-		Size = UDim2.new(1, -68, 0, 26),
+		Position = UDim2.fromOffset(56, 28),
+		Size = UDim2.new(1, -100, 0, 26),
 		Font = font,
 		Text = body or "",
 		TextColor3 = style.values.muted,
@@ -3342,8 +3351,8 @@ local function notify(title, body, duration, kind)
 	local close_hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -8, 0, 8),
-		Size = UDim2.fromOffset(18, 18),
+		Position = UDim2.new(1, -9, 0, 8),
+		Size = UDim2.fromOffset(20, 20),
 		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 5,
@@ -3353,13 +3362,19 @@ local function notify(title, body, duration, kind)
 	close_icon.AnchorPoint = Vector2.new(0.5, 0.5)
 	close_icon.Position = UDim2.new(0.5, 0, 0.5, 0)
 	icons.layer(close_icon, 6)
+	close_hit.MouseEnter:Connect(function()
+		icons.tint(close_icon, style.values.bad)
+	end)
+	close_hit.MouseLeave:Connect(function()
+		icons.tint(close_icon, style.values.muted)
+	end)
 
 	local rail = util.new("Frame", {
 		BackgroundColor3 = style.values.line,
 		BackgroundTransparency = 0.7,
 		BorderSizePixel = 0,
-		Position = UDim2.new(0, 12, 1, -5),
-		Size = UDim2.new(1, -24, 0, 2),
+		Position = UDim2.new(0, 0, 1, -2),
+		Size = UDim2.new(1, 0, 0, 2),
 		Parent = face,
 	})
 
@@ -3382,6 +3397,7 @@ local function notify(title, body, duration, kind)
 		util.tween(caption, 0.14, { TextTransparency = 1 })
 		util.tween(chip, 0.14, { BackgroundTransparency = 1 })
 		util.tween(chip_edge, 0.14, { Transparency = 1 })
+		util.tween(accent, 0.14, { BackgroundTransparency = 1 })
 		util.tween(rail, 0.14, { BackgroundTransparency = 1 })
 		util.tween(line, 0.14, { BackgroundTransparency = 1 })
 		for _, child in ipairs(badge:GetDescendants()) do
@@ -3411,7 +3427,7 @@ local function notify(title, body, duration, kind)
 	close_hit.Activated:Connect(close)
 
 	util.tween(face, 0.2, { BackgroundTransparency = 0, Position = UDim2.fromOffset(0, 0) })
-	util.tween(edge, 0.2, { Transparency = 0.8 })
+	util.tween(edge, 0.2, { Transparency = 0.62 })
 	util.tween(heading, 0.2, { TextTransparency = 0 })
 	util.tween(caption, 0.2, { TextTransparency = 0 })
 	util.tween(line, duration, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
@@ -3434,8 +3450,8 @@ local font = Enum.Font.RobotoCondensed
 local tooltip = {}
 
 local DELAY = 0.35
-local GAP = 6
-local EDGE = 6
+local GAP = 7
+local EDGE = 8
 
 local function values()
 	return style.values
@@ -3455,16 +3471,25 @@ local panel = util.new("Frame", {
 util.corner(panel, 0)
 util.depth(panel, 0.65)
 local edge = util.stroke(panel, values().line, 0.15)
-util.shadow(panel, 22, 0.22)
+util.shadow(panel, 24, 0.2)
 util.new("UISizeConstraint", {
-	MaxSize = Vector2.new(260, 320),
+	MinSize = Vector2.new(112, 32),
+	MaxSize = Vector2.new(300, 320),
 	Parent = panel,
 })
 util.new("UIPadding", {
-	PaddingTop = UDim.new(0, 6),
-	PaddingBottom = UDim.new(0, 6),
-	PaddingLeft = UDim.new(0, 10),
-	PaddingRight = UDim.new(0, 8),
+	PaddingTop = UDim.new(0, 8),
+	PaddingBottom = UDim.new(0, 8),
+	PaddingLeft = UDim.new(0, 14),
+	PaddingRight = UDim.new(0, 12),
+	Parent = panel,
+})
+local accent = util.new("Frame", {
+	Name = "accent",
+	BackgroundColor3 = values().accent,
+	BorderSizePixel = 0,
+	Size = UDim2.new(0, 2, 1, 0),
+	ZIndex = 62,
 	Parent = panel,
 })
 
@@ -3476,7 +3501,7 @@ local label = util.new("TextLabel", {
 	Font = font,
 	Text = "",
 	TextColor3 = values().text,
-	TextSize = util.size(9),
+	TextSize = util.size(10),
 	TextWrapped = true,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	TextYAlignment = Enum.TextYAlignment.Top,
@@ -3518,7 +3543,7 @@ local function show(target, body)
 	end
 	current = target
 	label.Text = body
-	label.Size = UDim2.fromOffset(math.clamp(math.floor(#body * 5.6) + 6, 44, 236), 0)
+	label.Size = UDim2.fromOffset(math.clamp(math.floor(#body * 6.3) + 12, 104, 252), 0)
 	panel.Visible = true
 	place(target)
 	task.defer(function()
@@ -3601,6 +3626,7 @@ style.paint(function()
 	panel.BackgroundColor3 = values().panel
 	edge.Color = values().line
 	label.TextColor3 = values().text
+	accent.BackgroundColor3 = values().accent
 end)
 
 S.tooltip = tooltip
@@ -3947,7 +3973,6 @@ local tooltip = S.tooltip
 local background = S.background
 local bold = Enum.Font.GothamBold
 local font = Enum.Font.RobotoCondensed
-local mono = Enum.Font.RobotoMono
 
 local Window = {}
 Window.roots = {}
@@ -4159,7 +4184,7 @@ function Window.new(title, opts)
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(19, 0),
-		Size = UDim2.new(1, -131, 1, 0),
+		Size = UDim2.new(1, -62, 1, 0),
 		Font = bold,
 		Text = string.upper(tostring(title or "Window")),
 		TextColor3 = values().text,
@@ -4169,21 +4194,6 @@ function Window.new(title, opts)
 		ZIndex = 4,
 		Parent = header,
 	})
-	local version = util.new("TextLabel", {
-		Name = "version",
-		BackgroundTransparency = 1,
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -68, 0.5, 0),
-		Size = UDim2.fromOffset(42, head),
-		Font = mono,
-		Text = "v" .. tostring(S.library and S.library.Version or "1.0"),
-		TextColor3 = values().muted,
-		TextSize = util.size(8),
-		TextXAlignment = Enum.TextXAlignment.Right,
-		ZIndex = 4,
-		Parent = header,
-	})
-
 	if type(opts.icon) == "string" and opts.icon ~= "" then
 		local emblem = icons.image(header, opts.icon, 15, values().accent)
 		if emblem then
@@ -4191,7 +4201,7 @@ function Window.new(title, opts)
 			emblem.Position = UDim2.fromOffset(10, head / 2 - 7)
 			emblem.ZIndex = 4
 			caption.Position = UDim2.fromOffset(31, 0)
-			caption.Size = UDim2.new(1, -143, 1, 0)
+			caption.Size = UDim2.new(1, -74, 1, 0)
 			style.paint(function()
 				icons.tint(emblem, values().accent)
 			end)
@@ -4201,7 +4211,6 @@ function Window.new(title, opts)
 	style.paint(function()
 		mark.BackgroundColor3 = values().accent
 		caption.TextColor3 = values().text
-		version.TextColor3 = values().muted
 	end)
 
 	local function remember()
