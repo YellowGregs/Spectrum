@@ -26,6 +26,7 @@ local function fresh()
 	return {
 		version = 1,
 		windows = {},
+		sections = {},
 		values = {},
 		settings = {},
 	}
@@ -72,6 +73,7 @@ end
 
 local function normalize()
 	data.windows = type(data.windows) == "table" and data.windows or {}
+	data.sections = type(data.sections) == "table" and data.sections or {}
 	data.values = type(data.values) == "table" and data.values or {}
 	data.settings = type(data.settings) == "table" and data.settings or {}
 	local keys = {}
@@ -192,6 +194,24 @@ end
 
 function config.place(key, state)
 	data.windows[key] = state
+	config.touch()
+end
+
+function config.section_state(key, id)
+	local sections = data.sections[key]
+	if type(sections) ~= "table" then
+		return nil
+	end
+	local value = sections[id]
+	if value == nil then
+		return nil
+	end
+	return value == true
+end
+
+function config.place_section(key, id, open)
+	data.sections[key] = type(data.sections[key]) == "table" and data.sections[key] or {}
+	data.sections[key][id] = open == true
 	config.touch()
 end
 

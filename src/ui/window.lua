@@ -58,6 +58,27 @@ local function values()
 	return style.values
 end
 
+local function preferred_set(list)
+	local set = {}
+	if type(list) == "table" then
+		for _, name in ipairs(list) do
+			set[tostring(name)] = true
+		end
+	end
+	return set
+end
+
+local function tab_preferred(spec)
+	local source = type(spec) == "table" and spec or {}
+	local open_list = source.open
+	local closed_list = source.closed
+	if type(source.sections) == "table" then
+		open_list = open_list or source.sections.open
+		closed_list = closed_list or source.sections.closed
+	end
+	return { open = preferred_set(open_list), closed = preferred_set(closed_list) }
+end
+
 local function spot(width)
 	local vp = env.viewport()
 	local per_row = math.max(1, math.floor((vp.X - 20) / (width + 8)))
@@ -399,11 +420,14 @@ function Window.new(title, opts)
 
 	local tab_h = mobile and 28 or 24
 	local tabs = {}
+	local section_records = {}
 	local default_tab = {
 		name = "Main",
 		icon = nil,
 		slots = {},
 		section_of = {},
+		section_ids = {},
+		preferred = { open = {}, closed = {} },
 		scroll = 0,
 		order = 1,
 		implicit = true,
@@ -632,7 +656,7 @@ function Window.new(title, opts)
 		end)
 	end
 
-	local function make_tab(name, tab_icon, note, tab_order)
+	local function make_tab(name, tab_icon, note, tab_order, spec)
 		if not default_tab.chip then
 			chip_for(default_tab)
 		end
@@ -642,6 +666,8 @@ function Window.new(title, opts)
 			tooltip = note,
 			slots = {},
 			section_of = {},
+			section_ids = {},
+			preferred = tab_preferred(spec),
 			scroll = 0,
 			order = tab_order,
 			implicit = false,
@@ -886,7 +912,11 @@ function Window.new(title, opts)
 		if state == nil then
 			state = not record.open
 		end
+		local changed = record.open ~= state
 		record.open = state
+		if changed and record.id then
+			config.place_section(key, record.id, state)
+		end
 		for _, slot in ipairs(record.slots) do
 			if slot.Parent then
 				slot.Visible = state and record.tab == active_tab
@@ -904,12 +934,42 @@ function Window.new(title, opts)
 		end
 	end
 
+	local function new_section(tab, default_open, title, id)
+		local name = tostring(title or "Section")
+		local base = type(id) == "string" and id ~= "" and id or name
+		local counts = tab.section_ids
+		if not counts then
+			counts = {}
+			tab.section_ids = counts
+		end
+		local count = (counts[base] or 0) + 1
+		counts[base] = count
+		local ident = tostring(tab.name or "Tab") .. "/" .. (count == 1 and base or (base .. "#" .. count))
+		local state = config.section_state(key, ident)
+		if state == nil then
+			local preferred = tab.preferred
+			if preferred then
+				if preferred.closed and (preferred.closed[name] or preferred.closed[ident]) then
+					state = false
+				elseif preferred.open and (preferred.open[name] or preferred.open[ident]) then
+					state = true
+				end
+			end
+		end
+		if state == nil then
+			state = default_open == true
+		end
+		local record = { open = state == true, slots = {}, tab = tab, id = ident }
+		section_records[#section_records + 1] = record
+		return record
+	end
+
 	function w._slot(height, ungrouped)
 		return slot_for(active_tab, height, ungrouped)
 	end
 
-	function w._new_section(default_open)
-		return { open = default_open == true, slots = {}, tab = active_tab }
+	function w._new_section(default_open, title, id)
+		return new_section(active_tab, default_open, title, id)
 	end
 
 	function w._focus_section(record)
@@ -1282,8 +1342,8 @@ function Window.new(title, opts)
 			w._nav_clear()
 		end
 
-		function api._new_section(default_open)
-			return { open = default_open == true, slots = {}, tab = tab }
+		function api._new_section(default_open, title, id)
+			return new_section(tab, default_open, title, id)
 		end
 
 		function api._focus_section(record)
@@ -1342,10 +1402,11 @@ function Window.new(title, opts)
 			tab.name = label
 			tab.icon = tab_icon
 			tab.tooltip = note
+			tab.preferred = tab_preferred(spec)
 			tab.implicit = false
 			chip_for(tab)
 		else
-			tab = make_tab(label, tab_icon, note, #tabs + 1)
+			tab = make_tab(label, tab_icon, note, #tabs + 1, spec)
 		end
 		layout_chrome()
 		set_tab(tab, true)
@@ -1390,6 +1451,20 @@ function Window.new(title, opts)
 				open = state.open ~= false
 				scroll.Visible = open
 				fold_bar_v.Size = UDim2.fromOffset(1, open and 0 or 9)
+			end
+			for _, record in ipairs(section_records) do
+				local saved = config.section_state(key, record.id)
+				if saved ~= nil then
+					record.open = saved
+				end
+				if record.chevron then
+					record.chevron.Rotation = record.open and 180 or 0
+				end
+				for _, slot in ipairs(record.slots) do
+					if slot.Parent then
+						slot.Visible = record.tab == active_tab and record.open
+					end
+				end
 			end
 			fit(false)
 		end,
