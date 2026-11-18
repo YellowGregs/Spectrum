@@ -1895,8 +1895,14 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	win._fit(true)
 
 	return {
-		Set = function(_, value)
+		Set = function(_, value, save)
 			apply(value)
+			if save then
+				win._store(key, "#" .. string.upper(color():ToHex()))
+				if callback then
+					callback(color())
+				end
+			end
 		end,
 		Get = function()
 			return color()

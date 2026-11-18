@@ -5993,8 +5993,8 @@ function inputs.toggle(win, text, a, b, opts)
 	win._fit(true)
 
 	return {
-		Set = function(_, value)
-			set(value, false)
+		Set = function(_, value, save)
+			set(value, save == true)
 		end,
 		Get = function()
 			return state
@@ -8584,8 +8584,14 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	win._fit(true)
 
 	return {
-		Set = function(_, value)
+		Set = function(_, value, save)
 			apply(value)
+			if save then
+				win._store(key, "#" .. string.upper(color():ToHex()))
+				if callback then
+					callback(color())
+				end
+			end
 		end,
 		Get = function()
 			return color()
