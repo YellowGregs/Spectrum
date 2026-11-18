@@ -27,13 +27,13 @@ local card = util.new("Frame", {
 	Parent = env.notes,
 })
 util.corner(card, 0)
-util.depth(card, 0.3)
+util.depth(card, 0.6)
 util.new("UIPadding", {
 	PaddingRight = UDim.new(0, 10),
 	Parent = card,
 })
 local edge = util.stroke(card, values().line, 0.25)
-util.shadow(card, 14, 0.45)
+util.shadow(card, 16, 0.4)
 local tick = util.new("Frame", {
 	BackgroundColor3 = values().accent,
 	BorderSizePixel = 0,

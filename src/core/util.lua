@@ -43,29 +43,45 @@ function util.stroke(object, color, transparency)
 end
 
 function util.shadow(object, blur, transparency)
+	if not object then
+		return
+	end
+	blur = math.max(4, blur or 18)
+	transparency = math.clamp(transparency or 0.42, 0.05, 0.95)
+	local shade
 	local built = pcall(function()
-		local shade = Instance.new("UIShadow")
-		shade.BlurRadius = blur or 14
-		shade.Transparency = transparency or 0.55
-		shade.Offset = Vector2.new(0, math.max(2, math.floor((blur or 14) / 4)))
+		shade = Instance.new("UIShadow")
+		shade.BlurRadius = blur
+		shade.Transparency = transparency
+		shade.Offset = Vector2.new(0, math.max(2, math.floor(blur / 5)))
 		shade.Color = Color3.new(0, 0, 0)
 		shade.Parent = object
+		pcall(function()
+			shade.Spread = math.clamp(blur / 28, 0, 2)
+		end)
+		pcall(function()
+			shade.Enabled = true
+		end)
 	end)
 	if not built then
 		return
 	end
+	return shade
 end
 
 function util.depth(object, strength)
 	if not object then
 		return
 	end
-	strength = strength or 1
+	strength = math.clamp(strength or 1, 0.1, 2)
 	local z = (object.ZIndex or 1) + 1
+	local top_alpha = math.clamp(0.9 - 0.42 * strength, 0.34, 0.94)
+	local bottom_alpha = math.clamp(0.72 - 0.32 * strength, 0.28, 0.9)
+	local side_alpha = math.clamp(top_alpha + 0.08, 0.38, 0.96)
 	local top = util.new("Frame", {
 		Name = "depth_top",
 		BackgroundColor3 = white,
-		BackgroundTransparency = math.clamp(0.92 - 0.04 * strength, 0.55, 0.98),
+		BackgroundTransparency = top_alpha,
 		BorderSizePixel = 0,
 		Position = UDim2.new(0, 0, 0, 0),
 		Size = UDim2.new(1, 0, 0, 1),
@@ -76,7 +92,7 @@ function util.depth(object, strength)
 	local bottom = util.new("Frame", {
 		Name = "depth_bottom",
 		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = math.clamp(0.72 - 0.04 * strength, 0.45, 0.9),
+		BackgroundTransparency = bottom_alpha,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 0, 1, -1),
@@ -85,19 +101,45 @@ function util.depth(object, strength)
 		ZIndex = z,
 		Parent = object,
 	})
-	return top, bottom
+	local left = util.new("Frame", {
+		Name = "depth_left",
+		BackgroundColor3 = white,
+		BackgroundTransparency = side_alpha,
+		BorderSizePixel = 0,
+		Position = UDim2.new(0, 0, 0, 1),
+		Size = UDim2.new(0, 1, 1, -2),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	local right = util.new("Frame", {
+		Name = "depth_right",
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = math.clamp(bottom_alpha + 0.06, 0.32, 0.94),
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -1, 0, 1),
+		Size = UDim2.new(0, 1, 1, -2),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	return top, bottom, left, right
 end
 
 function util.inset(object, strength)
 	if not object then
 		return
 	end
-	strength = strength or 1
+	strength = math.clamp(strength or 1, 0.1, 2)
 	local z = (object.ZIndex or 1) + 1
+	local top_alpha = math.clamp(0.62 - 0.18 * strength, 0.34, 0.88)
+	local bottom_alpha = math.clamp(0.88 - 0.2 * strength, 0.44, 0.96)
+	local side_alpha = math.clamp(top_alpha + 0.08, 0.38, 0.94)
 	local top = util.new("Frame", {
 		Name = "inset_top",
 		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = math.clamp(0.7 - 0.04 * strength, 0.42, 0.9),
+		BackgroundTransparency = top_alpha,
 		BorderSizePixel = 0,
 		Size = UDim2.new(1, 0, 0, 1),
 		Active = false,
@@ -107,7 +149,7 @@ function util.inset(object, strength)
 	local bottom = util.new("Frame", {
 		Name = "inset_bottom",
 		BackgroundColor3 = white,
-		BackgroundTransparency = math.clamp(0.92 - 0.03 * strength, 0.6, 0.98),
+		BackgroundTransparency = bottom_alpha,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 0, 1, -1),
@@ -116,7 +158,30 @@ function util.inset(object, strength)
 		ZIndex = z,
 		Parent = object,
 	})
-	return top, bottom
+	local left = util.new("Frame", {
+		Name = "inset_left",
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = side_alpha,
+		BorderSizePixel = 0,
+		Position = UDim2.new(0, 0, 0, 1),
+		Size = UDim2.new(0, 1, 1, -2),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	local right = util.new("Frame", {
+		Name = "inset_right",
+		BackgroundColor3 = white,
+		BackgroundTransparency = bottom_alpha,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -1, 0, 1),
+		Size = UDim2.new(0, 1, 1, -2),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	return top, bottom, left, right
 end
 
 function util.tween(object, time, props, ease, direction)

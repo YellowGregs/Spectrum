@@ -87,8 +87,8 @@ function inputs.button(win, text, callback, icon, opts)
 		Parent = holder,
 	})
 	util.corner(btn)
-	util.depth(btn, 0.55)
-	util.shadow(btn, 8, 0.8)
+	util.depth(btn, 0.8)
+	util.shadow(btn, 11, 0.42)
 	local edge = util.stroke(btn, values().line, 0.25)
 	local held = false
 	local function paint_edge()
@@ -326,7 +326,8 @@ function inputs.toggle(win, text, a, b, opts)
 			Parent = row,
 		})
 		util.corner(box, 0)
-		util.depth(box, 0.35)
+		util.depth(box, 0.55)
+		util.shadow(box, 5, 0.55)
 		local edge = util.stroke(box, values().line, 0.15)
 		pop = util.new("UIScale", { Parent = box })
 		local check = util.new("Frame", {
@@ -382,7 +383,8 @@ function inputs.toggle(win, text, a, b, opts)
 			Parent = row,
 		})
 		util.corner(track, 0)
-		util.inset(track, 0.4)
+		util.inset(track, 0.65)
+		util.shadow(track, 5, 0.58)
 		local edge = util.stroke(track, state and values().accent or values().line, 0.25)
 		local thumb = util.new("Frame", {
 			Name = "switch_thumb",
@@ -395,7 +397,8 @@ function inputs.toggle(win, text, a, b, opts)
 			Parent = track,
 		})
 		util.corner(thumb, 0)
-		util.depth(thumb, 0.5)
+		util.depth(thumb, 0.7)
+		util.shadow(thumb, 4, 0.5)
 		pop = util.new("UIScale", { Parent = track })
 
 		sync = function()
@@ -597,7 +600,8 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		Parent = row,
 	})
 	util.corner(track, 0)
-	util.inset(track, 0.45)
+	util.inset(track, 0.68)
+	util.shadow(track, 4, 0.62)
 
 	local fill = util.new("Frame", {
 		BackgroundColor3 = values().accent,
@@ -618,7 +622,8 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		Parent = track,
 	})
 	util.corner(thumb, 0)
-	util.depth(thumb, 0.4)
+	util.depth(thumb, 0.7)
+	util.shadow(thumb, 5, 0.46)
 
 	local hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
@@ -856,7 +861,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		Parent = row,
 	})
 	util.corner(pill, 0)
-	util.depth(pill, 0.35)
+	util.depth(pill, 0.55)
+	util.shadow(pill, 6, 0.48)
 	local edge = util.stroke(pill, values().line, 0.35)
 	util.hover(pill)
 

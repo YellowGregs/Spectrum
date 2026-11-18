@@ -27,9 +27,9 @@ local panel = util.new("Frame", {
 	Parent = env.modal,
 })
 util.corner(panel, 0)
-util.depth(panel, 0.35)
+util.depth(panel, 0.65)
 local edge = util.stroke(panel, values().line, 0.15)
-util.shadow(panel, 18, 0.3)
+util.shadow(panel, 22, 0.22)
 util.new("UISizeConstraint", {
 	MaxSize = Vector2.new(260, 320),
 	Parent = panel,

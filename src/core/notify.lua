@@ -59,7 +59,8 @@ local function notify(title, body, duration, kind)
 	})
 	util.corner(face, 0)
 	local edge = util.stroke(face, style.values.line, 1)
-	util.shadow(face, 20, 0.4)
+	util.depth(face, 0.5)
+	util.shadow(face, 20, 0.3)
 
 	local chip = util.new("Frame", {
 		Name = "chip",
@@ -72,7 +73,8 @@ local function notify(title, body, duration, kind)
 		Parent = face,
 	})
 	util.corner(chip, 0)
-	util.depth(chip, 0.3)
+	util.depth(chip, 0.6)
+	util.shadow(chip, 5, 0.55)
 	local chip_edge = util.stroke(chip, tint, 0.45)
 	local badge = icons.kind(kind, chip, 14, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)

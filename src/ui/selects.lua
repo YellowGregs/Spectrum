@@ -97,8 +97,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		Parent = row,
 	})
 	util.corner(well, 0)
-	util.depth(well, 0.35)
-	util.shadow(well, 6, 0.9)
+	util.inset(well, 0.45)
+	util.shadow(well, 8, 0.5)
 	local field_edge = util.stroke(well, values().line, 0.55)
 	local name = caption(row, title)
 	name.Size = UDim2.new(0.48, -20, 1, 0)
@@ -156,9 +156,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		Parent = env.modal,
 	})
 	util.corner(panel, 0)
-	util.depth(panel, 0.4)
+	util.depth(panel, 0.7)
 	local edge = util.stroke(panel, values().line, 0.05)
-	util.shadow(panel, 24, 0.28)
+	util.shadow(panel, 30, 0.18)
 	win._popover(panel)
 
 	local bulk_seam
@@ -214,7 +214,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				Size = UDim2.fromOffset(width, bulk_h),
 				Font = font,
 				Text = string.upper(text),
-				TextColor3 = values().muted,
+				TextColor3 = values().text,
 				TextSize = util.size(mobile and 9 or 10),
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextTruncate = Enum.TextTruncate.AtEnd,
@@ -266,7 +266,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			Parent = panel,
 		})
 		util.corner(search, 0)
-		util.inset(search, 0.3)
+		util.inset(search, 0.58)
+		util.shadow(search, 4, 0.7)
 		util.new("UIPadding", {
 			PaddingLeft = UDim.new(0, 24),
 			PaddingRight = UDim.new(0, 22),
@@ -520,11 +521,11 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			local option_disabled = disabled_options[option] == true
 			item.TextColor3 = option_disabled and values().muted or values().text
 			item.Font = font
-			item.BackgroundColor3 = on and values().hover:Lerp(values().accent, 0.1) or values().hover
-			item.BackgroundTransparency = on and 0.6 or 1
+			item.BackgroundColor3 = on and values().hover:Lerp(values().accent, 0.12) or values().hover
+			item.BackgroundTransparency = on and 0.55 or 1
 			local item_edge = item_edges[option]
 			if item_edge then
-				item_edge.Transparency = on and 0.45 or 1
+				item_edge.Transparency = on and 0.35 or 1
 			end
 			if marks[option] then
 				marks[option].BackgroundColor3 = on and values().accent or values().raised
@@ -769,7 +770,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				Parent = item,
 			})
 			util.corner(mark, 0)
-			util.depth(mark, 0.3)
+			util.depth(mark, 0.55)
+			util.shadow(mark, 4, 0.52)
 			mark_edges[option] = util.stroke(mark, values().line, 0.35)
 			check = icons.check(mark, mark_size - 4, style.on(values().accent))
 			check.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -983,9 +985,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		end
 		if select_all_action then
 			select_all_action.BackgroundColor3 = values().hover
-			select_all_action.TextColor3 = values().muted
+			select_all_action.TextColor3 = values().text
 			clear_action.BackgroundColor3 = values().hover
-			clear_action.TextColor3 = values().muted
+			clear_action.TextColor3 = values().text
 		end
 		for option, item in pairs(items) do
 			item.BackgroundColor3 = values().hover
@@ -1172,9 +1174,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = env.modal,
 	})
 	util.corner(panel, 0)
-	util.depth(panel, 0.4)
+	util.depth(panel, 0.7)
 	local edge = util.stroke(panel, values().line, 0.05)
-	util.shadow(panel, 24, 0.28)
+	util.shadow(panel, 30, 0.18)
 	win._popover(panel)
 	local pop = util.new("UIScale", { Parent = panel })
 
@@ -1187,7 +1189,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(field, 0)
-	util.inset(field, 0.25)
+	util.inset(field, 0.52)
 	util.stroke(field, values().line, 0.45)
 
 	local light = util.new("Frame", {
@@ -1302,9 +1304,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(preview, 0)
-	util.depth(preview, 0.4)
+	util.depth(preview, 0.65)
 	util.stroke(preview, values().line, 0.2)
-	util.shadow(preview, 6, 0.8)
+	util.shadow(preview, 8, 0.45)
 
 	local hex = util.new("TextBox", {
 		BackgroundColor3 = values().raised,
@@ -1322,7 +1324,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(hex, 0)
-	util.inset(hex, 0.3)
+	util.inset(hex, 0.55)
 	local hex_edge = util.stroke(hex, values().line, 0.2)
 	util.new("UIPadding", {
 		PaddingLeft = UDim.new(0, 8),
@@ -1345,7 +1347,8 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 			Parent = panel,
 		})
 		util.corner(btn, 0)
-		util.depth(btn, 0.3)
+		util.depth(btn, 0.55)
+		util.shadow(btn, 5, 0.55)
 		local stroke = util.stroke(btn, values().line, 0.3)
 		local image = icons.image(btn, icon_name, 13, values().muted)
 		if image then
@@ -1400,7 +1403,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(rgb, 0)
-	util.inset(rgb, 0.3)
+	util.inset(rgb, 0.55)
 	local rgb_edge = util.stroke(rgb, values().line, 0.3)
 	util.new("UIPadding", {
 		PaddingLeft = UDim.new(0, 6),

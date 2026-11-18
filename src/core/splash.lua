@@ -43,7 +43,8 @@ function splash.mount()
 		Parent = gui,
 	})
 	local edge = util.stroke(card, values().line, 0.15)
-	util.shadow(card, 22, 0.35)
+	util.depth(card, 0.65)
+	util.shadow(card, 26, 0.28)
 	local scale = util.new("UIScale", { Scale = 0.9, Parent = card })
 
 	local plate_size = env.mobile and 100 or 112

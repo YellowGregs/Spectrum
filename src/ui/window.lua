@@ -138,9 +138,9 @@ function Window.new(title, opts)
 		ZIndex = 2,
 		Parent = root,
 	})
-	local edge = util.stroke(body, values().line, 0.2)
-	util.shadow(body, 20, 0.3)
-	util.depth(body, 0.2)
+	local edge = util.stroke(body, values().line, 0.12)
+	util.shadow(body, 30, 0.22)
+	util.depth(body, 0.65)
 
 	local backdrop = util.new("Frame", {
 		Name = "backdrop",
@@ -200,7 +200,8 @@ function Window.new(title, opts)
 		ZIndex = 3,
 		Parent = body,
 	})
-	util.shadow(header, 8, 0.8)
+	util.shadow(header, 12, 0.38)
+	util.depth(header, 0.7)
 	local seam = util.new("Frame", {
 		BackgroundColor3 = values().line,
 		BackgroundTransparency = 0.2,
@@ -473,6 +474,8 @@ function Window.new(title, opts)
 		ZIndex = 5,
 		Parent = strip,
 	})
+	util.shadow(strip, 10, 0.5)
+	util.depth(strip, 0.55)
 
 	local function chrome()
 		return head + (strip_visible and tab_h or 0)
@@ -515,9 +518,17 @@ function Window.new(title, opts)
 			return
 		end
 		local on = tab == active_tab
-		tab.chip.BackgroundColor3 = values().hover
-		tab.chip.BackgroundTransparency = 1
+		tab.chip.BackgroundColor3 = values().raised
+		tab.chip.BackgroundTransparency = on and 0.18 or 1
 		tab.chip.TextColor3 = on and values().accent or values().muted
+		if tab.chip_edge then
+			tab.chip_edge.Color = on and values().accent or values().line
+			tab.chip_edge.Transparency = on and 0.68 or 1
+		end
+		if tab.chip_bar then
+			tab.chip_bar.BackgroundColor3 = values().accent
+			tab.chip_bar.BackgroundTransparency = on and 0 or 1
+		end
 		if tab.emblem then
 			icons.tint(tab.emblem, on and values().accent or values().muted)
 		end
@@ -545,6 +556,20 @@ function Window.new(title, opts)
 			Parent = rail,
 		})
 		util.corner(chip, 0)
+		local chip_edge = util.stroke(chip, values().line, 1)
+		local chip_bar = util.new("Frame", {
+			Name = "active_tab_mark",
+			BackgroundColor3 = values().accent,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 0, 1, 0),
+			Size = UDim2.new(1, 0, 0, 2),
+			ZIndex = 6,
+			Parent = chip,
+		})
+		tab.chip_edge = chip_edge
+		tab.chip_bar = chip_bar
 		util.new("UISizeConstraint", {
 			MaxSize = Vector2.new(mobile and 132 or 152, tab_h),
 			Parent = chip,

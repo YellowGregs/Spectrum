@@ -41,7 +41,7 @@ function text.section(win, title, icon)
 		ZIndex = 2,
 		Parent = holder,
 	})
-	util.depth(band, 0.35)
+	util.depth(band, 0.55)
 	local tick = util.new("Frame", {
 		BackgroundColor3 = values().accent,
 		BorderSizePixel = 0,
@@ -328,8 +328,8 @@ function text.textbox(win, title, default, callback, icon, opts)
 		})
 	end
 	util.corner(box)
-	util.inset(box, 0.45)
-	util.shadow(box, 6, 0.82)
+	util.inset(box, 0.62)
+	util.shadow(box, 8, 0.52)
 	util.new("UIPadding", {
 		PaddingLeft = UDim.new(0, 8),
 		PaddingRight = UDim.new(0, 8),

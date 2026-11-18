@@ -309,29 +309,45 @@ function util.stroke(object, color, transparency)
 end
 
 function util.shadow(object, blur, transparency)
+	if not object then
+		return
+	end
+	blur = math.max(4, blur or 18)
+	transparency = math.clamp(transparency or 0.42, 0.05, 0.95)
+	local shade
 	local built = pcall(function()
-		local shade = Instance.new("UIShadow")
-		shade.BlurRadius = blur or 14
-		shade.Transparency = transparency or 0.55
-		shade.Offset = Vector2.new(0, math.max(2, math.floor((blur or 14) / 4)))
+		shade = Instance.new("UIShadow")
+		shade.BlurRadius = blur
+		shade.Transparency = transparency
+		shade.Offset = Vector2.new(0, math.max(2, math.floor(blur / 5)))
 		shade.Color = Color3.new(0, 0, 0)
 		shade.Parent = object
+		pcall(function()
+			shade.Spread = math.clamp(blur / 28, 0, 2)
+		end)
+		pcall(function()
+			shade.Enabled = true
+		end)
 	end)
 	if not built then
 		return
 	end
+	return shade
 end
 
 function util.depth(object, strength)
 	if not object then
 		return
 	end
-	strength = strength or 1
+	strength = math.clamp(strength or 1, 0.1, 2)
 	local z = (object.ZIndex or 1) + 1
+	local top_alpha = math.clamp(0.9 - 0.42 * strength, 0.34, 0.94)
+	local bottom_alpha = math.clamp(0.72 - 0.32 * strength, 0.28, 0.9)
+	local side_alpha = math.clamp(top_alpha + 0.08, 0.38, 0.96)
 	local top = util.new("Frame", {
 		Name = "depth_top",
 		BackgroundColor3 = white,
-		BackgroundTransparency = math.clamp(0.92 - 0.04 * strength, 0.55, 0.98),
+		BackgroundTransparency = top_alpha,
 		BorderSizePixel = 0,
 		Position = UDim2.new(0, 0, 0, 0),
 		Size = UDim2.new(1, 0, 0, 1),
@@ -342,7 +358,7 @@ function util.depth(object, strength)
 	local bottom = util.new("Frame", {
 		Name = "depth_bottom",
 		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = math.clamp(0.72 - 0.04 * strength, 0.45, 0.9),
+		BackgroundTransparency = bottom_alpha,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 0, 1, -1),
@@ -351,19 +367,45 @@ function util.depth(object, strength)
 		ZIndex = z,
 		Parent = object,
 	})
-	return top, bottom
+	local left = util.new("Frame", {
+		Name = "depth_left",
+		BackgroundColor3 = white,
+		BackgroundTransparency = side_alpha,
+		BorderSizePixel = 0,
+		Position = UDim2.new(0, 0, 0, 1),
+		Size = UDim2.new(0, 1, 1, -2),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	local right = util.new("Frame", {
+		Name = "depth_right",
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = math.clamp(bottom_alpha + 0.06, 0.32, 0.94),
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -1, 0, 1),
+		Size = UDim2.new(0, 1, 1, -2),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	return top, bottom, left, right
 end
 
 function util.inset(object, strength)
 	if not object then
 		return
 	end
-	strength = strength or 1
+	strength = math.clamp(strength or 1, 0.1, 2)
 	local z = (object.ZIndex or 1) + 1
+	local top_alpha = math.clamp(0.62 - 0.18 * strength, 0.34, 0.88)
+	local bottom_alpha = math.clamp(0.88 - 0.2 * strength, 0.44, 0.96)
+	local side_alpha = math.clamp(top_alpha + 0.08, 0.38, 0.94)
 	local top = util.new("Frame", {
 		Name = "inset_top",
 		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = math.clamp(0.7 - 0.04 * strength, 0.42, 0.9),
+		BackgroundTransparency = top_alpha,
 		BorderSizePixel = 0,
 		Size = UDim2.new(1, 0, 0, 1),
 		Active = false,
@@ -373,7 +415,7 @@ function util.inset(object, strength)
 	local bottom = util.new("Frame", {
 		Name = "inset_bottom",
 		BackgroundColor3 = white,
-		BackgroundTransparency = math.clamp(0.92 - 0.03 * strength, 0.6, 0.98),
+		BackgroundTransparency = bottom_alpha,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 0, 1, -1),
@@ -382,7 +424,30 @@ function util.inset(object, strength)
 		ZIndex = z,
 		Parent = object,
 	})
-	return top, bottom
+	local left = util.new("Frame", {
+		Name = "inset_left",
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = side_alpha,
+		BorderSizePixel = 0,
+		Position = UDim2.new(0, 0, 0, 1),
+		Size = UDim2.new(0, 1, 1, -2),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	local right = util.new("Frame", {
+		Name = "inset_right",
+		BackgroundColor3 = white,
+		BackgroundTransparency = bottom_alpha,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -1, 0, 1),
+		Size = UDim2.new(0, 1, 1, -2),
+		Active = false,
+		ZIndex = z,
+		Parent = object,
+	})
+	return top, bottom, left, right
 end
 
 function util.tween(object, time, props, ease, direction)
@@ -2267,9 +2332,9 @@ local function ensure()
 		ZIndex = 20,
 		Parent = env.modal,
 	})
-	util.depth(panel, 0.4)
+	util.depth(panel, 0.7)
 	edge = util.stroke(panel, values().line, 0.05)
-	util.shadow(panel, 24, 0.28)
+	util.shadow(panel, 28, 0.2)
 
 	local header = util.new("Frame", {
 		Name = "header",
@@ -2927,9 +2992,9 @@ function launcher.mount(on_toggle)
 		Parent = env.launcher,
 	})
 	util.corner(button, 0)
-	util.depth(button, 0.4)
+	util.depth(button, 0.75)
 	local edge = util.stroke(button, values().line, 0.05)
-	util.shadow(button, 18, 0.4)
+	util.shadow(button, 20, 0.32)
 
 	local menu = icons.image(button, "menu", 19, values().text)
 	menu.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -3142,7 +3207,8 @@ local function notify(title, body, duration, kind)
 	})
 	util.corner(face, 0)
 	local edge = util.stroke(face, style.values.line, 1)
-	util.shadow(face, 20, 0.4)
+	util.depth(face, 0.5)
+	util.shadow(face, 20, 0.3)
 
 	local chip = util.new("Frame", {
 		Name = "chip",
@@ -3155,7 +3221,8 @@ local function notify(title, body, duration, kind)
 		Parent = face,
 	})
 	util.corner(chip, 0)
-	util.depth(chip, 0.3)
+	util.depth(chip, 0.6)
+	util.shadow(chip, 5, 0.55)
 	local chip_edge = util.stroke(chip, tint, 0.45)
 	local badge = icons.kind(kind, chip, 14, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -3306,9 +3373,9 @@ local panel = util.new("Frame", {
 	Parent = env.modal,
 })
 util.corner(panel, 0)
-util.depth(panel, 0.35)
+util.depth(panel, 0.65)
 local edge = util.stroke(panel, values().line, 0.15)
-util.shadow(panel, 18, 0.3)
+util.shadow(panel, 22, 0.22)
 util.new("UISizeConstraint", {
 	MaxSize = Vector2.new(260, 320),
 	Parent = panel,
@@ -3489,13 +3556,13 @@ local card = util.new("Frame", {
 	Parent = env.notes,
 })
 util.corner(card, 0)
-util.depth(card, 0.3)
+util.depth(card, 0.6)
 util.new("UIPadding", {
 	PaddingRight = UDim.new(0, 10),
 	Parent = card,
 })
 local edge = util.stroke(card, values().line, 0.25)
-util.shadow(card, 14, 0.45)
+util.shadow(card, 16, 0.4)
 local tick = util.new("Frame", {
 	BackgroundColor3 = values().accent,
 	BorderSizePixel = 0,
@@ -3598,7 +3665,8 @@ function splash.mount()
 		Parent = gui,
 	})
 	local edge = util.stroke(card, values().line, 0.15)
-	util.shadow(card, 22, 0.35)
+	util.depth(card, 0.65)
+	util.shadow(card, 26, 0.28)
 	local scale = util.new("UIScale", { Scale = 0.9, Parent = card })
 
 	local plate_size = env.mobile and 100 or 112
@@ -3927,9 +3995,9 @@ function Window.new(title, opts)
 		ZIndex = 2,
 		Parent = root,
 	})
-	local edge = util.stroke(body, values().line, 0.2)
-	util.shadow(body, 20, 0.3)
-	util.depth(body, 0.2)
+	local edge = util.stroke(body, values().line, 0.12)
+	util.shadow(body, 30, 0.22)
+	util.depth(body, 0.65)
 
 	local backdrop = util.new("Frame", {
 		Name = "backdrop",
@@ -3989,7 +4057,8 @@ function Window.new(title, opts)
 		ZIndex = 3,
 		Parent = body,
 	})
-	util.shadow(header, 8, 0.8)
+	util.shadow(header, 12, 0.38)
+	util.depth(header, 0.7)
 	local seam = util.new("Frame", {
 		BackgroundColor3 = values().line,
 		BackgroundTransparency = 0.2,
@@ -4262,6 +4331,8 @@ function Window.new(title, opts)
 		ZIndex = 5,
 		Parent = strip,
 	})
+	util.shadow(strip, 10, 0.5)
+	util.depth(strip, 0.55)
 
 	local function chrome()
 		return head + (strip_visible and tab_h or 0)
@@ -4304,9 +4375,17 @@ function Window.new(title, opts)
 			return
 		end
 		local on = tab == active_tab
-		tab.chip.BackgroundColor3 = values().hover
-		tab.chip.BackgroundTransparency = 1
+		tab.chip.BackgroundColor3 = values().raised
+		tab.chip.BackgroundTransparency = on and 0.18 or 1
 		tab.chip.TextColor3 = on and values().accent or values().muted
+		if tab.chip_edge then
+			tab.chip_edge.Color = on and values().accent or values().line
+			tab.chip_edge.Transparency = on and 0.68 or 1
+		end
+		if tab.chip_bar then
+			tab.chip_bar.BackgroundColor3 = values().accent
+			tab.chip_bar.BackgroundTransparency = on and 0 or 1
+		end
 		if tab.emblem then
 			icons.tint(tab.emblem, on and values().accent or values().muted)
 		end
@@ -4334,6 +4413,20 @@ function Window.new(title, opts)
 			Parent = rail,
 		})
 		util.corner(chip, 0)
+		local chip_edge = util.stroke(chip, values().line, 1)
+		local chip_bar = util.new("Frame", {
+			Name = "active_tab_mark",
+			BackgroundColor3 = values().accent,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 0, 1, 0),
+			Size = UDim2.new(1, 0, 0, 2),
+			ZIndex = 6,
+			Parent = chip,
+		})
+		tab.chip_edge = chip_edge
+		tab.chip_bar = chip_bar
 		util.new("UISizeConstraint", {
 			MaxSize = Vector2.new(mobile and 132 or 152, tab_h),
 			Parent = chip,
@@ -5330,8 +5423,8 @@ function inputs.button(win, text, callback, icon, opts)
 		Parent = holder,
 	})
 	util.corner(btn)
-	util.depth(btn, 0.55)
-	util.shadow(btn, 8, 0.8)
+	util.depth(btn, 0.8)
+	util.shadow(btn, 11, 0.42)
 	local edge = util.stroke(btn, values().line, 0.25)
 	local held = false
 	local function paint_edge()
@@ -5569,7 +5662,8 @@ function inputs.toggle(win, text, a, b, opts)
 			Parent = row,
 		})
 		util.corner(box, 0)
-		util.depth(box, 0.35)
+		util.depth(box, 0.55)
+		util.shadow(box, 5, 0.55)
 		local edge = util.stroke(box, values().line, 0.15)
 		pop = util.new("UIScale", { Parent = box })
 		local check = util.new("Frame", {
@@ -5625,7 +5719,8 @@ function inputs.toggle(win, text, a, b, opts)
 			Parent = row,
 		})
 		util.corner(track, 0)
-		util.inset(track, 0.4)
+		util.inset(track, 0.65)
+		util.shadow(track, 5, 0.58)
 		local edge = util.stroke(track, state and values().accent or values().line, 0.25)
 		local thumb = util.new("Frame", {
 			Name = "switch_thumb",
@@ -5638,7 +5733,8 @@ function inputs.toggle(win, text, a, b, opts)
 			Parent = track,
 		})
 		util.corner(thumb, 0)
-		util.depth(thumb, 0.5)
+		util.depth(thumb, 0.7)
+		util.shadow(thumb, 4, 0.5)
 		pop = util.new("UIScale", { Parent = track })
 
 		sync = function()
@@ -5840,7 +5936,8 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		Parent = row,
 	})
 	util.corner(track, 0)
-	util.inset(track, 0.45)
+	util.inset(track, 0.68)
+	util.shadow(track, 4, 0.62)
 
 	local fill = util.new("Frame", {
 		BackgroundColor3 = values().accent,
@@ -5861,7 +5958,8 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		Parent = track,
 	})
 	util.corner(thumb, 0)
-	util.depth(thumb, 0.4)
+	util.depth(thumb, 0.7)
+	util.shadow(thumb, 5, 0.46)
 
 	local hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
@@ -6099,7 +6197,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		Parent = row,
 	})
 	util.corner(pill, 0)
-	util.depth(pill, 0.35)
+	util.depth(pill, 0.55)
+	util.shadow(pill, 6, 0.48)
 	local edge = util.stroke(pill, values().line, 0.35)
 	util.hover(pill)
 
@@ -6537,8 +6636,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		Parent = row,
 	})
 	util.corner(well, 0)
-	util.depth(well, 0.35)
-	util.shadow(well, 6, 0.9)
+	util.inset(well, 0.45)
+	util.shadow(well, 8, 0.5)
 	local field_edge = util.stroke(well, values().line, 0.55)
 	local name = caption(row, title)
 	name.Size = UDim2.new(0.48, -20, 1, 0)
@@ -6596,9 +6695,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		Parent = env.modal,
 	})
 	util.corner(panel, 0)
-	util.depth(panel, 0.4)
+	util.depth(panel, 0.7)
 	local edge = util.stroke(panel, values().line, 0.05)
-	util.shadow(panel, 24, 0.28)
+	util.shadow(panel, 30, 0.18)
 	win._popover(panel)
 
 	local bulk_seam
@@ -6654,7 +6753,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				Size = UDim2.fromOffset(width, bulk_h),
 				Font = font,
 				Text = string.upper(text),
-				TextColor3 = values().muted,
+				TextColor3 = values().text,
 				TextSize = util.size(mobile and 9 or 10),
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextTruncate = Enum.TextTruncate.AtEnd,
@@ -6706,7 +6805,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			Parent = panel,
 		})
 		util.corner(search, 0)
-		util.inset(search, 0.3)
+		util.inset(search, 0.58)
+		util.shadow(search, 4, 0.7)
 		util.new("UIPadding", {
 			PaddingLeft = UDim.new(0, 24),
 			PaddingRight = UDim.new(0, 22),
@@ -6960,11 +7060,11 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			local option_disabled = disabled_options[option] == true
 			item.TextColor3 = option_disabled and values().muted or values().text
 			item.Font = font
-			item.BackgroundColor3 = on and values().hover:Lerp(values().accent, 0.1) or values().hover
-			item.BackgroundTransparency = on and 0.6 or 1
+			item.BackgroundColor3 = on and values().hover:Lerp(values().accent, 0.12) or values().hover
+			item.BackgroundTransparency = on and 0.55 or 1
 			local item_edge = item_edges[option]
 			if item_edge then
-				item_edge.Transparency = on and 0.45 or 1
+				item_edge.Transparency = on and 0.35 or 1
 			end
 			if marks[option] then
 				marks[option].BackgroundColor3 = on and values().accent or values().raised
@@ -7209,7 +7309,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				Parent = item,
 			})
 			util.corner(mark, 0)
-			util.depth(mark, 0.3)
+			util.depth(mark, 0.55)
+			util.shadow(mark, 4, 0.52)
 			mark_edges[option] = util.stroke(mark, values().line, 0.35)
 			check = icons.check(mark, mark_size - 4, style.on(values().accent))
 			check.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -7423,9 +7524,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		end
 		if select_all_action then
 			select_all_action.BackgroundColor3 = values().hover
-			select_all_action.TextColor3 = values().muted
+			select_all_action.TextColor3 = values().text
 			clear_action.BackgroundColor3 = values().hover
-			clear_action.TextColor3 = values().muted
+			clear_action.TextColor3 = values().text
 		end
 		for option, item in pairs(items) do
 			item.BackgroundColor3 = values().hover
@@ -7612,9 +7713,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = env.modal,
 	})
 	util.corner(panel, 0)
-	util.depth(panel, 0.4)
+	util.depth(panel, 0.7)
 	local edge = util.stroke(panel, values().line, 0.05)
-	util.shadow(panel, 24, 0.28)
+	util.shadow(panel, 30, 0.18)
 	win._popover(panel)
 	local pop = util.new("UIScale", { Parent = panel })
 
@@ -7627,7 +7728,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(field, 0)
-	util.inset(field, 0.25)
+	util.inset(field, 0.52)
 	util.stroke(field, values().line, 0.45)
 
 	local light = util.new("Frame", {
@@ -7742,9 +7843,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(preview, 0)
-	util.depth(preview, 0.4)
+	util.depth(preview, 0.65)
 	util.stroke(preview, values().line, 0.2)
-	util.shadow(preview, 6, 0.8)
+	util.shadow(preview, 8, 0.45)
 
 	local hex = util.new("TextBox", {
 		BackgroundColor3 = values().raised,
@@ -7762,7 +7863,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(hex, 0)
-	util.inset(hex, 0.3)
+	util.inset(hex, 0.55)
 	local hex_edge = util.stroke(hex, values().line, 0.2)
 	util.new("UIPadding", {
 		PaddingLeft = UDim.new(0, 8),
@@ -7785,7 +7886,8 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 			Parent = panel,
 		})
 		util.corner(btn, 0)
-		util.depth(btn, 0.3)
+		util.depth(btn, 0.55)
+		util.shadow(btn, 5, 0.55)
 		local stroke = util.stroke(btn, values().line, 0.3)
 		local image = icons.image(btn, icon_name, 13, values().muted)
 		if image then
@@ -7840,7 +7942,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = panel,
 	})
 	util.corner(rgb, 0)
-	util.inset(rgb, 0.3)
+	util.inset(rgb, 0.55)
 	local rgb_edge = util.stroke(rgb, values().line, 0.3)
 	util.new("UIPadding", {
 		PaddingLeft = UDim.new(0, 6),
@@ -8403,7 +8505,7 @@ function text.section(win, title, icon)
 		ZIndex = 2,
 		Parent = holder,
 	})
-	util.depth(band, 0.35)
+	util.depth(band, 0.55)
 	local tick = util.new("Frame", {
 		BackgroundColor3 = values().accent,
 		BorderSizePixel = 0,
@@ -8690,8 +8792,8 @@ function text.textbox(win, title, default, callback, icon, opts)
 		})
 	end
 	util.corner(box)
-	util.inset(box, 0.45)
-	util.shadow(box, 6, 0.82)
+	util.inset(box, 0.62)
+	util.shadow(box, 8, 0.52)
 	util.new("UIPadding", {
 		PaddingLeft = UDim.new(0, 8),
 		PaddingRight = UDim.new(0, 8),
