@@ -38,16 +38,8 @@ util.new("UISizeConstraint", {
 util.new("UIPadding", {
 	PaddingTop = UDim.new(0, 8),
 	PaddingBottom = UDim.new(0, 8),
-	PaddingLeft = UDim.new(0, 14),
+	PaddingLeft = UDim.new(0, 12),
 	PaddingRight = UDim.new(0, 12),
-	Parent = panel,
-})
-local accent = util.new("Frame", {
-	Name = "accent",
-	BackgroundColor3 = values().accent,
-	BorderSizePixel = 0,
-	Size = UDim2.new(0, 2, 1, 0),
-	ZIndex = 62,
 	Parent = panel,
 })
 
@@ -184,7 +176,6 @@ style.paint(function()
 	panel.BackgroundColor3 = values().panel
 	edge.Color = values().line
 	label.TextColor3 = values().text
-	accent.BackgroundColor3 = values().accent
 end)
 
 S.tooltip = tooltip
