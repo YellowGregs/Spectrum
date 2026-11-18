@@ -30,10 +30,19 @@ local function label(parent, title)
 	})
 end
 
-function text.section(win, title, icon)
+function text.section(win, title, icon, opts)
+	if type(icon) == "table" then
+		opts = icon
+		icon = opts.icon
+	end
+	opts = type(opts) == "table" and opts or {}
+	if icon == nil then
+		icon = opts.icon
+	end
+	icon = type(icon) == "string" and icon ~= "" and icon or nil
 	local height = win._mobile and 30 or 26
 	local holder = win._slot(height, true)
-	local record = win._new_section()
+	local record = win._new_section(opts.open == true)
 	local band = util.new("Frame", {
 		BackgroundColor3 = values().raised,
 		BorderSizePixel = 0,
@@ -96,7 +105,7 @@ function text.section(win, title, icon)
 	chevron.AnchorPoint = Vector2.new(0.5, 0.5)
 	chevron.Position = UDim2.new(1, -14, 0.5, 0)
 	chevron.ZIndex = 4
-	chevron.Rotation = 180
+	chevron.Rotation = record.open and 180 or 0
 
 	local hit = util.new("TextButton", {
 		BackgroundColor3 = values().hover,

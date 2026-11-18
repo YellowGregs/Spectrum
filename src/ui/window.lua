@@ -557,20 +557,23 @@ function Window.new(title, opts)
 			MaxSize = Vector2.new(mobile and 132 or 152, tab_h),
 			Parent = chip,
 		})
-		local pad_left = tab.icon and 21 or 7
+		local has_icon = type(tab.icon) == "string" and tab.icon ~= ""
+		local pad_left = has_icon and 21 or 7
 		local pad_right = 7
-		util.new("UIPadding", {
+		local padding = util.new("UIPadding", {
 			PaddingLeft = UDim.new(0, pad_left),
 			PaddingRight = UDim.new(0, pad_right),
 			Parent = chip,
 		})
 		local emblem
-		if tab.icon then
+		if has_icon then
 			emblem = icons.image(chip, tab.icon, 11, values().muted)
 			if emblem then
 				emblem.AnchorPoint = Vector2.new(0, 0.5)
 				emblem.Position = UDim2.new(0, 7 - pad_left, 0.5, 0)
 				icons.layer(emblem, 5)
+			else
+				padding.PaddingLeft = UDim.new(0, 7)
 			end
 		end
 		tab.chip = chip
@@ -905,8 +908,8 @@ function Window.new(title, opts)
 		return slot_for(active_tab, height, ungrouped)
 	end
 
-	function w._new_section()
-		return { open = true, slots = {}, tab = active_tab }
+	function w._new_section(default_open)
+		return { open = default_open == true, slots = {}, tab = active_tab }
 	end
 
 	function w._focus_section(record)
@@ -1279,8 +1282,8 @@ function Window.new(title, opts)
 			w._nav_clear()
 		end
 
-		function api._new_section()
-			return { open = true, slots = {}, tab = tab }
+		function api._new_section(default_open)
+			return { open = default_open == true, slots = {}, tab = tab }
 		end
 
 		function api._focus_section(record)
@@ -1316,8 +1319,8 @@ function Window.new(title, opts)
 		target.textbox = function(self, text, default, callback, icon, spec)
 			return S.text.textbox(self, text, default, callback, icon, spec)
 		end
-		target.section = function(self, text, icon)
-			return S.text.section(self, text, icon)
+		target.section = function(self, text, icon, opts)
+			return S.text.section(self, text, icon, opts)
 		end
 		target.label = function(self, text)
 			return S.text.label(self, text)
