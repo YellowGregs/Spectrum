@@ -42,6 +42,18 @@ function util.stroke(object, color, transparency)
 	})
 end
 
+local function has_layout(parent)
+	if not parent then
+		return true
+	end
+	for _, child in ipairs(parent:GetChildren()) do
+		if child:IsA("UILayout") then
+			return true
+		end
+	end
+	return false
+end
+
 function util.shadow(object, blur, transparency)
 	if not object then
 		return
@@ -63,6 +75,74 @@ function util.shadow(object, blur, transparency)
 			shade.Enabled = true
 		end)
 	end)
+
+	local parent = object.Parent
+	if parent and not has_layout(parent) then
+		local offset = math.max(2, math.floor(blur / 18) + 1)
+		local layer = util.new("Frame", {
+			Name = "drop_shadow",
+			BackgroundColor3 = Color3.new(0, 0, 0),
+			BackgroundTransparency = math.clamp(transparency + 0.25, 0.42, 0.92),
+			BorderSizePixel = 0,
+			AnchorPoint = object.AnchorPoint,
+			Position = UDim2.new(
+				object.Position.X.Scale,
+				object.Position.X.Offset + offset,
+				object.Position.Y.Scale,
+				object.Position.Y.Offset + offset
+			),
+			Size = object.Size,
+			Active = false,
+			ZIndex = math.max(0, (object.ZIndex or 1) - 1),
+			Parent = parent,
+		})
+		local corner = object:FindFirstChildOfClass("UICorner")
+		if corner then
+			pcall(function()
+				local copy = Instance.new("UICorner")
+				copy.CornerRadius = corner.CornerRadius
+				copy.Parent = layer
+			end)
+		end
+
+		local links = {}
+		local function sync()
+			if not layer.Parent then
+				return
+			end
+			layer.AnchorPoint = object.AnchorPoint
+			layer.Position = UDim2.new(
+				object.Position.X.Scale,
+				object.Position.X.Offset + offset,
+				object.Position.Y.Scale,
+				object.Position.Y.Offset + offset
+			)
+			layer.Size = object.Size
+			layer.Visible = object.Visible
+			layer.ZIndex = math.max(0, (object.ZIndex or 1) - 1)
+		end
+		for _, property in ipairs({ "Position", "Size", "AnchorPoint", "Visible", "ZIndex" }) do
+			links[#links + 1] = object:GetPropertyChangedSignal(property):Connect(sync)
+		end
+		links[#links + 1] = object:GetPropertyChangedSignal("Parent"):Connect(function()
+			if object.Parent and not has_layout(object.Parent) then
+				layer.Parent = object.Parent
+				sync()
+			else
+				layer:Destroy()
+			end
+		end)
+		object.Destroying:Connect(function()
+			for _, link in ipairs(links) do
+				pcall(function()
+					link:Disconnect()
+				end)
+			end
+			layer:Destroy()
+		end)
+		sync()
+	end
+
 	if not built then
 		return
 	end
@@ -172,7 +252,7 @@ function util.inset(object, strength)
 	local right = util.new("Frame", {
 		Name = "inset_right",
 		BackgroundColor3 = white,
-		BackgroundTransparency = bottom_alpha,
+		BackgroundTransparency = math.clamp(bottom_alpha + 0.18, 0.58, 0.98),
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -1, 0, 1),
