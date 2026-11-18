@@ -268,9 +268,9 @@ function config.apply()
 		end
 	end
 	for win, api in pairs(windows) do
-		local saved = data.windows[win]
-		if saved and api.restore then
-			pcall(api.restore, saved)
+		if api.restore then
+			local saved = data.windows[win]
+			pcall(api.restore, saved or {})
 		end
 	end
 	return true

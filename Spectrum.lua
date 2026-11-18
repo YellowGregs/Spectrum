@@ -2941,9 +2941,9 @@ function config.apply()
 		end
 	end
 	for win, api in pairs(windows) do
-		local saved = data.windows[win]
-		if saved and api.restore then
-			pcall(api.restore, saved)
+		if api.restore then
+			local saved = data.windows[win]
+			pcall(api.restore, saved or {})
 		end
 	end
 	return true
@@ -4492,10 +4492,6 @@ function Window.new(title, opts)
 			tab.chip_edge.Color = on and values().accent or values().line
 			tab.chip_edge.Transparency = on and 0.68 or 1
 		end
-		if tab.chip_bar then
-			tab.chip_bar.BackgroundColor3 = values().accent
-			tab.chip_bar.BackgroundTransparency = on and 0 or 1
-		end
 		if tab.emblem then
 			icons.tint(tab.emblem, on and values().accent or values().muted)
 		end
@@ -4524,19 +4520,7 @@ function Window.new(title, opts)
 		})
 		util.corner(chip, 0)
 		local chip_edge = util.stroke(chip, values().line, 1)
-		local chip_bar = util.new("Frame", {
-			Name = "active_tab_mark",
-			BackgroundColor3 = values().accent,
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.new(0, 0, 1, 0),
-			Size = UDim2.new(1, 0, 0, 2),
-			ZIndex = 6,
-			Parent = chip,
-		})
 		tab.chip_edge = chip_edge
-		tab.chip_bar = chip_bar
 		util.new("UISizeConstraint", {
 			MaxSize = Vector2.new(mobile and 132 or 152, tab_h),
 			Parent = chip,
@@ -4905,21 +4889,23 @@ function Window.new(title, opts)
 		local count = (counts[base] or 0) + 1
 		counts[base] = count
 		local ident = tostring(tab.name or "Tab") .. "/" .. (count == 1 and base or (base .. "#" .. count))
-		local state = config.section_state(key, ident)
-		if state == nil then
-			local preferred = tab.preferred
-			if preferred then
-				if preferred.closed and (preferred.closed[name] or preferred.closed[ident]) then
-					state = false
-				elseif preferred.open and (preferred.open[name] or preferred.open[ident]) then
-					state = true
-				end
+		local developer
+		local preferred = tab.preferred
+		if preferred then
+			if preferred.closed and (preferred.closed[name] or preferred.closed[ident]) then
+				developer = false
+			elseif preferred.open and (preferred.open[name] or preferred.open[ident]) then
+				developer = true
 			end
 		end
-		if state == nil then
-			state = default_open == true
+		if developer == nil then
+			developer = default_open == true
 		end
-		local record = { open = state == true, slots = {}, tab = tab, id = ident }
+		local state = config.section_state(key, ident)
+		if state == nil then
+			state = developer
+		end
+		local record = { open = state == true, default_open = developer, slots = {}, tab = tab, id = ident }
 		section_records[#section_records + 1] = record
 		return record
 	end
@@ -5416,6 +5402,8 @@ function Window.new(title, opts)
 				local saved = config.section_state(key, record.id)
 				if saved ~= nil then
 					record.open = saved
+				else
+					record.open = record.default_open == true
 				end
 				if record.chevron then
 					record.chevron.Rotation = record.open and 180 or 0
