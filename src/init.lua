@@ -272,6 +272,14 @@ function Library:GetAutoSave()
 	return config.auto_save()
 end
 
+function Library:GetConfigError()
+	return config.last_error()
+end
+
+function Library:GetConfigPath()
+	return config.file()
+end
+
 function Library:LoadConfig(name)
 	config.load(name)
 	menu_key = normalize_key(config.toggle_key())

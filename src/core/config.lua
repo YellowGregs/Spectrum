@@ -11,6 +11,9 @@ local window_counts = {}
 local value_counts = {}
 local scheduled = false
 local auto_save_enabled = false
+local dirty = false
+local last_body
+local error_message
 
 local http
 do
@@ -117,32 +120,52 @@ end
 
 local function decode(body)
 	if not http then
-		return
+		return false
 	end
 	local ok, parsed = pcall(function()
 		return http:JSONDecode(body)
 	end)
-	if ok and type(parsed) == "table" then
-		data = parsed
+	if not ok or type(parsed) ~= "table" then
+		return false
 	end
+	data = parsed
 	normalize()
+	return true
 end
 
 function config.load(name)
 	if name then
-		profile = name_of(name)
+		local target = name_of(name)
+		if target ~= profile and (dirty or auto_save_enabled) then
+			config.save()
+		end
+		profile = target
 	end
+	local file = path(profile)
 	data = fresh()
-	if can_read() and isfile(path(profile)) then
-		local ok, body = pcall(readfile, path(profile))
+	if can_read() and isfile(file) then
+		local ok, body = pcall(readfile, file)
 		if ok and type(body) == "string" and body ~= "" then
-			decode(body)
+			if not decode(body) then
+				if can_write() then
+					pcall(writefile, file .. ".corrupt", body)
+				end
+				local backup_file = file .. ".bak"
+				if isfile(backup_file) then
+					local ok_backup, backup_body = pcall(readfile, backup_file)
+					if ok_backup and type(backup_body) == "string" then
+						decode(backup_body)
+					end
+				end
+			end
 		end
 	elseif shared.SpectrumConfigs and type(shared.SpectrumConfigs[profile]) == "table" then
 		data = copy(shared.SpectrumConfigs[profile])
 		normalize()
 	end
 	auto_save_enabled = type(data.settings) == "table" and data.settings.auto_save == true
+	dirty = false
+	last_body = nil
 	return config.apply()
 end
 
@@ -152,17 +175,40 @@ function config.save(name)
 	end
 	normalize()
 	data.settings.auto_save = auto_save_enabled
+	local file = path(profile)
 	local body = encode()
-	if body and can_write() then
-		ensure(ROOT)
-		pcall(writefile, path(profile), body)
+	if not body then
+		error_message = "profile could not be encoded"
+		return false
 	end
 	shared.SpectrumConfigs = shared.SpectrumConfigs or {}
 	shared.SpectrumConfigs[profile] = copy(data)
-	return body ~= nil
+	if body == last_body and (type(isfile) ~= "function" or isfile(file)) then
+		dirty = false
+		return true
+	end
+	if not can_write() then
+		error_message = "executor has no writefile or makefolder"
+		return false
+	end
+	ensure(ROOT)
+	local ok_previous, previous = pcall(readfile, file)
+	if ok_previous and type(previous) == "string" and previous ~= "" then
+		pcall(writefile, file .. ".bak", previous)
+	end
+	if not pcall(writefile, file, body) then
+		error_message = "could not write " .. file
+		dirty = true
+		return false
+	end
+	last_body = body
+	error_message = nil
+	dirty = false
+	return true
 end
 
 function config.touch()
+	dirty = true
 	if not auto_save_enabled then
 		return
 	end
@@ -337,6 +383,18 @@ end
 
 function config.profile()
 	return profile
+end
+
+function config.file()
+	return path(profile)
+end
+
+function config.last_error()
+	return error_message
+end
+
+function config.pending()
+	return dirty
 end
 
 S.config = config
