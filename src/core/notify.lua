@@ -6,6 +6,7 @@ local style = S.style
 local icons = S.icons
 local bold = Enum.Font.GothamBold
 local font = Enum.Font.RobotoCondensed
+local TextService = game:GetService("TextService")
 
 local holder = util.new("Frame", {
 	Name = "notifications",
@@ -26,6 +27,16 @@ util.new("UIListLayout", {
 })
 
 local noted = 0
+
+local function wrapped_height(text, width)
+	local ok, box = pcall(function()
+		return TextService:GetTextSize(text, 9, font, Vector2.new(width, 4096))
+	end)
+	if ok and typeof(box) == "Vector2" then
+		return math.ceil(box.Y)
+	end
+	return 12
+end
 
 local function fade(object)
 	if not object then
@@ -54,7 +65,11 @@ local function notify(title, body, duration, kind)
 		tint = style.values.bad
 	end
 
-	local height = env.mobile and 58 or 52
+	local width = env.mobile and 276 or 292
+	local text_width = width - 68
+	local caption_y = env.mobile and 23 or 22
+	local caption_height = math.max(env.mobile and 26 or 22, wrapped_height(body or "", text_width) + 2)
+	local height = math.max(env.mobile and 58 or 52, caption_y + caption_height + (env.mobile and 8 or 6))
 	local wrap = util.new("Frame", {
 		Name = "note",
 		BackgroundTransparency = 1,
@@ -109,8 +124,8 @@ local function notify(title, body, duration, kind)
 
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(33, env.mobile and 23 or 22),
-		Size = UDim2.new(1, -68, 0, env.mobile and 26 or 22),
+		Position = UDim2.fromOffset(33, caption_y),
+		Size = UDim2.new(1, -68, 0, caption_height),
 		Font = font,
 		Text = body or "",
 		TextColor3 = style.values.muted,
@@ -119,7 +134,6 @@ local function notify(title, body, duration, kind)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextWrapped = true,
-		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 5,
 		Parent = face,
 	})

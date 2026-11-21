@@ -134,8 +134,9 @@ local function render(value)
 	kicker.Position = UDim2.fromOffset(left, PAD_Y)
 	kicker.Size = UDim2.fromOffset(text_w, wrapped_head + 2)
 
+	body.Text = rest
 	body.Position = UDim2.fromOffset(left, head and (PAD_Y + wrapped_head + 3) or PAD_Y)
-	body.Size = UDim2.fromOffset(text_w, wrapped_body + 1)
+	body.Size = UDim2.fromOffset(text_w, wrapped_body + 2)
 	body.TextColor3 = head and values().muted or values().text
 
 	if mark then
