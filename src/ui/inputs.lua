@@ -872,6 +872,9 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	local stored
 	local active = false
 	local toggled = false
+	local combo = opts.combo == true
+	local capture = {}
+	local ordered = {}
 
 	local function display(value)
 		if value == nil or value == "" then
@@ -901,7 +904,19 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 			border = values().accent
 			border_alpha = 1
 		end
-		pill.Text = listening and "..." or display(key)
+		if listening then
+			if combo and #ordered > 0 then
+				local parts = {}
+				for _, id in ipairs(ordered) do
+					parts[#parts + 1] = util.input_label(id)
+				end
+				pill.Text = table.concat(parts, "+")
+			else
+				pill.Text = "..."
+			end
+		else
+			pill.Text = display(key)
+		end
 		pill.TextColor3 = tone
 		pill.BackgroundColor3 = fill
 		edge.Color = border
@@ -983,6 +998,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		end
 		listening = not listening
 		S.binding = listening
+		capture = {}
+		ordered = {}
 		sync()
 	end
 
@@ -1004,6 +1021,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	local function cancel_capture()
 		listening = false
 		S.binding = false
+		capture = {}
+		ordered = {}
 		sync()
 	end
 
@@ -1045,6 +1064,16 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 			if (is_mouse and not allow_mouse) or (is_gamepad and not allow_gamepad) then
 				return
 			end
+			if combo then
+				if not table.find(capture, id) then
+					table.insert(capture, id)
+				end
+				if not table.find(ordered, id) then
+					table.insert(ordered, id)
+				end
+				sync()
+				return
+			end
 			key = id
 			cancel_capture()
 			win._store(stored, key)
@@ -1075,6 +1104,32 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 			return
 		end
 		local id = util.input_id(input)
+		if listening and combo and id then
+			for index, entry in ipairs(capture) do
+				if entry == id then
+					table.remove(capture, index)
+					break
+				end
+			end
+			if #capture == 0 then
+				if #ordered == 0 then
+					sync()
+					return
+				end
+				key = table.concat(ordered, "+")
+				cancel_capture()
+				win._store(stored, key)
+				if on_change then
+					on_change(key)
+				end
+				if callback then
+					callback(key, true)
+				end
+				return
+			end
+			sync()
+			return
+		end
 		if id and id == key and held[id] then
 			held[id] = nil
 			release_action()

@@ -2,6 +2,7 @@ local S = {}
 
 do
 
+
 local cloneref = cloneref or function(obj)
 	return obj
 end
@@ -169,6 +170,7 @@ end
 
 do
 
+
 local style = {}
 
 local defaults = {
@@ -263,6 +265,7 @@ S.style = style
 end
 
 do
+
 
 local env = S.env
 local style = S.style
@@ -698,6 +701,7 @@ S.util = util
 end
 
 do
+
 
 local util = S.util
 local style = S.style
@@ -1455,6 +1459,7 @@ end
 
 do
 
+
 local brand = {}
 local DATA = table.concat({
 	"iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABTGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8kZOcW8wkwMCQm1dSFOTu",
@@ -1994,6 +1999,7 @@ end
 
 do
 
+
 local background = {}
 
 local state = {
@@ -2318,6 +2324,7 @@ end
 
 do
 
+
 local env = S.env
 local util = S.util
 local modal = {}
@@ -2368,6 +2375,7 @@ S.modal = modal
 end
 
 do
+
 
 local env = S.env
 local util = S.util
@@ -2672,6 +2680,7 @@ S.options = options
 end
 
 do
+
 
 local config = {}
 
@@ -3075,6 +3084,7 @@ end
 
 do
 
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -3296,6 +3306,7 @@ end
 
 do
 
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -3308,7 +3319,7 @@ local holder = util.new("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -12, 1, -12),
-	Size = UDim2.fromOffset(env.mobile and 282 or 300, 0),
+	Size = UDim2.fromOffset(env.mobile and 276 or 292, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	Parent = env.notes,
 })
@@ -3323,6 +3334,21 @@ util.new("UIListLayout", {
 
 local noted = 0
 
+local function fade(object)
+	if not object then
+		return
+	end
+	if object:IsA("TextLabel") or object:IsA("TextButton") then
+		util.tween(object, 0.14, { TextTransparency = 1 })
+	elseif object:IsA("ImageLabel") then
+		util.tween(object, 0.14, { ImageTransparency = 1 })
+	elseif object:IsA("Frame") then
+		util.tween(object, 0.14, { BackgroundTransparency = 1 })
+	elseif object:IsA("UIStroke") then
+		util.tween(object, 0.14, { Transparency = 1 })
+	end
+end
+
 local function notify(title, body, duration, kind)
 	noted = noted + 1
 	duration = duration or 3
@@ -3335,7 +3361,7 @@ local function notify(title, body, duration, kind)
 		tint = style.values.bad
 	end
 
-	local height = env.mobile and 66 or 62
+	local height = env.mobile and 58 or 52
 	local wrap = util.new("Frame", {
 		Name = "note",
 		BackgroundTransparency = 1,
@@ -3349,47 +3375,34 @@ local function notify(title, body, duration, kind)
 		BackgroundColor3 = style.values.panel,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Position = UDim2.fromOffset(0, 0),
+		Position = UDim2.fromOffset(6, 0),
 		Size = UDim2.fromScale(1, 1),
 		ClipsDescendants = true,
+		ZIndex = 2,
 		Parent = wrap,
 	})
 	util.corner(face, 0)
-	local edge = util.stroke(face, tint, 1)
-	util.depth(face, 0.6)
-	util.shadow(face, 22, 0.28)
+	local edge = util.stroke(face, tint, 0.55)
+	util.depth(face, 0.45)
+	util.shadow(face, 18, 0.3)
 
 	local accent = util.new("Frame", {
 		Name = "accent",
 		BackgroundColor3 = tint,
 		BorderSizePixel = 0,
-		Size = UDim2.new(0, 3, 1, 0),
+		Size = UDim2.new(0, 2, 1, 0),
+		ZIndex = 4,
 		Parent = face,
 	})
 
-	local chip = util.new("Frame", {
-		Name = "chip",
-		BackgroundColor3 = tint,
-		BackgroundTransparency = 0.82,
-		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 16, 0.5, 0),
-		Size = UDim2.fromOffset(30, 30),
-		Parent = face,
-	})
-	util.corner(chip, 0)
-	util.depth(chip, 0.65)
-	util.shadow(chip, 6, 0.52)
-	local chip_edge = util.stroke(chip, tint, 0.35)
-	local badge = icons.kind(kind, chip, 15, tint)
-	badge.AnchorPoint = Vector2.new(0.5, 0.5)
-	badge.Position = UDim2.new(0.5, 0, 0.5, 0)
-	icons.layer(badge, 2)
+	local badge = icons.kind(kind, face, env.mobile and 15 or 14, tint)
+	badge.Position = UDim2.fromOffset(12, 7)
+	icons.layer(badge, 5)
 
 	local heading = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(56, 10),
-		Size = UDim2.new(1, -100, 0, 14),
+		Position = UDim2.fromOffset(33, env.mobile and 7 or 6),
+		Size = UDim2.new(1, -68, 0, 13),
 		Font = bold,
 		Text = string.upper(tostring(title or "Spectrum")),
 		TextColor3 = style.values.text,
@@ -3397,13 +3410,14 @@ local function notify(title, body, duration, kind)
 		TextTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 5,
 		Parent = face,
 	})
 
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(56, 28),
-		Size = UDim2.new(1, -100, 0, 26),
+		Position = UDim2.fromOffset(33, env.mobile and 23 or 22),
+		Size = UDim2.new(1, -68, 0, env.mobile and 26 or 22),
 		Font = font,
 		Text = body or "",
 		TextColor3 = style.values.muted,
@@ -3413,23 +3427,24 @@ local function notify(title, body, duration, kind)
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextWrapped = true,
 		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 5,
 		Parent = face,
 	})
 
 	local close_hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -9, 0, 8),
-		Size = UDim2.fromOffset(20, 20),
+		Position = UDim2.new(1, -5, 0, 2),
+		Size = UDim2.fromOffset(env.mobile and 26 or 20, env.mobile and 26 or 20),
 		Text = "",
 		AutoButtonColor = false,
-		ZIndex = 5,
+		ZIndex = 7,
 		Parent = face,
 	})
-	local close_icon = icons.close(close_hit, 10, style.values.muted)
+	local close_icon = icons.close(close_hit, 8, style.values.muted)
 	close_icon.AnchorPoint = Vector2.new(0.5, 0.5)
-	close_icon.Position = UDim2.new(0.5, 0, 0.5, 0)
-	icons.layer(close_icon, 6)
+	close_icon.Position = UDim2.fromScale(0.5, 0.5)
+	icons.layer(close_icon, 8)
 	close_hit.MouseEnter:Connect(function()
 		icons.tint(close_icon, style.values.bad)
 	end)
@@ -3439,10 +3454,11 @@ local function notify(title, body, duration, kind)
 
 	local rail = util.new("Frame", {
 		BackgroundColor3 = style.values.line,
-		BackgroundTransparency = 0.7,
+		BackgroundTransparency = 0.62,
 		BorderSizePixel = 0,
 		Position = UDim2.new(0, 0, 1, -2),
 		Size = UDim2.new(1, 0, 0, 2),
+		ZIndex = 4,
 		Parent = face,
 	})
 
@@ -3450,6 +3466,7 @@ local function notify(title, body, duration, kind)
 		BackgroundColor3 = tint,
 		BorderSizePixel = 0,
 		Size = UDim2.fromScale(1, 1),
+		ZIndex = 4,
 		Parent = rail,
 	})
 
@@ -3459,24 +3476,9 @@ local function notify(title, body, duration, kind)
 			return
 		end
 		closed = true
-		util.tween(face, 0.16, { BackgroundTransparency = 1, Position = UDim2.fromOffset(8, 4) })
-		util.tween(edge, 0.16, { Transparency = 1 })
-		util.tween(heading, 0.14, { TextTransparency = 1 })
-		util.tween(caption, 0.14, { TextTransparency = 1 })
-		util.tween(chip, 0.14, { BackgroundTransparency = 1 })
-		util.tween(chip_edge, 0.14, { Transparency = 1 })
-		util.tween(accent, 0.14, { BackgroundTransparency = 1 })
-		util.tween(rail, 0.14, { BackgroundTransparency = 1 })
-		util.tween(line, 0.14, { BackgroundTransparency = 1 })
-		for _, child in ipairs(badge:GetDescendants()) do
-			if child:IsA("Frame") then
-				util.tween(child, 0.14, { BackgroundTransparency = 1 })
-			end
-		end
-		for _, child in ipairs(close_icon:GetDescendants()) do
-			if child:IsA("Frame") then
-				util.tween(child, 0.14, { BackgroundTransparency = 1 })
-			end
+		util.tween(face, 0.16, { BackgroundTransparency = 1, Position = UDim2.fromOffset(10, 2) })
+		for _, child in ipairs(face:GetDescendants()) do
+			fade(child)
 		end
 		task.delay(0.18, function()
 			wrap:Destroy()
@@ -3488,14 +3490,14 @@ local function notify(title, body, duration, kind)
 		Size = UDim2.fromScale(1, 1),
 		Text = "",
 		AutoButtonColor = false,
-		ZIndex = 1,
+		ZIndex = 3,
 		Parent = face,
 	})
 	hit.Activated:Connect(close)
 	close_hit.Activated:Connect(close)
 
 	util.tween(face, 0.2, { BackgroundTransparency = 0, Position = UDim2.fromOffset(0, 0) })
-	util.tween(edge, 0.2, { Transparency = 0.62 })
+	util.tween(edge, 0.2, { Transparency = 0.35 })
 	util.tween(heading, 0.2, { TextTransparency = 0 })
 	util.tween(caption, 0.2, { TextTransparency = 0 })
 	util.tween(line, duration, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
@@ -3508,6 +3510,7 @@ S.notify = notify
 end
 
 do
+
 
 local env = S.env
 local util = S.util
@@ -3692,6 +3695,7 @@ end
 
 do
 
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -3783,6 +3787,7 @@ S.watermark = watermark
 end
 
 do
+
 
 local env = S.env
 local util = S.util
@@ -4017,6 +4022,7 @@ S.splash = splash
 end
 
 do
+
 
 local env = S.env
 local util = S.util
@@ -4306,7 +4312,7 @@ function Window.new(title, opts)
 			AutoButtonColor = false,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, offset, 0.5, 0),
-			Size = UDim2.fromOffset(mobile and 28 or 24, mobile and 28 or 24),
+			Size = UDim2.fromOffset(mobile and 34 or 24, mobile and 34 or 24),
 			Text = "",
 			ZIndex = 5,
 			Parent = header,
@@ -4316,7 +4322,7 @@ function Window.new(title, opts)
 		return hit
 	end
 
-	local fold_hit = ghost(mobile and -37 or -33)
+	local fold_hit = ghost(mobile and -44 or -33)
 	local close_hit = ghost(-6)
 	local fold_bar_h = util.new("Frame", {
 		BackgroundColor3 = values().muted,
@@ -5545,6 +5551,7 @@ end
 
 do
 
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -6417,6 +6424,9 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	local stored
 	local active = false
 	local toggled = false
+	local combo = opts.combo == true
+	local capture = {}
+	local ordered = {}
 
 	local function display(value)
 		if value == nil or value == "" then
@@ -6446,7 +6456,19 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 			border = values().accent
 			border_alpha = 1
 		end
-		pill.Text = listening and "..." or display(key)
+		if listening then
+			if combo and #ordered > 0 then
+				local parts = {}
+				for _, id in ipairs(ordered) do
+					parts[#parts + 1] = util.input_label(id)
+				end
+				pill.Text = table.concat(parts, "+")
+			else
+				pill.Text = "..."
+			end
+		else
+			pill.Text = display(key)
+		end
 		pill.TextColor3 = tone
 		pill.BackgroundColor3 = fill
 		edge.Color = border
@@ -6528,6 +6550,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		end
 		listening = not listening
 		S.binding = listening
+		capture = {}
+		ordered = {}
 		sync()
 	end
 
@@ -6549,6 +6573,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	local function cancel_capture()
 		listening = false
 		S.binding = false
+		capture = {}
+		ordered = {}
 		sync()
 	end
 
@@ -6590,6 +6616,16 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 			if (is_mouse and not allow_mouse) or (is_gamepad and not allow_gamepad) then
 				return
 			end
+			if combo then
+				if not table.find(capture, id) then
+					table.insert(capture, id)
+				end
+				if not table.find(ordered, id) then
+					table.insert(ordered, id)
+				end
+				sync()
+				return
+			end
 			key = id
 			cancel_capture()
 			win._store(stored, key)
@@ -6620,6 +6656,32 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 			return
 		end
 		local id = util.input_id(input)
+		if listening and combo and id then
+			for index, entry in ipairs(capture) do
+				if entry == id then
+					table.remove(capture, index)
+					break
+				end
+			end
+			if #capture == 0 then
+				if #ordered == 0 then
+					sync()
+					return
+				end
+				key = table.concat(ordered, "+")
+				cancel_capture()
+				win._store(stored, key)
+				if on_change then
+					on_change(key)
+				end
+				if callback then
+					callback(key, true)
+				end
+				return
+			end
+			sync()
+			return
+		end
 		if id and id == key and held[id] then
 			held[id] = nil
 			release_action()
@@ -6746,6 +6808,7 @@ S.inputs = inputs
 end
 
 do
+
 
 local env = S.env
 local util = S.util
@@ -7482,10 +7545,11 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			Parent = area,
 		})
 		local mark_size = 14
+		local right_reserve = multi and (mark_size + 18) or 24
 		item_edges[option] = util.stroke(item, values().accent, 1)
 		util.new("UIPadding", {
 			PaddingLeft = UDim.new(0, 12),
-			PaddingRight = UDim.new(0, multi and (mark_size + 22) or 26),
+			PaddingRight = UDim.new(0, right_reserve),
 			Parent = item,
 		})
 		item.MouseEnter:Connect(function()
@@ -7511,7 +7575,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				BackgroundColor3 = values().raised,
 				BorderSizePixel = 0,
 				AnchorPoint = Vector2.new(1, 0.5),
-				Position = UDim2.new(1, -12, 0.5, 0),
+				Position = UDim2.new(1, right_reserve - 10, 0.5, 0),
 				Size = UDim2.fromOffset(mark_size, mark_size),
 				ZIndex = 13,
 				Parent = item,
@@ -7528,7 +7592,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		else
 			check = icons.check(item, 10, values().accent)
 			check.AnchorPoint = Vector2.new(1, 0.5)
-			check.Position = UDim2.new(1, -12, 0.5, 0)
+			check.Position = UDim2.new(1, right_reserve - 10, 0.5, 0)
 			icons.layer(check, 4)
 		end
 		check.Visible = false
@@ -8677,6 +8741,7 @@ end
 
 do
 
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -8717,7 +8782,7 @@ function text.section(win, title, icon, opts)
 		icon = opts.icon
 	end
 	icon = type(icon) == "string" and icon ~= "" and icon or nil
-	local height = win._mobile and 30 or 26
+	local height = win._mobile and 34 or 26
 	local holder = win._slot(height, true)
 	local record = win._new_section(opts.open == true, title, opts.id)
 	local band = util.new("Frame", {
@@ -9196,6 +9261,7 @@ end
 
 do
 
+
 local env = S.env
 local config = S.config
 local util = S.util
@@ -9415,6 +9481,10 @@ end
 
 function Library:GetMobileButton()
 	return mobile_launcher ~= nil
+end
+
+function Library:IsMobile()
+	return env.mobile == true
 end
 
 function Library:SetToggleKey(key)

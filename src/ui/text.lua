@@ -40,7 +40,7 @@ function text.section(win, title, icon, opts)
 		icon = opts.icon
 	end
 	icon = type(icon) == "string" and icon ~= "" and icon or nil
-	local height = win._mobile and 30 or 26
+	local height = win._mobile and 34 or 26
 	local holder = win._slot(height, true)
 	local record = win._new_section(opts.open == true, title, opts.id)
 	local band = util.new("Frame", {

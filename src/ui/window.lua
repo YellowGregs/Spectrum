@@ -288,7 +288,7 @@ function Window.new(title, opts)
 			AutoButtonColor = false,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, offset, 0.5, 0),
-			Size = UDim2.fromOffset(mobile and 28 or 24, mobile and 28 or 24),
+			Size = UDim2.fromOffset(mobile and 34 or 24, mobile and 34 or 24),
 			Text = "",
 			ZIndex = 5,
 			Parent = header,
@@ -298,7 +298,7 @@ function Window.new(title, opts)
 		return hit
 	end
 
-	local fold_hit = ghost(mobile and -37 or -33)
+	local fold_hit = ghost(mobile and -44 or -33)
 	local close_hit = ghost(-6)
 	local fold_bar_h = util.new("Frame", {
 		BackgroundColor3 = values().muted,

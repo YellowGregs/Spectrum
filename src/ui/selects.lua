@@ -735,10 +735,11 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			Parent = area,
 		})
 		local mark_size = 14
+		local right_reserve = multi and (mark_size + 18) or 24
 		item_edges[option] = util.stroke(item, values().accent, 1)
 		util.new("UIPadding", {
 			PaddingLeft = UDim.new(0, 12),
-			PaddingRight = UDim.new(0, multi and (mark_size + 22) or 26),
+			PaddingRight = UDim.new(0, right_reserve),
 			Parent = item,
 		})
 		item.MouseEnter:Connect(function()
@@ -764,7 +765,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				BackgroundColor3 = values().raised,
 				BorderSizePixel = 0,
 				AnchorPoint = Vector2.new(1, 0.5),
-				Position = UDim2.new(1, -12, 0.5, 0),
+				Position = UDim2.new(1, right_reserve - 10, 0.5, 0),
 				Size = UDim2.fromOffset(mark_size, mark_size),
 				ZIndex = 13,
 				Parent = item,
@@ -781,7 +782,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		else
 			check = icons.check(item, 10, values().accent)
 			check.AnchorPoint = Vector2.new(1, 0.5)
-			check.Position = UDim2.new(1, -12, 0.5, 0)
+			check.Position = UDim2.new(1, right_reserve - 10, 0.5, 0)
 			icons.layer(check, 4)
 		end
 		check.Visible = false
