@@ -2,7 +2,6 @@ local S = {}
 
 do
 
-
 local cloneref = cloneref or function(obj)
 	return obj
 end
@@ -166,10 +165,10 @@ function env.viewport()
 end
 
 S.env = env
+
 end
 
 do
-
 
 local style = {}
 
@@ -262,10 +261,10 @@ end
 
 style.values = values
 S.style = style
+
 end
 
 do
-
 
 local env = S.env
 local style = S.style
@@ -698,10 +697,10 @@ end)
 util.viewport = env.viewport
 util.mobile = env.mobile
 S.util = util
+
 end
 
 do
-
 
 local util = S.util
 local style = S.style
@@ -1455,10 +1454,10 @@ function icons.tint(object, color)
 end
 
 S.icons = icons
+
 end
 
 do
-
 
 local brand = {}
 local DATA = table.concat({
@@ -1995,10 +1994,10 @@ function brand.logo()
 end
 
 S.brand = brand
+
 end
 
 do
-
 
 local background = {}
 
@@ -2320,10 +2319,10 @@ function background.active()
 end
 
 S.background = background
+
 end
 
 do
-
 
 local env = S.env
 local util = S.util
@@ -2372,10 +2371,10 @@ end
 
 blocker.Activated:Connect(modal.dismiss)
 S.modal = modal
+
 end
 
 do
-
 
 local env = S.env
 local util = S.util
@@ -2677,10 +2676,10 @@ style.paint(function()
 end)
 
 S.options = options
+
 end
 
 do
-
 
 local config = {}
 
@@ -3080,10 +3079,10 @@ function config.pending()
 end
 
 S.config = config
+
 end
 
 do
-
 
 local env = S.env
 local util = S.util
@@ -3302,10 +3301,10 @@ function launcher.mount(on_toggle)
 end
 
 S.launcher = launcher
+
 end
 
 do
-
 
 local env = S.env
 local util = S.util
@@ -3521,10 +3520,10 @@ local function notify(title, body, duration, kind)
 end
 
 S.notify = notify
+
 end
 
 do
-
 
 local env = S.env
 local util = S.util
@@ -3808,10 +3807,10 @@ style.paint(function()
 end)
 
 S.tooltip = tooltip
+
 end
 
 do
-
 
 local env = S.env
 local util = S.util
@@ -3901,10 +3900,10 @@ style.paint(paint)
 paint()
 
 S.watermark = watermark
+
 end
 
 do
-
 
 local env = S.env
 local util = S.util
@@ -4136,10 +4135,10 @@ function splash.mount()
 end
 
 S.splash = splash
+
 end
 
 do
-
 
 local env = S.env
 local util = S.util
@@ -4559,7 +4558,7 @@ function Window.new(title, opts)
 	end)
 	style.paint(paint_grip)
 
-	local tab_h = mobile and 28 or 24
+	local tab_h = mobile and 32 or 28
 	local tabs = {}
 	local section_records = {}
 	local default_tab = {
@@ -5664,10 +5663,10 @@ function Window.new(title, opts)
 end
 
 S.window = Window
+
 end
 
 do
-
 
 local env = S.env
 local util = S.util
@@ -6922,10 +6921,10 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 end
 
 S.inputs = inputs
+
 end
 
 do
-
 
 local env = S.env
 local util = S.util
@@ -8854,10 +8853,10 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 end
 
 S.selects = selects
+
 end
 
 do
-
 
 local env = S.env
 local util = S.util
@@ -9374,17 +9373,17 @@ function text.textbox(win, title, default, callback, icon, opts)
 end
 
 S.text = text
+
 end
 
 do
-
 
 local env = S.env
 local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-21.tooltip"
+Library.Build = "2026-11-21.tabs"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -9817,6 +9816,7 @@ end
 
 shared.Spectrum = Library
 S.library = Library
+
 end
 
 return S.library

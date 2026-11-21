@@ -418,7 +418,7 @@ function Window.new(title, opts)
 	end)
 	style.paint(paint_grip)
 
-	local tab_h = mobile and 28 or 24
+	local tab_h = mobile and 32 or 28
 	local tabs = {}
 	local section_records = {}
 	local default_tab = {
