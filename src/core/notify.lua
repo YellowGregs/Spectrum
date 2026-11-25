@@ -99,9 +99,9 @@ local function notify(title, body, duration, kind)
 	local width = env.mobile and 316 or 340
 	local pad = 20
 	local chip_size = 28
-	local chip_x = pad + 2
+	local chip_x = pad
 	local icon_size = 15
-	local text_left = chip_x + chip_size + 6
+	local text_left = chip_x + chip_size + 8
 	local title_size = util.size(12)
 	local body_size = util.size(10)
 	local caption_y = env.mobile and 29 or 28
@@ -228,7 +228,7 @@ local function notify(title, body, duration, kind)
 		Parent = content,
 	})
 	local close_color = style.values.muted:Lerp(style.values.text, 0.35)
-	local close_icon = icons.close(close_hit, 7, close_color)
+	local close_icon = icons.close(close_hit, 9, close_color)
 	close_icon.AnchorPoint = Vector2.new(0.5, 0.5)
 	close_icon.Position = UDim2.fromScale(0.5, 0.5)
 	icons.layer(close_icon, 8)
