@@ -112,6 +112,17 @@ local function notify(title, body, duration, kind)
 		Parent = wrap,
 	})
 	local scale = util.new("UIScale", { Scale = 0.98, Parent = content })
+	local scrim = util.new("Frame", {
+		Name = "scrim",
+		BackgroundColor3 = style.values.background,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(-8, -4),
+		Size = UDim2.new(1, 16, 1, 8),
+		ZIndex = 2,
+		Parent = content,
+	})
+	util.corner(scrim, 5)
 
 	local badge = icons.kind(kind, content, icon_size, tint)
 	badge.AnchorPoint = Vector2.new(0, 0)
@@ -130,7 +141,7 @@ local function notify(title, body, duration, kind)
 		TextSize = title_size,
 		TextTransparency = 1,
 		TextStrokeColor3 = Color3.new(0, 0, 0),
-		TextStrokeTransparency = 0.55,
+		TextStrokeTransparency = 0.4,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 5,
@@ -147,7 +158,7 @@ local function notify(title, body, duration, kind)
 		TextSize = body_size,
 		TextTransparency = 1,
 		TextStrokeColor3 = Color3.new(0, 0, 0),
-		TextStrokeTransparency = 0.7,
+		TextStrokeTransparency = 0.55,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextWrapped = true,
@@ -209,6 +220,7 @@ local function notify(title, body, duration, kind)
 		util.tween(wrap, 0.16, { Size = UDim2.new(1, 0, 0, 0) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		util.tween(content, 0.16, { Position = UDim2.fromOffset(18, -2) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		util.tween(scale, 0.16, { Scale = 0.96 })
+		util.tween(scrim, 0.12, { BackgroundTransparency = 1 })
 		util.tween(heading, 0.12, { TextTransparency = 1 })
 		util.tween(caption, 0.12, { TextTransparency = 1 })
 		fade_icon(badge, 1, 0.12)
@@ -237,6 +249,7 @@ local function notify(title, body, duration, kind)
 	util.tween(content, 0.26, { Position = UDim2.fromOffset(0, 0) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	util.tween(scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	util.tween(badge_scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	util.tween(scrim, 0.22, { BackgroundTransparency = 0.45 })
 	util.tween(heading, 0.2, { TextTransparency = 0 })
 	task.delay(0.04, function()
 		if closed or not wrap.Parent then
