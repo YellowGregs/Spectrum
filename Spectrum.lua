@@ -1,7 +1,6 @@
 local S = {}
 
 do
-
 local cloneref = cloneref or function(obj)
 	return obj
 end
@@ -87,7 +86,11 @@ local function sweep(holder)
 	end
 	pcall(function()
 		for _, item in ipairs(holder:GetChildren()) do
-			if string.sub(item.Name, 1, 8) == "Spectrum" then
+			local marked = false
+			pcall(function()
+				marked = item:GetAttribute("SpectrumLayer") == true
+			end)
+			if marked or string.sub(item.Name, 1, 8) == "Spectrum" then
 				item:Destroy()
 			end
 		end
@@ -109,6 +112,7 @@ local function can_parent(parent)
 	return placed
 end
 
+local owned = {}
 local holder = nil
 if thread_fix then
 	local ok, hidden = pcall(function()
@@ -128,9 +132,14 @@ if not holder then
 	error("[Spectrum] no PlayerGui available for the interface", 0)
 end
 
+sweep(holder)
+
 local function layer(name, order)
 	local gui = Instance.new("ScreenGui")
 	gui.Name = gui_name(name)
+	pcall(function()
+		gui:SetAttribute("SpectrumLayer", true)
+	end)
 	gui.ResetOnSpawn = false
 	gui.IgnoreGuiInset = true
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -146,6 +155,7 @@ local function layer(name, order)
 	end
 	gui.Parent = holder
 	shared.SpectrumLayers[#shared.SpectrumLayers + 1] = gui
+	owned[#owned + 1] = gui
 	return gui
 end
 
@@ -164,12 +174,31 @@ function env.viewport()
 	return size
 end
 
-S.env = env
-
+function env.sweep_layers()
+	local mine = {}
+	for _, gui in ipairs(owned) do
+		if typeof(gui) == "Instance" then
+			mine[gui] = true
+			if gui.Parent then
+				pcall(function()
+					gui:Destroy()
+				end)
+			end
+		end
+	end
+	if type(shared.SpectrumLayers) == "table" then
+		for index = #shared.SpectrumLayers, 1, -1 do
+			if mine[shared.SpectrumLayers[index]] then
+				table.remove(shared.SpectrumLayers, index)
+			end
+		end
+	end
+	table.clear(owned)
 end
 
+S.env = env
+end
 do
-
 local style = {}
 
 local defaults = {
@@ -261,11 +290,8 @@ end
 
 style.values = values
 S.style = style
-
 end
-
 do
-
 local env = S.env
 local style = S.style
 local white = Color3.new(1, 1, 1)
@@ -697,11 +723,8 @@ end)
 util.viewport = env.viewport
 util.mobile = env.mobile
 S.util = util
-
 end
-
 do
-
 local util = S.util
 local style = S.style
 local icons = {}
@@ -1454,11 +1477,8 @@ function icons.tint(object, color)
 end
 
 S.icons = icons
-
 end
-
 do
-
 local brand = {}
 local DATA = table.concat({
 	"iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABTGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8kZOcW8wkwMCQm1dSFOTu",
@@ -1994,11 +2014,8 @@ function brand.logo()
 end
 
 S.brand = brand
-
 end
-
 do
-
 local background = {}
 
 local state = {
@@ -2319,11 +2336,8 @@ function background.active()
 end
 
 S.background = background
-
 end
-
 do
-
 local env = S.env
 local util = S.util
 local modal = {}
@@ -2371,11 +2385,8 @@ end
 
 blocker.Activated:Connect(modal.dismiss)
 S.modal = modal
-
 end
-
 do
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -2676,11 +2687,8 @@ style.paint(function()
 end)
 
 S.options = options
-
 end
-
 do
-
 local config = {}
 
 local ROOT = "spectrum/configs"
@@ -2691,6 +2699,7 @@ local registry = {}
 local window_counts = {}
 local value_counts = {}
 local scheduled = false
+local scheduled_thread
 local auto_save_enabled = false
 local dirty = false
 local last_body
@@ -2897,12 +2906,21 @@ function config.touch()
 		return
 	end
 	scheduled = true
-	task.delay(0.8, function()
+	scheduled_thread = task.delay(0.8, function()
 		scheduled = false
+		scheduled_thread = nil
 		if auto_save_enabled then
 			config.save()
 		end
 	end)
+end
+
+function config.cancel()
+	if scheduled_thread then
+		pcall(task.cancel, scheduled_thread)
+		scheduled_thread = nil
+	end
+	scheduled = false
 end
 
 function config.window_key(title)
@@ -3079,11 +3097,8 @@ function config.pending()
 end
 
 S.config = config
-
 end
-
 do
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -3301,17 +3316,14 @@ function launcher.mount(on_toggle)
 end
 
 S.launcher = launcher
-
 end
-
 do
-
 local env = S.env
 local util = S.util
 local style = S.style
 local icons = S.icons
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.RobotoCondensed
+local font = Enum.Font.Gotham
 local TextService = game:GetService("TextService")
 
 local holder = util.new("Frame", {
@@ -3319,13 +3331,13 @@ local holder = util.new("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -12, 1, -12),
-	Size = UDim2.fromOffset(env.mobile and 276 or 292, 0),
+	Size = UDim2.fromOffset(env.mobile and 284 or 304, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	Parent = env.notes,
 })
 
 util.new("UIListLayout", {
-	Padding = UDim.new(0, 6),
+	Padding = UDim.new(0, 8),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 	HorizontalAlignment = Enum.HorizontalAlignment.Right,
 	VerticalAlignment = Enum.VerticalAlignment.Bottom,
@@ -3334,14 +3346,14 @@ util.new("UIListLayout", {
 
 local noted = 0
 
-local function wrapped_height(text, width)
+local function wrapped_height(text, width, size)
 	local ok, box = pcall(function()
-		return TextService:GetTextSize(text, 9, font, Vector2.new(width, 4096))
+		return TextService:GetTextSize(text, size or 10, font, Vector2.new(width, 4096))
 	end)
 	if ok and typeof(box) == "Vector2" then
 		return math.ceil(box.Y)
 	end
-	return 12
+	return (size or 10) + 2
 end
 
 local function fade(object)
@@ -3371,11 +3383,16 @@ local function notify(title, body, duration, kind)
 		tint = style.values.bad
 	end
 
-	local width = env.mobile and 276 or 292
-	local text_width = width - 68
-	local caption_y = env.mobile and 23 or 22
-	local caption_height = math.max(env.mobile and 26 or 22, wrapped_height(body or "", text_width) + 2)
-	local height = math.max(env.mobile and 58 or 52, caption_y + caption_height + (env.mobile and 8 or 6))
+	local width = env.mobile and 284 or 304
+	local pad = 12
+	local icon_size = env.mobile and 28 or 26
+	local text_left = pad + icon_size + 10
+	local text_width = width - text_left - 34
+	local title_size = util.size(11)
+	local body_size = util.size(10)
+	local caption_y = env.mobile and 29 or 27
+	local caption_height = math.max(env.mobile and 24 or 20, wrapped_height(body or "", text_width, body_size) + 2)
+	local height = math.max(env.mobile and 58 or 56, caption_y + caption_height + (env.mobile and 11 or 10))
 	local wrap = util.new("Frame", {
 		Name = "note",
 		BackgroundTransparency = 1,
@@ -3389,38 +3406,41 @@ local function notify(title, body, duration, kind)
 		BackgroundColor3 = style.values.panel,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Position = UDim2.fromOffset(6, 0),
-		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(8, 0),
+		Size = UDim2.new(1, -8, 1, 0),
 		ClipsDescendants = true,
 		ZIndex = 2,
 		Parent = wrap,
 	})
-	util.corner(face, 0)
-	local edge = util.stroke(face, tint, 0.55)
-	util.depth(face, 0.45)
+	util.corner(face, 6)
+	local edge = util.stroke(face, style.values.line, 0.25)
 	util.shadow(face, 18, 0.3)
 
-	local accent = util.new("Frame", {
-		Name = "accent",
+	local tile = util.new("Frame", {
+		Name = "icon",
 		BackgroundColor3 = tint,
+		BackgroundTransparency = 0.82,
 		BorderSizePixel = 0,
-		Size = UDim2.new(0, 2, 1, 0),
+		Position = UDim2.fromOffset(pad, pad),
+		Size = UDim2.fromOffset(icon_size, icon_size),
 		ZIndex = 4,
 		Parent = face,
 	})
+	util.corner(tile, 6)
 
-	local badge = icons.kind(kind, face, env.mobile and 15 or 14, tint)
-	badge.Position = UDim2.fromOffset(12, 7)
+	local badge = icons.kind(kind, tile, env.mobile and 15 or 14, tint)
+	badge.AnchorPoint = Vector2.new(0.5, 0.5)
+	badge.Position = UDim2.fromScale(0.5, 0.5)
 	icons.layer(badge, 5)
 
 	local heading = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(33, env.mobile and 7 or 6),
-		Size = UDim2.new(1, -68, 0, 13),
+		Position = UDim2.fromOffset(text_left, env.mobile and 9 or 8),
+		Size = UDim2.new(1, -(text_left + 30), 0, 15),
 		Font = bold,
-		Text = string.upper(tostring(title or "Spectrum")),
+		Text = tostring(title or "Spectrum"),
 		TextColor3 = style.values.text,
-		TextSize = 10,
+		TextSize = title_size,
 		TextTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
@@ -3430,12 +3450,12 @@ local function notify(title, body, duration, kind)
 
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(33, caption_y),
-		Size = UDim2.new(1, -68, 0, caption_height),
+		Position = UDim2.fromOffset(text_left, caption_y),
+		Size = UDim2.new(1, -(text_left + 24), 0, caption_height),
 		Font = font,
 		Text = body or "",
 		TextColor3 = style.values.muted,
-		TextSize = 9,
+		TextSize = body_size,
 		TextTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
@@ -3447,8 +3467,8 @@ local function notify(title, body, duration, kind)
 	local close_hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -5, 0, 2),
-		Size = UDim2.fromOffset(env.mobile and 26 or 20, env.mobile and 26 or 20),
+		Position = UDim2.new(1, -4, 0, 2),
+		Size = UDim2.fromOffset(env.mobile and 26 or 22, env.mobile and 26 or 22),
 		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 7,
@@ -3467,7 +3487,7 @@ local function notify(title, body, duration, kind)
 
 	local rail = util.new("Frame", {
 		BackgroundColor3 = style.values.line,
-		BackgroundTransparency = 0.62,
+		BackgroundTransparency = 0.65,
 		BorderSizePixel = 0,
 		Position = UDim2.new(0, 0, 1, -2),
 		Size = UDim2.new(1, 0, 0, 2),
@@ -3489,11 +3509,14 @@ local function notify(title, body, duration, kind)
 			return
 		end
 		closed = true
-		util.tween(face, 0.16, { BackgroundTransparency = 1, Position = UDim2.fromOffset(10, 2) })
+		if not face.Parent then
+			return
+		end
+		util.tween(face, 0.18, { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0) })
 		for _, child in ipairs(face:GetDescendants()) do
 			fade(child)
 		end
-		task.delay(0.18, function()
+		task.delay(0.2, function()
 			wrap:Destroy()
 		end)
 	end
@@ -3509,10 +3532,10 @@ local function notify(title, body, duration, kind)
 	hit.Activated:Connect(close)
 	close_hit.Activated:Connect(close)
 
-	util.tween(face, 0.2, { BackgroundTransparency = 0, Position = UDim2.fromOffset(0, 0) })
-	util.tween(edge, 0.2, { Transparency = 0.35 })
-	util.tween(heading, 0.2, { TextTransparency = 0 })
-	util.tween(caption, 0.2, { TextTransparency = 0 })
+	util.tween(face, 0.22, { BackgroundTransparency = 0, Position = UDim2.fromOffset(0, 0) })
+	util.tween(edge, 0.22, { Transparency = 0.2 })
+	util.tween(heading, 0.22, { TextTransparency = 0 })
+	util.tween(caption, 0.22, { TextTransparency = 0 })
 	util.tween(line, duration, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
 	task.delay(duration, close)
 
@@ -3520,11 +3543,8 @@ local function notify(title, body, duration, kind)
 end
 
 S.notify = notify
-
 end
-
 do
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -3807,11 +3827,8 @@ style.paint(function()
 end)
 
 S.tooltip = tooltip
-
 end
-
 do
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -3900,11 +3917,8 @@ style.paint(paint)
 paint()
 
 S.watermark = watermark
-
 end
-
 do
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -4135,11 +4149,8 @@ function splash.mount()
 end
 
 S.splash = splash
-
 end
-
 do
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -5663,11 +5674,8 @@ function Window.new(title, opts)
 end
 
 S.window = Window
-
 end
-
 do
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -6921,11 +6929,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 end
 
 S.inputs = inputs
-
 end
-
 do
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -6971,6 +6976,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 	opts = type(opts) == "table" and opts or {}
 	local mobile = win._mobile
+	local clearable = opts.clearable ~= false
 	local choices = {}
 	for _, option in ipairs(options or {}) do
 		choices[#choices + 1] = tostring(option)
@@ -7501,6 +7507,16 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				callback(picked)
 			end
 		else
+			if clearable and single == option then
+				single = nil
+				refresh()
+				set_open(false)
+				win._store(key, nil)
+				if callback then
+					callback(nil)
+				end
+				return
+			end
 			single = option
 			refresh()
 			set_open(false)
@@ -8853,11 +8869,8 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 end
 
 S.selects = selects
-
 end
-
 do
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -9373,17 +9386,14 @@ function text.textbox(win, title, default, callback, icon, opts)
 end
 
 S.text = text
-
 end
-
 do
-
 local env = S.env
 local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-21.tabs"
+Library.Build = "2026-11-25.notify"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -9402,6 +9412,8 @@ local mobile_launcher
 local splash
 local menu_held = {}
 local combo_fired = false
+local destroyed = false
+local close_link
 
 local function normalize_key(value)
 	local text = tostring(value or ""):gsub("%s+", "")
@@ -9737,7 +9749,14 @@ local menu_release = env.uis.InputEnded:Connect(function(input)
 end)
 
 function Library:Destroy()
+	if destroyed then
+		return
+	end
+	destroyed = true
 	config.flush()
+	if type(config.cancel) == "function" then
+		config.cancel()
+	end
 	S.binding = false
 	if menu_link then
 		menu_link:Disconnect()
@@ -9765,7 +9784,21 @@ function Library:Destroy()
 		pcall(mobile_launcher.destroy)
 		mobile_launcher = nil
 	end
-	local roots = table.clone(S.window.roots)
+	if S.modal then
+		pcall(S.modal.dismiss)
+	end
+	if S.options then
+		if type(S.options.destroy) == "function" then
+			pcall(S.options.destroy)
+		elseif type(S.options.close) == "function" then
+			pcall(S.options.close)
+		end
+	end
+	local roots = S.window and table.clone(S.window.roots) or {}
+	if S.window then
+		table.clear(S.window.roots)
+		table.clear(S.window.windows)
+	end
 	for _, root in ipairs(roots) do
 		pcall(function()
 			if root.Parent then
@@ -9773,18 +9806,23 @@ function Library:Destroy()
 			end
 		end)
 	end
-	table.clear(S.window.roots)
-	table.clear(S.window.windows)
-	for _, layer in ipairs({ S.env.windows, S.env.modal, S.env.notes, S.env.launcher, S.env.splash }) do
+	if S.env then
+		for _, layer in ipairs({ S.env.windows, S.env.modal, S.env.notes, S.env.launcher, S.env.splash }) do
+			if layer then
+				pcall(function()
+					layer:Destroy()
+				end)
+			end
+		end
+		if type(S.env.sweep_layers) == "function" then
+			pcall(S.env.sweep_layers)
+		end
+	end
+	if close_link then
 		pcall(function()
-			layer:Destroy()
+			close_link:Disconnect()
 		end)
-	end
-	if S.modal then
-		pcall(S.modal.dismiss)
-	end
-	if S.options and S.options.close then
-		pcall(S.options.close)
+		close_link = nil
 	end
 	if shared.Spectrum == Library then
 		shared.Spectrum = nil
@@ -9792,7 +9830,7 @@ function Library:Destroy()
 end
 
 pcall(function()
-	game:BindToClose(function()
+	close_link = game:BindToClose(function()
 		config.flush()
 	end)
 end)
@@ -9816,7 +9854,6 @@ end
 
 shared.Spectrum = Library
 S.library = Library
-
 end
 
 return S.library

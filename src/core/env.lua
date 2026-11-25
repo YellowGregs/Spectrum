@@ -85,7 +85,11 @@ local function sweep(holder)
 	end
 	pcall(function()
 		for _, item in ipairs(holder:GetChildren()) do
-			if string.sub(item.Name, 1, 8) == "Spectrum" then
+			local marked = false
+			pcall(function()
+				marked = item:GetAttribute("SpectrumLayer") == true
+			end)
+			if marked or string.sub(item.Name, 1, 8) == "Spectrum" then
 				item:Destroy()
 			end
 		end
@@ -107,6 +111,7 @@ local function can_parent(parent)
 	return placed
 end
 
+local owned = {}
 local holder = nil
 if thread_fix then
 	local ok, hidden = pcall(function()
@@ -126,9 +131,14 @@ if not holder then
 	error("[Spectrum] no PlayerGui available for the interface", 0)
 end
 
+sweep(holder)
+
 local function layer(name, order)
 	local gui = Instance.new("ScreenGui")
 	gui.Name = gui_name(name)
+	pcall(function()
+		gui:SetAttribute("SpectrumLayer", true)
+	end)
 	gui.ResetOnSpawn = false
 	gui.IgnoreGuiInset = true
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -144,6 +154,7 @@ local function layer(name, order)
 	end
 	gui.Parent = holder
 	shared.SpectrumLayers[#shared.SpectrumLayers + 1] = gui
+	owned[#owned + 1] = gui
 	return gui
 end
 
@@ -160,6 +171,28 @@ function env.viewport()
 		return Vector2.new(1280, 720)
 	end
 	return size
+end
+
+function env.sweep_layers()
+	local mine = {}
+	for _, gui in ipairs(owned) do
+		if typeof(gui) == "Instance" then
+			mine[gui] = true
+			if gui.Parent then
+				pcall(function()
+					gui:Destroy()
+				end)
+			end
+		end
+	end
+	if type(shared.SpectrumLayers) == "table" then
+		for index = #shared.SpectrumLayers, 1, -1 do
+			if mine[shared.SpectrumLayers[index]] then
+				table.remove(shared.SpectrumLayers, index)
+			end
+		end
+	end
+	table.clear(owned)
 end
 
 S.env = env

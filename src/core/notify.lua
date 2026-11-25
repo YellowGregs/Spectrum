@@ -5,7 +5,7 @@ local util = S.util
 local style = S.style
 local icons = S.icons
 local bold = Enum.Font.GothamBold
-local font = Enum.Font.RobotoCondensed
+local font = Enum.Font.Gotham
 local TextService = game:GetService("TextService")
 
 local holder = util.new("Frame", {
@@ -13,13 +13,13 @@ local holder = util.new("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -12, 1, -12),
-	Size = UDim2.fromOffset(env.mobile and 276 or 292, 0),
+	Size = UDim2.fromOffset(env.mobile and 284 or 304, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	Parent = env.notes,
 })
 
 util.new("UIListLayout", {
-	Padding = UDim.new(0, 6),
+	Padding = UDim.new(0, 8),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 	HorizontalAlignment = Enum.HorizontalAlignment.Right,
 	VerticalAlignment = Enum.VerticalAlignment.Bottom,
@@ -28,14 +28,14 @@ util.new("UIListLayout", {
 
 local noted = 0
 
-local function wrapped_height(text, width)
+local function wrapped_height(text, width, size)
 	local ok, box = pcall(function()
-		return TextService:GetTextSize(text, 9, font, Vector2.new(width, 4096))
+		return TextService:GetTextSize(text, size or 10, font, Vector2.new(width, 4096))
 	end)
 	if ok and typeof(box) == "Vector2" then
 		return math.ceil(box.Y)
 	end
-	return 12
+	return (size or 10) + 2
 end
 
 local function fade(object)
@@ -65,11 +65,16 @@ local function notify(title, body, duration, kind)
 		tint = style.values.bad
 	end
 
-	local width = env.mobile and 276 or 292
-	local text_width = width - 68
-	local caption_y = env.mobile and 23 or 22
-	local caption_height = math.max(env.mobile and 26 or 22, wrapped_height(body or "", text_width) + 2)
-	local height = math.max(env.mobile and 58 or 52, caption_y + caption_height + (env.mobile and 8 or 6))
+	local width = env.mobile and 284 or 304
+	local pad = 12
+	local icon_size = env.mobile and 28 or 26
+	local text_left = pad + icon_size + 10
+	local text_width = width - text_left - 34
+	local title_size = util.size(11)
+	local body_size = util.size(10)
+	local caption_y = env.mobile and 29 or 27
+	local caption_height = math.max(env.mobile and 24 or 20, wrapped_height(body or "", text_width, body_size) + 2)
+	local height = math.max(env.mobile and 58 or 56, caption_y + caption_height + (env.mobile and 11 or 10))
 	local wrap = util.new("Frame", {
 		Name = "note",
 		BackgroundTransparency = 1,
@@ -83,38 +88,41 @@ local function notify(title, body, duration, kind)
 		BackgroundColor3 = style.values.panel,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Position = UDim2.fromOffset(6, 0),
-		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(8, 0),
+		Size = UDim2.new(1, -8, 1, 0),
 		ClipsDescendants = true,
 		ZIndex = 2,
 		Parent = wrap,
 	})
-	util.corner(face, 0)
-	local edge = util.stroke(face, tint, 0.55)
-	util.depth(face, 0.45)
+	util.corner(face, 6)
+	local edge = util.stroke(face, style.values.line, 0.25)
 	util.shadow(face, 18, 0.3)
 
-	local accent = util.new("Frame", {
-		Name = "accent",
+	local tile = util.new("Frame", {
+		Name = "icon",
 		BackgroundColor3 = tint,
+		BackgroundTransparency = 0.82,
 		BorderSizePixel = 0,
-		Size = UDim2.new(0, 2, 1, 0),
+		Position = UDim2.fromOffset(pad, pad),
+		Size = UDim2.fromOffset(icon_size, icon_size),
 		ZIndex = 4,
 		Parent = face,
 	})
+	util.corner(tile, 6)
 
-	local badge = icons.kind(kind, face, env.mobile and 15 or 14, tint)
-	badge.Position = UDim2.fromOffset(12, 7)
+	local badge = icons.kind(kind, tile, env.mobile and 15 or 14, tint)
+	badge.AnchorPoint = Vector2.new(0.5, 0.5)
+	badge.Position = UDim2.fromScale(0.5, 0.5)
 	icons.layer(badge, 5)
 
 	local heading = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(33, env.mobile and 7 or 6),
-		Size = UDim2.new(1, -68, 0, 13),
+		Position = UDim2.fromOffset(text_left, env.mobile and 9 or 8),
+		Size = UDim2.new(1, -(text_left + 30), 0, 15),
 		Font = bold,
-		Text = string.upper(tostring(title or "Spectrum")),
+		Text = tostring(title or "Spectrum"),
 		TextColor3 = style.values.text,
-		TextSize = 10,
+		TextSize = title_size,
 		TextTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
@@ -124,12 +132,12 @@ local function notify(title, body, duration, kind)
 
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(33, caption_y),
-		Size = UDim2.new(1, -68, 0, caption_height),
+		Position = UDim2.fromOffset(text_left, caption_y),
+		Size = UDim2.new(1, -(text_left + 24), 0, caption_height),
 		Font = font,
 		Text = body or "",
 		TextColor3 = style.values.muted,
-		TextSize = 9,
+		TextSize = body_size,
 		TextTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
@@ -141,8 +149,8 @@ local function notify(title, body, duration, kind)
 	local close_hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -5, 0, 2),
-		Size = UDim2.fromOffset(env.mobile and 26 or 20, env.mobile and 26 or 20),
+		Position = UDim2.new(1, -4, 0, 2),
+		Size = UDim2.fromOffset(env.mobile and 26 or 22, env.mobile and 26 or 22),
 		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 7,
@@ -161,7 +169,7 @@ local function notify(title, body, duration, kind)
 
 	local rail = util.new("Frame", {
 		BackgroundColor3 = style.values.line,
-		BackgroundTransparency = 0.62,
+		BackgroundTransparency = 0.65,
 		BorderSizePixel = 0,
 		Position = UDim2.new(0, 0, 1, -2),
 		Size = UDim2.new(1, 0, 0, 2),
@@ -183,11 +191,14 @@ local function notify(title, body, duration, kind)
 			return
 		end
 		closed = true
-		util.tween(face, 0.16, { BackgroundTransparency = 1, Position = UDim2.fromOffset(10, 2) })
+		if not face.Parent then
+			return
+		end
+		util.tween(face, 0.18, { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0) })
 		for _, child in ipairs(face:GetDescendants()) do
 			fade(child)
 		end
-		task.delay(0.18, function()
+		task.delay(0.2, function()
 			wrap:Destroy()
 		end)
 	end
@@ -203,10 +214,10 @@ local function notify(title, body, duration, kind)
 	hit.Activated:Connect(close)
 	close_hit.Activated:Connect(close)
 
-	util.tween(face, 0.2, { BackgroundTransparency = 0, Position = UDim2.fromOffset(0, 0) })
-	util.tween(edge, 0.2, { Transparency = 0.35 })
-	util.tween(heading, 0.2, { TextTransparency = 0 })
-	util.tween(caption, 0.2, { TextTransparency = 0 })
+	util.tween(face, 0.22, { BackgroundTransparency = 0, Position = UDim2.fromOffset(0, 0) })
+	util.tween(edge, 0.22, { Transparency = 0.2 })
+	util.tween(heading, 0.22, { TextTransparency = 0 })
+	util.tween(caption, 0.22, { TextTransparency = 0 })
 	util.tween(line, duration, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
 	task.delay(duration, close)
 

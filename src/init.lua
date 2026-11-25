@@ -5,7 +5,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-21.tabs"
+Library.Build = "2026-11-25.notify"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -24,6 +24,8 @@ local mobile_launcher
 local splash
 local menu_held = {}
 local combo_fired = false
+local destroyed = false
+local close_link
 
 local function normalize_key(value)
 	local text = tostring(value or ""):gsub("%s+", "")
@@ -359,7 +361,14 @@ local menu_release = env.uis.InputEnded:Connect(function(input)
 end)
 
 function Library:Destroy()
+	if destroyed then
+		return
+	end
+	destroyed = true
 	config.flush()
+	if type(config.cancel) == "function" then
+		config.cancel()
+	end
 	S.binding = false
 	if menu_link then
 		menu_link:Disconnect()
@@ -387,7 +396,21 @@ function Library:Destroy()
 		pcall(mobile_launcher.destroy)
 		mobile_launcher = nil
 	end
-	local roots = table.clone(S.window.roots)
+	if S.modal then
+		pcall(S.modal.dismiss)
+	end
+	if S.options then
+		if type(S.options.destroy) == "function" then
+			pcall(S.options.destroy)
+		elseif type(S.options.close) == "function" then
+			pcall(S.options.close)
+		end
+	end
+	local roots = S.window and table.clone(S.window.roots) or {}
+	if S.window then
+		table.clear(S.window.roots)
+		table.clear(S.window.windows)
+	end
 	for _, root in ipairs(roots) do
 		pcall(function()
 			if root.Parent then
@@ -395,18 +418,23 @@ function Library:Destroy()
 			end
 		end)
 	end
-	table.clear(S.window.roots)
-	table.clear(S.window.windows)
-	for _, layer in ipairs({ S.env.windows, S.env.modal, S.env.notes, S.env.launcher, S.env.splash }) do
+	if S.env then
+		for _, layer in ipairs({ S.env.windows, S.env.modal, S.env.notes, S.env.launcher, S.env.splash }) do
+			if layer then
+				pcall(function()
+					layer:Destroy()
+				end)
+			end
+		end
+		if type(S.env.sweep_layers) == "function" then
+			pcall(S.env.sweep_layers)
+		end
+	end
+	if close_link then
 		pcall(function()
-			layer:Destroy()
+			close_link:Disconnect()
 		end)
-	end
-	if S.modal then
-		pcall(S.modal.dismiss)
-	end
-	if S.options and S.options.close then
-		pcall(S.options.close)
+		close_link = nil
 	end
 	if shared.Spectrum == Library then
 		shared.Spectrum = nil
@@ -414,7 +442,7 @@ function Library:Destroy()
 end
 
 pcall(function()
-	game:BindToClose(function()
+	close_link = game:BindToClose(function()
 		config.flush()
 	end)
 end)

@@ -45,6 +45,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 	opts = type(opts) == "table" and opts or {}
 	local mobile = win._mobile
+	local clearable = opts.clearable ~= false
 	local choices = {}
 	for _, option in ipairs(options or {}) do
 		choices[#choices + 1] = tostring(option)
@@ -575,6 +576,16 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				callback(picked)
 			end
 		else
+			if clearable and single == option then
+				single = nil
+				refresh()
+				set_open(false)
+				win._store(key, nil)
+				if callback then
+					callback(nil)
+				end
+				return
+			end
 			single = option
 			refresh()
 			set_open(false)

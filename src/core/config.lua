@@ -10,6 +10,7 @@ local registry = {}
 local window_counts = {}
 local value_counts = {}
 local scheduled = false
+local scheduled_thread
 local auto_save_enabled = false
 local dirty = false
 local last_body
@@ -216,12 +217,21 @@ function config.touch()
 		return
 	end
 	scheduled = true
-	task.delay(0.8, function()
+	scheduled_thread = task.delay(0.8, function()
 		scheduled = false
+		scheduled_thread = nil
 		if auto_save_enabled then
 			config.save()
 		end
 	end)
+end
+
+function config.cancel()
+	if scheduled_thread then
+		pcall(task.cancel, scheduled_thread)
+		scheduled_thread = nil
+	end
+	scheduled = false
 end
 
 function config.window_key(title)
