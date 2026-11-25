@@ -99,9 +99,9 @@ local function notify(title, body, duration, kind)
 	local width = env.mobile and 316 or 340
 	local pad = 20
 	local chip_size = 28
-	local chip_x = pad
+	local chip_x = pad - 4
 	local icon_size = 15
-	local text_left = chip_x + chip_size + 8
+	local text_left = pad + chip_size + 8
 	local title_size = util.size(12)
 	local body_size = util.size(10)
 	local caption_y = env.mobile and 29 or 28
