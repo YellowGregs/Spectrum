@@ -87,8 +87,9 @@ local function notify(title, body, duration, kind)
 	end
 
 	local width = env.mobile and 284 or 304
+	local pad = 18
 	local icon_size = env.mobile and 15 or 14
-	local text_left = 12 + icon_size + 8
+	local text_left = icon_size + 6
 	local title_size = util.size(11)
 	local body_size = util.size(10)
 	local caption_y = env.mobile and 28 or 26
@@ -112,7 +113,7 @@ local function notify(title, body, duration, kind)
 	local content = util.new("Frame", {
 		Name = "content",
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(12, 0),
+		Position = UDim2.fromOffset(pad, 0),
 		Size = UDim2.new(1, 0, 0, height),
 		Parent = face,
 	})
@@ -128,7 +129,7 @@ local function notify(title, body, duration, kind)
 	local heading = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(text_left, env.mobile and 9 or 8),
-		Size = UDim2.new(1, -(text_left + 30), 0, 16),
+		Size = UDim2.new(1, -(text_left + 44), 0, 16),
 		Font = bold,
 		Text = tostring(title or "Spectrum"),
 		TextColor3 = style.values.text,
@@ -143,7 +144,7 @@ local function notify(title, body, duration, kind)
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(text_left, caption_y),
-		Size = UDim2.new(1, -(text_left + 24), 0, caption_height),
+		Size = UDim2.new(1, -(text_left + 32), 0, caption_height),
 		Font = font,
 		Text = body or "",
 		TextColor3 = style.values.muted,
