@@ -3562,12 +3562,11 @@ local function notify(title, body, duration, kind)
 		BackgroundColor3 = style.values.line,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Position = UDim2.new(0, pad, 1, -4),
-		Size = UDim2.new(1, -(pad * 2), 0, 2),
+		Position = UDim2.new(0, 0, 1, -4),
+		Size = UDim2.new(1, 0, 0, 2),
 		ZIndex = 4,
 		Parent = content,
 	})
-	util.corner(rail, 1)
 
 	local line = util.new("Frame", {
 		BackgroundColor3 = tint,
@@ -3577,16 +3576,15 @@ local function notify(title, body, duration, kind)
 		ZIndex = 4,
 		Parent = rail,
 	})
-	util.corner(line, 1)
 	local dot = util.new("Frame", {
 		BackgroundColor3 = tint,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, 0, 0.5, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, width - 2, 0.5, 0),
 		Size = UDim2.fromOffset(4, 4),
 		ZIndex = 5,
-		Parent = line,
+		Parent = rail,
 	})
 	util.corner(dot, 2)
 
@@ -3600,6 +3598,7 @@ local function notify(title, body, duration, kind)
 			return
 		end
 		util.cancel(line)
+		util.cancel(dot)
 		util.tween(face, 0.16, { Size = UDim2.new(1, 0, 0, 0) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		util.tween(content, 0.16, { Position = UDim2.fromOffset(6, -2) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		util.tween(scale, 0.16, { Scale = 0.96 })
@@ -3649,6 +3648,7 @@ local function notify(title, body, duration, kind)
 		util.tween(dot, 0.2, { BackgroundTransparency = 0 })
 	end)
 	util.tween(line, duration, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
+	util.tween(dot, duration, { Position = UDim2.new(0, 2, 0.5, 0) }, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
 	task.delay(duration, close)
 
 	return close
@@ -9502,7 +9502,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-25.signal5"
+Library.Build = "2026-11-25.signal6"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
