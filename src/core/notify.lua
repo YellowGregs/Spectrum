@@ -38,6 +38,42 @@ local function wrapped_height(text, width, size)
 	return (size or 10) + 2
 end
 
+local function fade_icon(object, alpha, time)
+	if not object or not object.Parent then
+		return
+	end
+	for _, child in ipairs(object:GetDescendants()) do
+		local base = child:GetAttribute("SpectrumIconAlpha")
+		if base == nil then
+			if child:IsA("Frame") then
+				base = child.BackgroundTransparency
+			elseif child:IsA("ImageLabel") then
+				base = child.ImageTransparency
+			elseif child:IsA("TextLabel") then
+				base = child.TextTransparency
+			elseif child:IsA("UIStroke") then
+				base = child.Transparency
+			end
+			if base ~= nil then
+				child:SetAttribute("SpectrumIconAlpha", base)
+			end
+		end
+		if base ~= nil then
+			local target = base + (1 - base) * alpha
+			local delay = math.max(0.01, time or 0.12)
+			if child:IsA("Frame") then
+				util.tween(child, delay, { BackgroundTransparency = target })
+			elseif child:IsA("ImageLabel") then
+				util.tween(child, delay, { ImageTransparency = target })
+			elseif child:IsA("TextLabel") then
+				util.tween(child, delay, { TextTransparency = target })
+			elseif child:IsA("UIStroke") then
+				util.tween(child, delay, { Transparency = target })
+			end
+		end
+	end
+end
+
 local function notify(title, body, duration, kind)
 	noted = noted + 1
 	duration = duration or 3
@@ -80,9 +116,9 @@ local function notify(title, body, duration, kind)
 	local badge = icons.kind(kind, content, icon_size, tint)
 	badge.AnchorPoint = Vector2.new(0, 0)
 	badge.Position = UDim2.fromOffset(0, 1)
-	badge.ImageTransparency = 1
 	icons.layer(badge, 4)
 	local badge_scale = util.new("UIScale", { Scale = 0.6, Parent = badge })
+	fade_icon(badge, 1, 0.01)
 
 	local heading = util.new("TextLabel", {
 		BackgroundTransparency = 1,
@@ -132,8 +168,8 @@ local function notify(title, body, duration, kind)
 	local close_icon = icons.close(close_hit, 7, style.values.muted)
 	close_icon.AnchorPoint = Vector2.new(0.5, 0.5)
 	close_icon.Position = UDim2.fromScale(0.5, 0.5)
-	close_icon.ImageTransparency = 1
 	icons.layer(close_icon, 8)
+	fade_icon(close_icon, 1, 0.01)
 	close_hit.MouseEnter:Connect(function()
 		icons.tint(close_icon, style.values.bad)
 	end)
@@ -175,8 +211,8 @@ local function notify(title, body, duration, kind)
 		util.tween(scale, 0.16, { Scale = 0.96 })
 		util.tween(heading, 0.12, { TextTransparency = 1 })
 		util.tween(caption, 0.12, { TextTransparency = 1 })
-		util.tween(badge, 0.12, { ImageTransparency = 1 })
-		util.tween(close_icon, 0.12, { ImageTransparency = 1 })
+		fade_icon(badge, 1, 0.12)
+		fade_icon(close_icon, 1, 0.12)
 		util.tween(rail, 0.12, { BackgroundTransparency = 1 })
 		util.tween(line, 0.12, { BackgroundTransparency = 1 })
 		task.delay(0.18, function()
@@ -207,8 +243,8 @@ local function notify(title, body, duration, kind)
 			return
 		end
 		util.tween(caption, 0.22, { TextTransparency = 0 })
-		util.tween(badge, 0.2, { ImageTransparency = 0 })
-		util.tween(close_icon, 0.2, { ImageTransparency = 0 })
+		fade_icon(badge, 0, 0.2)
+		fade_icon(close_icon, 0, 0.2)
 		util.tween(rail, 0.2, { BackgroundTransparency = 0.65 })
 		util.tween(line, 0.2, { BackgroundTransparency = 0 })
 	end)
