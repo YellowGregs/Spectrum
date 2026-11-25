@@ -89,11 +89,12 @@ local function notify(title, body, duration, kind)
 	local width = env.mobile and 316 or 340
 	local pad = 18
 	local icon_size = env.mobile and 15 or 14
-	local text_left = icon_size + 6
+	local ring_size = icon_size + 10
+	local text_left = icon_size + 13
 	local title_size = util.size(11)
 	local body_size = util.size(10)
 	local caption_y = env.mobile and 28 or 26
-	local caption_height = math.max(env.mobile and 15 or 14, wrapped_height(body or "", width - text_left - 32, body_size) + 2)
+	local caption_height = math.max(env.mobile and 15 or 14, wrapped_height(body or "", width - text_left - 24, body_size) + 2)
 	local height = math.max(env.mobile and 58 or 52, caption_y + caption_height + (env.mobile and 13 or 12))
 
 	local face = util.new("Frame", {
@@ -106,9 +107,6 @@ local function notify(title, body, duration, kind)
 		Size = UDim2.new(1, 0, 0, 0),
 		Parent = holder,
 	})
-	util.corner(face, 6)
-	local edge = util.stroke(face, style.values.line, 0.3)
-	util.shadow(face, 18, 0.3)
 
 	local content = util.new("Frame", {
 		Name = "content",
@@ -127,15 +125,15 @@ local function notify(title, body, duration, kind)
 	local ring = util.new("Frame", {
 		Name = "ring",
 		BackgroundColor3 = tint,
-		BackgroundTransparency = 0.88,
+		BackgroundTransparency = 0.9,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(icon_size + 8, icon_size + 8),
+		Size = UDim2.fromOffset(ring_size, ring_size),
 		ZIndex = 3,
 		Parent = badge,
 	})
-	util.corner(ring, (icon_size + 8) / 2)
+	util.corner(ring, ring_size / 2)
 	util.stroke(ring, tint, 0.4)
 	fade_icon(badge, 1, 0.01)
 
@@ -148,6 +146,8 @@ local function notify(title, body, duration, kind)
 		TextColor3 = style.values.text,
 		TextSize = title_size,
 		TextTransparency = 1,
+		TextStrokeColor3 = Color3.new(0, 0, 0),
+		TextStrokeTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 5,
@@ -157,12 +157,14 @@ local function notify(title, body, duration, kind)
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(text_left, caption_y),
-		Size = UDim2.new(1, -(text_left + 32), 0, caption_height),
+		Size = UDim2.new(1, -(text_left + 24), 0, caption_height),
 		Font = font,
 		Text = body or "",
-		TextColor3 = style.values.muted,
+		TextColor3 = style.values.muted:Lerp(style.values.text, 0.5),
 		TextSize = body_size,
 		TextTransparency = 1,
+		TextStrokeColor3 = Color3.new(0, 0, 0),
+		TextStrokeTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextWrapped = true,
@@ -220,11 +222,11 @@ local function notify(title, body, duration, kind)
 			return
 		end
 		util.cancel(line)
-		util.tween(face, 0.16, { Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		util.tween(face, 0.16, { Size = UDim2.new(1, 0, 0, 0) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		util.tween(content, 0.16, { Position = UDim2.fromOffset(18, -2) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		util.tween(scale, 0.16, { Scale = 0.96 })
-		util.tween(heading, 0.12, { TextTransparency = 1 })
-		util.tween(caption, 0.12, { TextTransparency = 1 })
+		util.tween(heading, 0.12, { TextTransparency = 1, TextStrokeTransparency = 1 })
+		util.tween(caption, 0.12, { TextTransparency = 1, TextStrokeTransparency = 1 })
 		fade_icon(badge, 1, 0.12)
 		fade_icon(close_icon, 1, 0.12)
 		util.tween(rail, 0.12, { BackgroundTransparency = 1 })
@@ -247,16 +249,16 @@ local function notify(title, body, duration, kind)
 	hit.Activated:Connect(close)
 	close_hit.Activated:Connect(close)
 
-	util.tween(face, 0.24, { Size = UDim2.new(1, 0, 0, height), BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+	util.tween(face, 0.24, { Size = UDim2.new(1, 0, 0, height) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	util.tween(content, 0.26, { Position = UDim2.fromOffset(0, 0) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	util.tween(scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	util.tween(badge_scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-	util.tween(heading, 0.2, { TextTransparency = 0 })
+	util.tween(heading, 0.2, { TextTransparency = 0, TextStrokeTransparency = 0.25 })
 	task.delay(0.04, function()
 		if closed or not face.Parent then
 			return
 		end
-		util.tween(caption, 0.22, { TextTransparency = 0 })
+		util.tween(caption, 0.22, { TextTransparency = 0, TextStrokeTransparency = 0.35 })
 		fade_icon(badge, 0, 0.2)
 		fade_icon(close_icon, 0, 0.2)
 		util.tween(rail, 0.2, { BackgroundTransparency = 0.65 })
