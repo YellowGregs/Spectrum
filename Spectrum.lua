@@ -3426,11 +3426,23 @@ local function notify(title, body, duration, kind)
 		Parent = holder,
 	})
 
+	local scrim = util.new("Frame", {
+		Name = "scrim",
+		BackgroundColor3 = style.values.panel,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 1,
+		Parent = face,
+	})
+	util.corner(scrim, 6)
+
 	local content = util.new("Frame", {
 		Name = "content",
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(pad, 0),
 		Size = UDim2.new(1, 0, 0, height),
+		ZIndex = 2,
 		Parent = face,
 	})
 	local scale = util.new("UIScale", { Scale = 0.98, Parent = content })
@@ -3543,6 +3555,7 @@ local function notify(title, body, duration, kind)
 		util.tween(face, 0.16, { Size = UDim2.new(1, 0, 0, 0) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		util.tween(content, 0.16, { Position = UDim2.fromOffset(18, -2) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		util.tween(scale, 0.16, { Scale = 0.96 })
+		util.tween(scrim, 0.12, { BackgroundTransparency = 1 })
 		util.tween(heading, 0.12, { TextTransparency = 1, TextStrokeTransparency = 1 })
 		util.tween(caption, 0.12, { TextTransparency = 1, TextStrokeTransparency = 1 })
 		fade_icon(badge, 1, 0.12)
@@ -3571,6 +3584,7 @@ local function notify(title, body, duration, kind)
 	util.tween(content, 0.26, { Position = UDim2.fromOffset(0, 0) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	util.tween(scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	util.tween(badge_scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	util.tween(scrim, 0.22, { BackgroundTransparency = 0.28 })
 	util.tween(heading, 0.2, { TextTransparency = 0, TextStrokeTransparency = 0.25 })
 	task.delay(0.04, function()
 		if closed or not face.Parent then
@@ -4000,6 +4014,7 @@ function splash.mount()
 	local card = util.new("Frame", {
 		Name = "splash_card",
 		BackgroundColor3 = values().panel,
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -4007,9 +4022,6 @@ function splash.mount()
 		ZIndex = 3,
 		Parent = gui,
 	})
-	local edge = util.stroke(card, values().line, 0.15)
-	util.depth(card, 0.65)
-	util.shadow(card, 26, 0.28)
 	local scale = util.new("UIScale", { Scale = 0.9, Parent = card })
 
 	local plate_size = env.mobile and 100 or 112
@@ -4165,7 +4177,6 @@ function splash.mount()
 		card.BackgroundColor3 = values().panel
 		plate.BackgroundColor3 = values().hover
 		plate_edge.Color = values().line
-		edge.Color = values().line
 		title.TextColor3 = values().text
 		subtitle.TextColor3 = values().muted
 		rail.BackgroundColor3 = values().line
@@ -9439,7 +9450,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-25.toast7"
+Library.Build = "2026-11-25.toast8"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then

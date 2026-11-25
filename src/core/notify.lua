@@ -108,11 +108,23 @@ local function notify(title, body, duration, kind)
 		Parent = holder,
 	})
 
+	local scrim = util.new("Frame", {
+		Name = "scrim",
+		BackgroundColor3 = style.values.panel,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 1,
+		Parent = face,
+	})
+	util.corner(scrim, 6)
+
 	local content = util.new("Frame", {
 		Name = "content",
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(pad, 0),
 		Size = UDim2.new(1, 0, 0, height),
+		ZIndex = 2,
 		Parent = face,
 	})
 	local scale = util.new("UIScale", { Scale = 0.98, Parent = content })
@@ -225,6 +237,7 @@ local function notify(title, body, duration, kind)
 		util.tween(face, 0.16, { Size = UDim2.new(1, 0, 0, 0) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		util.tween(content, 0.16, { Position = UDim2.fromOffset(18, -2) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		util.tween(scale, 0.16, { Scale = 0.96 })
+		util.tween(scrim, 0.12, { BackgroundTransparency = 1 })
 		util.tween(heading, 0.12, { TextTransparency = 1, TextStrokeTransparency = 1 })
 		util.tween(caption, 0.12, { TextTransparency = 1, TextStrokeTransparency = 1 })
 		fade_icon(badge, 1, 0.12)
@@ -253,6 +266,7 @@ local function notify(title, body, duration, kind)
 	util.tween(content, 0.26, { Position = UDim2.fromOffset(0, 0) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	util.tween(scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	util.tween(badge_scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	util.tween(scrim, 0.22, { BackgroundTransparency = 0.28 })
 	util.tween(heading, 0.2, { TextTransparency = 0, TextStrokeTransparency = 0.25 })
 	task.delay(0.04, function()
 		if closed or not face.Parent then

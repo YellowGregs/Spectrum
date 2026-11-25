@@ -35,6 +35,7 @@ function splash.mount()
 	local card = util.new("Frame", {
 		Name = "splash_card",
 		BackgroundColor3 = values().panel,
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -42,9 +43,6 @@ function splash.mount()
 		ZIndex = 3,
 		Parent = gui,
 	})
-	local edge = util.stroke(card, values().line, 0.15)
-	util.depth(card, 0.65)
-	util.shadow(card, 26, 0.28)
 	local scale = util.new("UIScale", { Scale = 0.9, Parent = card })
 
 	local plate_size = env.mobile and 100 or 112
@@ -200,7 +198,6 @@ function splash.mount()
 		card.BackgroundColor3 = values().panel
 		plate.BackgroundColor3 = values().hover
 		plate_edge.Color = values().line
-		edge.Color = values().line
 		title.TextColor3 = values().text
 		subtitle.TextColor3 = values().muted
 		rail.BackgroundColor3 = values().line
