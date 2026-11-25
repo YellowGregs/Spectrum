@@ -3405,15 +3405,15 @@ local function notify(title, body, duration, kind)
 	end
 
 	local width = env.mobile and 316 or 340
-	local pad = 18
+	local pad = 20
 	local icon_size = env.mobile and 15 or 14
 	local ring_size = icon_size + 10
-	local text_left = icon_size + 13
-	local title_size = util.size(11)
+	local text_left = ring_size + 8
+	local title_size = util.size(12)
 	local body_size = util.size(10)
-	local caption_y = env.mobile and 28 or 26
-	local caption_height = math.max(env.mobile and 15 or 14, wrapped_height(body or "", width - text_left - 24, body_size) + 2)
-	local height = math.max(env.mobile and 58 or 52, caption_y + caption_height + (env.mobile and 13 or 12))
+	local caption_y = env.mobile and 29 or 28
+	local caption_height = math.max(env.mobile and 15 or 14, wrapped_height(body or "", width - text_left - 28, body_size) + 2)
+	local height = math.max(env.mobile and 60 or 56, caption_y + caption_height + (env.mobile and 14 or 13))
 
 	local face = util.new("Frame", {
 		Name = "note",
@@ -3436,6 +3436,14 @@ local function notify(title, body, duration, kind)
 		Parent = face,
 	})
 	util.corner(scrim, 6)
+	util.new("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, style.values.panel),
+			ColorSequenceKeypoint.new(1, style.values.raised),
+		}),
+		Rotation = 90,
+		Parent = scrim,
+	})
 
 	local content = util.new("Frame", {
 		Name = "content",
@@ -3449,7 +3457,7 @@ local function notify(title, body, duration, kind)
 
 	local badge = icons.kind(kind, content, icon_size, tint)
 	badge.AnchorPoint = Vector2.new(0, 0)
-	badge.Position = UDim2.fromOffset(0, env.mobile and 11 or 9)
+	badge.Position = UDim2.fromOffset((ring_size - icon_size) / 2, env.mobile and 12 or 10)
 	icons.layer(badge, 4)
 	local badge_scale = util.new("UIScale", { Scale = 0.6, Parent = badge })
 	local ring = util.new("Frame", {
@@ -3469,8 +3477,8 @@ local function notify(title, body, duration, kind)
 
 	local heading = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(text_left, env.mobile and 9 or 8),
-		Size = UDim2.new(1, -(text_left + 44), 0, 16),
+		Position = UDim2.fromOffset(text_left, env.mobile and 10 or 9),
+		Size = UDim2.new(1, -(text_left + 48), 0, 18),
 		Font = bold,
 		Text = tostring(title or "Spectrum"),
 		TextColor3 = style.values.text,
@@ -3487,7 +3495,7 @@ local function notify(title, body, duration, kind)
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(text_left, caption_y),
-		Size = UDim2.new(1, -(text_left + 24), 0, caption_height),
+		Size = UDim2.new(1, -(text_left + 28), 0, caption_height),
 		Font = font,
 		Text = body or "",
 		TextColor3 = style.values.muted:Lerp(style.values.text, 0.5),
@@ -3512,7 +3520,8 @@ local function notify(title, body, duration, kind)
 		ZIndex = 7,
 		Parent = content,
 	})
-	local close_icon = icons.close(close_hit, 8, style.values.muted)
+	local close_color = style.values.muted:Lerp(style.values.text, 0.35)
+	local close_icon = icons.close(close_hit, 8, close_color)
 	close_icon.AnchorPoint = Vector2.new(0.5, 0.5)
 	close_icon.Position = UDim2.fromScale(0.5, 0.5)
 	icons.layer(close_icon, 8)
@@ -3521,7 +3530,7 @@ local function notify(title, body, duration, kind)
 		icons.tint(close_icon, style.values.bad)
 	end)
 	close_hit.MouseLeave:Connect(function()
-		icons.tint(close_icon, style.values.muted)
+		icons.tint(close_icon, close_color)
 	end)
 
 	local rail = util.new("Frame", {
@@ -9450,7 +9459,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-25.toast8"
+Library.Build = "2026-11-25.toast9"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
