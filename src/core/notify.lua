@@ -13,7 +13,7 @@ local holder = util.new("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -12, 1, -12),
-	Size = UDim2.fromOffset(env.mobile and 284 or 304, 0),
+	Size = UDim2.fromOffset(env.mobile and 316 or 340, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	Parent = env.notes,
 })
@@ -86,14 +86,14 @@ local function notify(title, body, duration, kind)
 		tint = style.values.bad
 	end
 
-	local width = env.mobile and 284 or 304
+	local width = env.mobile and 316 or 340
 	local pad = 18
 	local icon_size = env.mobile and 15 or 14
 	local text_left = icon_size + 6
 	local title_size = util.size(11)
 	local body_size = util.size(10)
 	local caption_y = env.mobile and 28 or 26
-	local caption_height = math.max(env.mobile and 15 or 14, wrapped_height(body or "", width - text_left - 24, body_size) + 2)
+	local caption_height = math.max(env.mobile and 15 or 14, wrapped_height(body or "", width - text_left - 32, body_size) + 2)
 	local height = math.max(env.mobile and 58 or 52, caption_y + caption_height + (env.mobile and 13 or 12))
 
 	local face = util.new("Frame", {
@@ -124,6 +124,19 @@ local function notify(title, body, duration, kind)
 	badge.Position = UDim2.fromOffset(0, env.mobile and 11 or 9)
 	icons.layer(badge, 4)
 	local badge_scale = util.new("UIScale", { Scale = 0.6, Parent = badge })
+	local ring = util.new("Frame", {
+		Name = "ring",
+		BackgroundColor3 = tint,
+		BackgroundTransparency = 0.88,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(icon_size + 8, icon_size + 8),
+		ZIndex = 3,
+		Parent = badge,
+	})
+	util.corner(ring, (icon_size + 8) / 2)
+	util.stroke(ring, tint, 0.4)
 	fade_icon(badge, 1, 0.01)
 
 	local heading = util.new("TextLabel", {
