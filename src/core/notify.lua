@@ -219,7 +219,7 @@ local function notify(title, body, duration, kind)
 	local close_hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -8, 0, 8),
+		Position = UDim2.new(1, -16, 0, 8),
 		Size = UDim2.fromOffset(18, 18),
 		Text = "",
 		AutoButtonColor = false,

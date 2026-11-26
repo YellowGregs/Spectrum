@@ -4463,7 +4463,7 @@ local function notify(title, body, duration, kind)
 	local close_hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -8, 0, 8),
+		Position = UDim2.new(1, -16, 0, 8),
 		Size = UDim2.fromOffset(18, 18),
 		Text = "",
 		AutoButtonColor = false,
@@ -4982,6 +4982,7 @@ local rows = {}
 local exiting = {}
 local shown = true
 local all_mode = false
+local left_mode = false
 local scheduled = false
 local sort_dirty = true
 local last_order = {}
@@ -5051,6 +5052,47 @@ local rail = util.new("Frame", {
 })
 util.corner(rail, 2)
 
+local function side_row(row)
+	if left_mode then
+		row.strip.AnchorPoint = Vector2.new(0, 0)
+		row.strip.Position = UDim2.fromOffset(0, 0)
+	else
+		row.strip.AnchorPoint = Vector2.new(1, 0)
+		row.strip.Position = UDim2.new(1, 0, 0, 0)
+	end
+end
+
+local function apply_side()
+	if left_mode then
+		rail.AnchorPoint = Vector2.new(0, 0)
+		rail.Position = UDim2.fromOffset(0, 0)
+		content.Position = UDim2.fromOffset(rail_width + rail_gap, 0)
+	else
+		rail.AnchorPoint = Vector2.new(1, 0)
+		rail.Position = UDim2.new(1, 0, 0, 0)
+		content.Position = UDim2.fromOffset(0, 0)
+	end
+	content.Size = UDim2.new(1, -(rail_width + rail_gap), 1, 0)
+	for _, row in ipairs(rows) do
+		side_row(row)
+	end
+	for _, row in ipairs(exiting) do
+		side_row(row)
+	end
+end
+
+local function update_side(width, x)
+	local view = env.viewport()
+	width = width or card.Size.X.Offset
+	x = x or card.Position.X.Offset
+	local center = view.X + x - width / 2
+	local left = center < view.X / 2
+	if left ~= left_mode then
+		left_mode = left
+		apply_side()
+	end
+end
+
 local function card_height()
 	return math.max(card.Size.Y.Offset, visual_height)
 end
@@ -5064,6 +5106,7 @@ local function clamp_position(width, height)
 	if x ~= card.Position.X.Offset or y ~= card.Position.Y.Offset then
 		card.Position = UDim2.new(1, x, 0, y)
 	end
+	update_side(width, x)
 end
 
 local drag = util.new("TextButton", {
@@ -5106,6 +5149,7 @@ local drag_move = env.uis.InputChanged:Connect(function(input)
 	local x = math.clamp(drag_at.X + delta.X, math.min(0, width - view.X), 0)
 	local y = math.clamp(drag_at.Y + delta.Y, 0, math.max(0, view.Y - height))
 	card.Position = UDim2.new(1, x, 0, y)
+	update_side(width, x)
 end)
 
 local drag_end = env.uis.InputEnded:Connect(function(input)
@@ -5360,6 +5404,7 @@ end
 local function paint()
 	rail.BackgroundColor3 = values().accent
 	for _, row in ipairs(rows) do
+		side_row(row)
 		row.root.ZIndex = 3
 		row.strip.ZIndex = 3
 		row.label.ZIndex = 3
@@ -5513,8 +5558,8 @@ local function create_row(entry)
 		BackgroundColor3 = values().panel,
 		BackgroundTransparency = row_transparency,
 		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 0),
+		AnchorPoint = left_mode and Vector2.new(0, 0) or Vector2.new(1, 0),
+		Position = left_mode and UDim2.fromOffset(0, 0) or UDim2.new(1, 0, 0, 0),
 		Size = UDim2.fromOffset(0, row_height),
 		ClipsDescendants = true,
 		ZIndex = 3,
@@ -5781,6 +5826,7 @@ end
 
 style.paint(paint)
 paint()
+apply_side()
 
 local camera_link
 local function watch_viewport()
@@ -11434,7 +11480,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-26.featurelist12"
+Library.Build = "2026-11-26.featurelist13"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
