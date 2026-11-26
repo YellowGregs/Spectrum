@@ -6307,24 +6307,40 @@ local function render(value)
 	end
 end
 
+local function mouse_position()
+	local ok, pos = pcall(function()
+		return env.uis:GetMouseLocation()
+	end)
+	if ok and typeof(pos) == "Vector2" then
+		return pos
+	end
+end
+
 local function place(target)
 	local view = env.viewport()
-	local pos = target.AbsolutePosition
-	local size = target.AbsoluteSize
 	local width = panel.Size.X.Offset
 	local height = panel.Size.Y.Offset
 	if width <= 0 or height <= 0 then
 		return
 	end
+	local mouse = mouse_position()
+	local x
 	local y
-	if pos.Y + size.Y + GAP + height <= view.Y - EDGE then
-		y = pos.Y + size.Y + GAP
-	elseif pos.Y - height - GAP >= EDGE then
-		y = pos.Y - height - GAP
+	if mouse then
+		x = mouse.X - width * 0.5
+		y = mouse.Y - height - GAP
+		if y < EDGE then
+			y = mouse.Y + GAP
+		end
 	else
-		y = pos.Y + size.Y + GAP
+		local pos = target.AbsolutePosition
+		local size = target.AbsoluteSize
+		x = pos.X + size.X * 0.5 - width * 0.5
+		y = pos.Y - height - GAP
+		if y < EDGE then
+			y = pos.Y + size.Y + GAP
+		end
 	end
-	local x = pos.X + size.X * 0.5 - width * 0.5
 	x = math.clamp(x, EDGE, math.max(EDGE, view.X - width - EDGE))
 	y = math.clamp(y, EDGE, math.max(EDGE, view.Y - height - EDGE))
 	panel.Position = UDim2.fromOffset(math.floor(x + 0.5), math.floor(y + 0.5))
@@ -6414,18 +6430,31 @@ function tooltip.hide()
 	hide()
 end
 
+local input_link
+local move_link
+
 function tooltip.destroy()
 	hide()
 	if input_link then
 		input_link:Disconnect()
 		input_link = nil
 	end
+	if move_link then
+		move_link:Disconnect()
+		move_link = nil
+	end
 end
 
-local input_link = env.uis.InputBegan:Connect(function(input)
+input_link = env.uis.InputBegan:Connect(function(input)
 	local kind = input.UserInputType
 	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 		hide()
+	end
+end)
+
+move_link = env.uis.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement and panel.Visible and current then
+		place(current)
 	end
 end)
 
@@ -13515,7 +13544,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.2.0"
+Library.Build = "1.2.1"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
