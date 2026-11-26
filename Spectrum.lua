@@ -4984,6 +4984,7 @@ local style = S.style
 local config = S.config
 
 local TextService = game:GetService("TextService")
+local RunService = game:GetService("RunService")
 
 local featurelist = {}
 local manual = {}
@@ -5006,6 +5007,9 @@ local dragging = false
 local drag_moved = false
 local drag_from
 local drag_at
+local rainbow_mode = false
+local rainbow_link
+local rainbow_last = 0
 
 local function values()
 	return style.values
@@ -5436,6 +5440,49 @@ local function start_exit(row)
 	end)
 end
 
+local function rainbow_color(hue)
+	return Color3.fromHSV(hue % 1, 0.62, 1)
+end
+
+local function paint_rainbow(phase)
+	phase = (phase or os.clock()) * 0.12
+	rail.BackgroundColor3 = rainbow_color(phase)
+	for index, row in ipairs(rows) do
+		row.label.TextColor3 = rainbow_color(phase + index * 0.075)
+	end
+	for index, row in ipairs(exiting) do
+		row.label.TextColor3 = rainbow_color(phase + (#rows + index) * 0.075)
+	end
+end
+
+local function stop_rainbow()
+	if rainbow_link then
+		rainbow_link:Disconnect()
+		rainbow_link = nil
+	end
+end
+
+local function start_rainbow()
+	if rainbow_link or not card.Parent then
+		return
+	end
+	rainbow_last = 0
+	rainbow_link = RunService.Heartbeat:Connect(function()
+		if not rainbow_mode or not card.Parent then
+			stop_rainbow()
+			return
+		end
+		local now = os.clock()
+		if now - rainbow_last < 0.04 then
+			return
+		end
+		rainbow_last = now
+		if shown then
+			paint_rainbow(now)
+		end
+	end)
+end
+
 local function paint()
 	rail.BackgroundColor3 = values().accent
 	for _, row in ipairs(rows) do
@@ -5456,6 +5503,12 @@ local function paint()
 		if row.appearing then
 			grow_row(row)
 		end
+	end
+	for _, row in ipairs(exiting) do
+		row.label.TextColor3 = values().accent
+	end
+	if rainbow_mode then
+		paint_rainbow()
 	end
 end
 
@@ -5850,6 +5903,23 @@ function featurelist.restore()
 	clamp_position()
 end
 
+function featurelist.rainbow(state)
+	if state ~= nil then
+		local next_mode = state == true
+		if next_mode ~= rainbow_mode then
+			rainbow_mode = next_mode
+			if rainbow_mode then
+				start_rainbow()
+				paint_rainbow()
+			else
+				stop_rainbow()
+				paint()
+			end
+		end
+	end
+	return rainbow_mode
+end
+
 function featurelist.visible(state)
 	shown = state == true
 	card.Visible = shown and visual_height > 0
@@ -5890,6 +5960,8 @@ end
 watch_viewport()
 card.Destroying:Connect(function()
 	dragging = false
+	rainbow_mode = false
+	stop_rainbow()
 	if camera_link then
 		camera_link:Disconnect()
 		camera_link = nil
@@ -6257,7 +6329,7 @@ function Window.new(title, opts)
 	if saved and type(saved.width) == "number" then
 		preferred = saved.width
 	end
-	local head = mobile and 34 or 30
+	local head = mobile and 40 or 36
 	local row_base = mobile and 36 or 30
 	local min_width = math.min(mobile and 210 or 252, math.max(160, vp.X - 20))
 	local width = math.clamp(preferred, min_width, math.max(min_width, vp.X - 20))
@@ -6568,7 +6640,7 @@ function Window.new(title, opts)
 	end)
 	style.paint(paint_grip)
 
-	local tab_h = mobile and 32 or 28
+	local tab_h = mobile and 36 or 32
 	local tabs = {}
 	local section_records = {}
 	local default_tab = {
@@ -11523,7 +11595,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.0.2"
+Library.Build = "1.0.3"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -11738,6 +11810,14 @@ end
 
 function Library:GetFeatureListAll()
 	return S.featurelist.all()
+end
+
+function Library:SetFeatureListRainbow(state)
+	return S.featurelist.rainbow(state)
+end
+
+function Library:GetFeatureListRainbow()
+	return S.featurelist.rainbow()
 end
 
 function Library:Window(title, opts)

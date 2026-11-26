@@ -6,6 +6,7 @@ local style = S.style
 local config = S.config
 
 local TextService = game:GetService("TextService")
+local RunService = game:GetService("RunService")
 
 local featurelist = {}
 local manual = {}
@@ -28,6 +29,9 @@ local dragging = false
 local drag_moved = false
 local drag_from
 local drag_at
+local rainbow_mode = false
+local rainbow_link
+local rainbow_last = 0
 
 local function values()
 	return style.values
@@ -458,6 +462,49 @@ local function start_exit(row)
 	end)
 end
 
+local function rainbow_color(hue)
+	return Color3.fromHSV(hue % 1, 0.62, 1)
+end
+
+local function paint_rainbow(phase)
+	phase = (phase or os.clock()) * 0.12
+	rail.BackgroundColor3 = rainbow_color(phase)
+	for index, row in ipairs(rows) do
+		row.label.TextColor3 = rainbow_color(phase + index * 0.075)
+	end
+	for index, row in ipairs(exiting) do
+		row.label.TextColor3 = rainbow_color(phase + (#rows + index) * 0.075)
+	end
+end
+
+local function stop_rainbow()
+	if rainbow_link then
+		rainbow_link:Disconnect()
+		rainbow_link = nil
+	end
+end
+
+local function start_rainbow()
+	if rainbow_link or not card.Parent then
+		return
+	end
+	rainbow_last = 0
+	rainbow_link = RunService.Heartbeat:Connect(function()
+		if not rainbow_mode or not card.Parent then
+			stop_rainbow()
+			return
+		end
+		local now = os.clock()
+		if now - rainbow_last < 0.04 then
+			return
+		end
+		rainbow_last = now
+		if shown then
+			paint_rainbow(now)
+		end
+	end)
+end
+
 local function paint()
 	rail.BackgroundColor3 = values().accent
 	for _, row in ipairs(rows) do
@@ -478,6 +525,12 @@ local function paint()
 		if row.appearing then
 			grow_row(row)
 		end
+	end
+	for _, row in ipairs(exiting) do
+		row.label.TextColor3 = values().accent
+	end
+	if rainbow_mode then
+		paint_rainbow()
 	end
 end
 
@@ -872,6 +925,23 @@ function featurelist.restore()
 	clamp_position()
 end
 
+function featurelist.rainbow(state)
+	if state ~= nil then
+		local next_mode = state == true
+		if next_mode ~= rainbow_mode then
+			rainbow_mode = next_mode
+			if rainbow_mode then
+				start_rainbow()
+				paint_rainbow()
+			else
+				stop_rainbow()
+				paint()
+			end
+		end
+	end
+	return rainbow_mode
+end
+
 function featurelist.visible(state)
 	shown = state == true
 	card.Visible = shown and visual_height > 0
@@ -912,6 +982,8 @@ end
 watch_viewport()
 card.Destroying:Connect(function()
 	dragging = false
+	rainbow_mode = false
+	stop_rainbow()
 	if camera_link then
 		camera_link:Disconnect()
 		camera_link = nil

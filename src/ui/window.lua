@@ -111,7 +111,7 @@ function Window.new(title, opts)
 	if saved and type(saved.width) == "number" then
 		preferred = saved.width
 	end
-	local head = mobile and 34 or 30
+	local head = mobile and 40 or 36
 	local row_base = mobile and 36 or 30
 	local min_width = math.min(mobile and 210 or 252, math.max(160, vp.X - 20))
 	local width = math.clamp(preferred, min_width, math.max(min_width, vp.X - 20))
@@ -422,7 +422,7 @@ function Window.new(title, opts)
 	end)
 	style.paint(paint_grip)
 
-	local tab_h = mobile and 32 or 28
+	local tab_h = mobile and 36 or 32
 	local tabs = {}
 	local section_records = {}
 	local default_tab = {
