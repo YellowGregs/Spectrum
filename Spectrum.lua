@@ -5007,9 +5007,9 @@ local dragging = false
 local drag_moved = false
 local drag_from
 local drag_at
-local rainbow_mode = false
-local rainbow_link
-local rainbow_last = 0
+local rgb_mode = false
+local rgb_link
+local rgb_last = 0
 
 local function values()
 	return style.values
@@ -5059,6 +5059,16 @@ local content = util.new("Frame", {
 	Parent = card,
 })
 
+local RGB_SEQUENCE = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 82, 82)),
+	ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255, 178, 72)),
+	ColorSequenceKeypoint.new(0.34, Color3.fromRGB(250, 242, 100)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(106, 230, 126)),
+	ColorSequenceKeypoint.new(0.67, Color3.fromRGB(82, 198, 255)),
+	ColorSequenceKeypoint.new(0.84, Color3.fromRGB(126, 120, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 82, 82)),
+})
+
 local rail = util.new("Frame", {
 	Name = "rail",
 	BackgroundColor3 = values().accent,
@@ -5070,6 +5080,13 @@ local rail = util.new("Frame", {
 	Parent = card,
 })
 util.corner(rail, 2)
+local rail_gradient = util.new("UIGradient", {
+	Name = "rgb",
+	Color = RGB_SEQUENCE,
+	Enabled = false,
+	Rotation = 90,
+	Parent = rail,
+})
 
 local function side_row(row)
 	if left_mode then
@@ -5440,51 +5457,70 @@ local function start_exit(row)
 	end)
 end
 
-local function rainbow_color(hue)
-	return Color3.fromHSV(hue % 1, 0.62, 1)
+local function rgb_gradient(row)
+	if row.rgb_gradient and row.rgb_gradient.Parent then
+		return row.rgb_gradient
+	end
+	row.rgb_gradient = util.new("UIGradient", {
+		Name = "rgb",
+		Color = RGB_SEQUENCE,
+		Enabled = false,
+		Rotation = 90,
+		Parent = row.label,
+	})
+	return row.rgb_gradient
 end
 
-local function paint_rainbow(phase)
-	phase = (phase or os.clock()) * 0.12
-	rail.BackgroundColor3 = rainbow_color(phase)
+local function paint_rgb(phase)
+	local base = 0.5 + 0.5 * math.sin((phase or os.clock()) * 1.6)
+	rail.BackgroundColor3 = Color3.new(1, 1, 1)
+	rail_gradient.Enabled = true
+	rail_gradient.Offset = Vector2.new(0, base)
 	for index, row in ipairs(rows) do
-		row.label.TextColor3 = rainbow_color(phase + index * 0.075)
+		row.label.TextColor3 = Color3.new(1, 1, 1)
+		local gradient = rgb_gradient(row)
+		gradient.Enabled = true
+		gradient.Offset = Vector2.new(0, (base + index * 0.07) % 1)
 	end
 	for index, row in ipairs(exiting) do
-		row.label.TextColor3 = rainbow_color(phase + (#rows + index) * 0.075)
+		row.label.TextColor3 = Color3.new(1, 1, 1)
+		local gradient = rgb_gradient(row)
+		gradient.Enabled = true
+		gradient.Offset = Vector2.new(0, (base + (#rows + index) * 0.07) % 1)
 	end
 end
 
-local function stop_rainbow()
-	if rainbow_link then
-		rainbow_link:Disconnect()
-		rainbow_link = nil
+local function stop_rgb()
+	if rgb_link then
+		rgb_link:Disconnect()
+		rgb_link = nil
 	end
 end
 
-local function start_rainbow()
-	if rainbow_link or not card.Parent then
+local function start_rgb()
+	if rgb_link or not card.Parent then
 		return
 	end
-	rainbow_last = 0
-	rainbow_link = RunService.Heartbeat:Connect(function()
-		if not rainbow_mode or not card.Parent then
-			stop_rainbow()
+	rgb_last = 0
+	rgb_link = RunService.Heartbeat:Connect(function()
+		if not rgb_mode or not card.Parent then
+			stop_rgb()
 			return
 		end
 		local now = os.clock()
-		if now - rainbow_last < 0.04 then
+		if now - rgb_last < 0.04 then
 			return
 		end
-		rainbow_last = now
+		rgb_last = now
 		if shown then
-			paint_rainbow(now)
+			paint_rgb(now)
 		end
 	end)
 end
 
 local function paint()
 	rail.BackgroundColor3 = values().accent
+	rail_gradient.Enabled = false
 	for _, row in ipairs(rows) do
 		side_row(row)
 		row.root.ZIndex = 3
@@ -5500,15 +5536,21 @@ local function paint()
 		row.value.TextColor3 = values().text
 		row.value.TextTransparency = 0
 		apply_row_layout(row, true)
+		if row.rgb_gradient then
+			row.rgb_gradient.Enabled = false
+		end
 		if row.appearing then
 			grow_row(row)
 		end
 	end
 	for _, row in ipairs(exiting) do
 		row.label.TextColor3 = values().accent
+		if row.rgb_gradient then
+			row.rgb_gradient.Enabled = false
+		end
 	end
-	if rainbow_mode then
-		paint_rainbow()
+	if rgb_mode then
+		paint_rgb()
 	end
 end
 
@@ -5903,21 +5945,21 @@ function featurelist.restore()
 	clamp_position()
 end
 
-function featurelist.rainbow(state)
+function featurelist.rgb(state)
 	if state ~= nil then
 		local next_mode = state == true
-		if next_mode ~= rainbow_mode then
-			rainbow_mode = next_mode
-			if rainbow_mode then
-				start_rainbow()
-				paint_rainbow()
+		if next_mode ~= rgb_mode then
+			rgb_mode = next_mode
+			if rgb_mode then
+				start_rgb()
+				paint_rgb()
 			else
-				stop_rainbow()
+				stop_rgb()
 				paint()
 			end
 		end
 	end
-	return rainbow_mode
+	return rgb_mode
 end
 
 function featurelist.visible(state)
@@ -5960,8 +6002,8 @@ end
 watch_viewport()
 card.Destroying:Connect(function()
 	dragging = false
-	rainbow_mode = false
-	stop_rainbow()
+	rgb_mode = false
+	stop_rgb()
 	if camera_link then
 		camera_link:Disconnect()
 		camera_link = nil
@@ -11595,7 +11637,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.0.3"
+Library.Build = "1.0.4"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -11812,12 +11854,12 @@ function Library:GetFeatureListAll()
 	return S.featurelist.all()
 end
 
-function Library:SetFeatureListRainbow(state)
-	return S.featurelist.rainbow(state)
+function Library:SetFeatureListRGB(state)
+	return S.featurelist.rgb(state)
 end
 
-function Library:GetFeatureListRainbow()
-	return S.featurelist.rainbow()
+function Library:GetFeatureListRGB()
+	return S.featurelist.rgb()
 end
 
 function Library:Window(title, opts)

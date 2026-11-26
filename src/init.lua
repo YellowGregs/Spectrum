@@ -5,7 +5,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.0.3"
+Library.Build = "1.0.4"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -222,12 +222,12 @@ function Library:GetFeatureListAll()
 	return S.featurelist.all()
 end
 
-function Library:SetFeatureListRainbow(state)
-	return S.featurelist.rainbow(state)
+function Library:SetFeatureListRGB(state)
+	return S.featurelist.rgb(state)
 end
 
-function Library:GetFeatureListRainbow()
-	return S.featurelist.rainbow()
+function Library:GetFeatureListRGB()
+	return S.featurelist.rgb()
 end
 
 function Library:Window(title, opts)
