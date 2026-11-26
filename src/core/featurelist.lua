@@ -700,11 +700,11 @@ local function build()
 	rows = next_rows
 	entries = next_entries
 	update_corners()
+	resize(#exiting > 0, true)
 	paint()
 	for index, row in ipairs(rows) do
 		place_row(row, index, true)
 	end
-	resize(#exiting > 0, true)
 end
 
 function featurelist.set(list)

@@ -4368,6 +4368,10 @@ local function notify(title, body, duration, kind)
 		Size = UDim2.new(1, 0, 0, 0),
 		Parent = holder,
 	})
+	util.corner(face, 6)
+	util.stroke(face, style.values.line, 0.55)
+	util.depth(face, 0.8)
+	util.shadow(face, 22, 0.32)
 
 	local scrim = util.new("Frame", {
 		Name = "scrim",
@@ -4402,6 +4406,7 @@ local function notify(title, body, duration, kind)
 	})
 	util.corner(chip, 7)
 	util.stroke(chip, tint, 0.4)
+	util.depth(chip, 0.65)
 	local chip_scale = util.new("UIScale", { Scale = 0.7, Parent = chip })
 
 	local badge = icons.kind(kind, chip, icon_size, tint)
@@ -4460,6 +4465,7 @@ local function notify(title, body, duration, kind)
 		Parent = content,
 	})
 
+	--[[
 	local close_hit = util.new("TextButton", {
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 0),
@@ -4482,6 +4488,7 @@ local function notify(title, body, duration, kind)
 	close_hit.MouseLeave:Connect(function()
 		icons.tint(close_icon, close_color)
 	end)
+	]]
 
 	local rail = util.new("Frame", {
 		BackgroundColor3 = style.values.line,
@@ -4532,7 +4539,7 @@ local function notify(title, body, duration, kind)
 		util.tween(kind_label, 0.12, { TextTransparency = 1 })
 		util.tween(caption, 0.12, { TextTransparency = 1, TextStrokeTransparency = 1 })
 		fade_icon(chip, 1, 0.12)
-		fade_icon(close_icon, 1, 0.12)
+		-- fade_icon(close_icon, 1, 0.12)
 		util.tween(rail, 0.12, { BackgroundTransparency = 1 })
 		util.tween(line, 0.12, { BackgroundTransparency = 1 })
 		util.tween(dot, 0.12, { BackgroundTransparency = 1 })
@@ -4552,7 +4559,7 @@ local function notify(title, body, duration, kind)
 		Parent = content,
 	})
 	hit.Activated:Connect(close)
-	close_hit.Activated:Connect(close)
+	-- close_hit.Activated:Connect(close)
 
 	util.tween(face, 0.26, { Size = UDim2.new(1, 0, 0, height) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	util.tween(content, 0.28, { Position = UDim2.fromOffset(0, 0) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
@@ -4567,7 +4574,7 @@ local function notify(title, body, duration, kind)
 		util.tween(caption, 0.22, { TextTransparency = 0, TextStrokeTransparency = 0.35 })
 		util.tween(kind_label, 0.2, { TextTransparency = 0 })
 		fade_icon(chip, 0, 0.2)
-		fade_icon(close_icon, 0, 0.2)
+		-- fade_icon(close_icon, 0, 0.2)
 		util.tween(rail, 0.2, { BackgroundTransparency = 0.55 })
 		util.tween(line, 0.2, { BackgroundTransparency = 0 })
 		util.tween(dot, 0.2, { BackgroundTransparency = 0 })
@@ -5665,11 +5672,11 @@ local function build()
 	rows = next_rows
 	entries = next_entries
 	update_corners()
+	resize(#exiting > 0, true)
 	paint()
 	for index, row in ipairs(rows) do
 		place_row(row, index, true)
 	end
-	resize(#exiting > 0, true)
 end
 
 function featurelist.set(list)
@@ -11480,7 +11487,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-26.featurelist13"
+Library.Build = "2026-11-26.featurelist16"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
