@@ -5531,17 +5531,27 @@ local function rgb_value_gradient(row)
 end
 
 local function rgb_phase(phase)
-	local cycle = (phase * 0.26) % 2
-	local t = cycle <= 1 and cycle or 2 - cycle
-	return t * t * (3 - 2 * t)
+	return (phase * 0.16) % 1
+end
+
+local RAIL_STEPS = 16
+
+local function rail_sequence(base)
+	local points = {}
+	for index = 0, RAIL_STEPS do
+		local position = index / RAIL_STEPS
+		local hue = (base - position) % 1
+		points[#points + 1] = ColorSequenceKeypoint.new(position, Color3.fromHSV(hue, 1, 1))
+	end
+	return ColorSequence.new(points)
 end
 
 local function paint_rgb(phase)
 	local base = rgb_phase(phase or os.clock())
 	rail.BackgroundColor3 = Color3.new(1, 1, 1)
-	rail_gradient.Color = RGB_SEQUENCE
+	rail_gradient.Color = rail_sequence(base)
 	rail_gradient.Enabled = true
-	rail_gradient.Offset = Vector2.new(0, base)
+	rail_gradient.Offset = Vector2.new(0, 0)
 	local total = math.max(2, #rows + #exiting)
 	local function paint_row(row, index)
 		local hue = (base - index / total) % 1
@@ -11775,7 +11785,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.0.8"
+Library.Build = "1.0.9"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
