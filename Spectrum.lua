@@ -5022,7 +5022,7 @@ local right_margin = 12
 local rail_width = 4
 local rail_gap = 0
 local row_gap = 0
-local row_transparency = 0.28
+local row_transparency = 0.26
 
 local base_row_height = util.size(20)
 local base_text_size = util.size(13)
@@ -5102,6 +5102,17 @@ local RGB_SEQUENCE = ColorSequence.new({
 	ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 82, 82)),
 })
 
+local ROW_SHEEN = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+	ColorSequenceKeypoint.new(0.55, Color3.fromRGB(238, 241, 245)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(205, 210, 217)),
+})
+
+local RAIL_SHADE = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(210, 215, 222)),
+})
+
 local rail = util.new("Frame", {
 	Name = "rail",
 	BackgroundColor3 = values().accent,
@@ -5112,11 +5123,11 @@ local rail = util.new("Frame", {
 	ZIndex = 4,
 	Parent = card,
 })
-util.corner(rail, 2)
+util.corner(rail, 0)
 local rail_gradient = util.new("UIGradient", {
 	Name = "rgb",
-	Color = RGB_SEQUENCE,
-	Enabled = false,
+	Color = RAIL_SHADE,
+	Enabled = true,
 	Rotation = 90,
 	Parent = rail,
 })
@@ -5365,16 +5376,13 @@ local function place_row(row, index, animate)
 end
 
 local function update_corners()
-	local count = #rows
-	for index, row in ipairs(rows) do
-		local top = index == 1 and 3 or 0
-		local bottom = index == count and 3 or 0
+	for _, row in ipairs(rows) do
 		local corner = row.corner
 		if corner then
-			corner.TopLeftRadius = UDim.new(0, top)
-			corner.TopRightRadius = UDim.new(0, top)
-			corner.BottomLeftRadius = UDim.new(0, bottom)
-			corner.BottomRightRadius = UDim.new(0, bottom)
+			corner.TopLeftRadius = UDim.new(0, 0)
+			corner.TopRightRadius = UDim.new(0, 0)
+			corner.BottomLeftRadius = UDim.new(0, 0)
+			corner.BottomRightRadius = UDim.new(0, 0)
 		end
 	end
 end
@@ -5476,6 +5484,9 @@ local function start_exit(row)
 	}, Enum.EasingStyle.Quint)
 	util.tween(row.label, animation_time, { TextTransparency = 1 }, Enum.EasingStyle.Quint)
 	util.tween(row.value, animation_time, { TextTransparency = 1 }, Enum.EasingStyle.Quint)
+	if row.edge then
+		util.tween(row.edge, animation_time, { Transparency = 1 }, Enum.EasingStyle.Quint)
+	end
 	task.delay(animation_time, function()
 		if row.exit_token ~= token or not row.removing then
 			return
@@ -5505,28 +5516,56 @@ local function rgb_gradient(row)
 	return row.rgb_gradient
 end
 
+local function rgb_value_gradient(row)
+	if row.rgb_value_gradient and row.rgb_value_gradient.Parent then
+		return row.rgb_value_gradient
+	end
+	row.rgb_value_gradient = util.new("UIGradient", {
+		Name = "rgb_value",
+		Color = RGB_SEQUENCE,
+		Enabled = false,
+		Rotation = 90,
+		Parent = row.value,
+	})
+	return row.rgb_value_gradient
+end
+
 local function rgb_phase(phase)
-	local cycle = (phase * 0.22) % 2
-	return cycle <= 1 and cycle or 2 - cycle
+	local cycle = (phase * 0.26) % 2
+	local t = cycle <= 1 and cycle or 2 - cycle
+	return t * t * (3 - 2 * t)
 end
 
 local function paint_rgb(phase)
 	local base = rgb_phase(phase or os.clock())
 	rail.BackgroundColor3 = Color3.new(1, 1, 1)
+	rail_gradient.Color = RGB_SEQUENCE
 	rail_gradient.Enabled = true
 	rail_gradient.Offset = Vector2.new(0, base)
 	local total = math.max(2, #rows + #exiting)
 	local function paint_row(row, index)
+		local hue = (base - index / total) % 1
+		local next_hue = (base - (index + 1) / total) % 1
 		row.label.TextColor3 = Color3.new(1, 1, 1)
+		row.value.TextColor3 = Color3.new(1, 1, 1)
 		local gradient = rgb_gradient(row)
 		gradient.Enabled = true
 		gradient.Offset = Vector2.new(0, 0)
-		local hue = (base - index / total) % 1
-		local next_hue = (base - (index + 1) / total) % 1
 		gradient.Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromHSV(hue, 1, 1)),
-			ColorSequenceKeypoint.new(1, Color3.fromHSV(next_hue, 1, 1)),
+			ColorSequenceKeypoint.new(0, Color3.fromHSV(hue, 0.92, 1)),
+			ColorSequenceKeypoint.new(1, Color3.fromHSV(next_hue, 0.92, 1)),
 		})
+		local value_gradient = rgb_value_gradient(row)
+		value_gradient.Enabled = true
+		value_gradient.Offset = Vector2.new(0, 0)
+		value_gradient.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromHSV(hue, 0.52, 1)),
+			ColorSequenceKeypoint.new(1, Color3.fromHSV(next_hue, 0.52, 1)),
+		})
+		if row.edge then
+			row.edge.Color = Color3.new(1, 1, 1)
+			row.edge.Transparency = 0.86
+		end
 	end
 	for index, row in ipairs(rows) do
 		paint_row(row, index)
@@ -5554,7 +5593,7 @@ local function start_rgb()
 			return
 		end
 		local now = os.clock()
-		if now - rgb_last < 0.04 then
+		if now - rgb_last < 0.03 then
 			return
 		end
 		rgb_last = now
@@ -5566,7 +5605,9 @@ end
 
 local function paint()
 	rail.BackgroundColor3 = values().accent
-	rail_gradient.Enabled = false
+	rail_gradient.Color = RAIL_SHADE
+	rail_gradient.Offset = Vector2.new(0, 0)
+	rail_gradient.Enabled = true
 	for _, row in ipairs(rows) do
 		side_row(row)
 		row.root.ZIndex = 3
@@ -5584,8 +5625,15 @@ local function paint()
 		row.value.TextColor3 = values().text
 		row.value.TextTransparency = 0
 		apply_row_layout(row, true)
+		if row.edge then
+			row.edge.Color = values().line
+			row.edge.Transparency = 0.8
+		end
 		if row.rgb_gradient then
 			row.rgb_gradient.Enabled = false
+		end
+		if row.rgb_value_gradient then
+			row.rgb_value_gradient.Enabled = false
 		end
 		if row.appearing then
 			grow_row(row)
@@ -5593,8 +5641,16 @@ local function paint()
 	end
 	for _, row in ipairs(exiting) do
 		row.label.TextColor3 = values().accent
+		row.value.TextColor3 = values().text
 		if row.rgb_gradient then
 			row.rgb_gradient.Enabled = false
+		end
+		if row.rgb_value_gradient then
+			row.rgb_value_gradient.Enabled = false
+		end
+		if row.edge then
+			row.edge.Color = values().line
+			row.edge.Transparency = 0.8
 		end
 	end
 	if rgb_mode then
@@ -5771,6 +5827,13 @@ local function create_row(entry)
 		CornerRadius = UDim.new(0, 0),
 		Parent = strip,
 	})
+	local edge = util.stroke(strip, values().line, 0.8)
+	local sheen = util.new("UIGradient", {
+		Name = "sheen",
+		Color = ROW_SHEEN,
+		Rotation = 90,
+		Parent = strip,
+	})
 	local label = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(pad_left, 0),
@@ -5810,6 +5873,8 @@ local function create_row(entry)
 		root = root,
 		strip = strip,
 		corner = corner,
+		edge = edge,
+		sheen = sheen,
 		label = label,
 		value = value,
 		appearing = false,
@@ -11710,7 +11775,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.0.7"
+Library.Build = "1.0.8"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
