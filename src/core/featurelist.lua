@@ -351,6 +351,7 @@ end
 
 local function resize(hold, animate)
 	local total = height()
+	local rail_total = total
 	if hold then
 		total = math.max(total, visual_height)
 	end
@@ -367,6 +368,13 @@ local function resize(hold, animate)
 		end
 	end
 	content.Size = UDim2.new(1, -(rail_width + rail_gap), 1, 0)
+	local rail_target = UDim2.new(0, rail_width, 0, rail_total)
+	if animate and card.Parent then
+		util.tween(rail, animation_time, { Size = rail_target }, Enum.EasingStyle.Quint)
+	else
+		util.cancel(rail)
+		rail.Size = rail_target
+	end
 	card.Visible = shown and total > 0
 	clamp_position(width, total)
 end

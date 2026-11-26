@@ -4284,6 +4284,12 @@ local kind_labels = {
 	warn = "WARNING",
 	bad = "ERROR",
 }
+local kind_icons = {
+	info = "info",
+	good = "check",
+	warn = "alert",
+	bad = "cross",
+}
 
 local function wrapped_height(text, width, size)
 	local ok, box = pcall(function()
@@ -4399,17 +4405,18 @@ local function notify(title, body, duration, kind)
 		BackgroundColor3 = tint,
 		BackgroundTransparency = 0.82,
 		BorderSizePixel = 0,
+		ClipsDescendants = true,
 		Position = UDim2.fromOffset(chip_x, env.mobile and 11 or 10),
 		Size = UDim2.fromOffset(chip_size, chip_size),
 		ZIndex = 4,
 		Parent = content,
 	})
-	util.corner(chip, 7)
+	util.corner(chip, chip_size / 2)
 	util.stroke(chip, tint, 0.4)
 	util.depth(chip, 0.65)
 	local chip_scale = util.new("UIScale", { Scale = 0.7, Parent = chip })
 
-	local badge = icons.kind(kind, chip, icon_size, tint)
+	local badge = icons.image(chip, kind_icons[kind] or "info", icon_size, tint) or icons.kind(kind, chip, icon_size, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
 	badge.Position = UDim2.fromScale(0.5, 0.5)
 	icons.layer(badge, 5)
@@ -5323,6 +5330,7 @@ end
 
 local function resize(hold, animate)
 	local total = height()
+	local rail_total = total
 	if hold then
 		total = math.max(total, visual_height)
 	end
@@ -5339,6 +5347,13 @@ local function resize(hold, animate)
 		end
 	end
 	content.Size = UDim2.new(1, -(rail_width + rail_gap), 1, 0)
+	local rail_target = UDim2.new(0, rail_width, 0, rail_total)
+	if animate and card.Parent then
+		util.tween(rail, animation_time, { Size = rail_target }, Enum.EasingStyle.Quint)
+	else
+		util.cancel(rail)
+		rail.Size = rail_target
+	end
 	card.Visible = shown and total > 0
 	clamp_position(width, total)
 end
@@ -11487,7 +11502,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-26.featurelist16"
+Library.Build = "1.0.0"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then

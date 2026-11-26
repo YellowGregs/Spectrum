@@ -40,6 +40,12 @@ local kind_labels = {
 	warn = "WARNING",
 	bad = "ERROR",
 }
+local kind_icons = {
+	info = "info",
+	good = "check",
+	warn = "alert",
+	bad = "cross",
+}
 
 local function wrapped_height(text, width, size)
 	local ok, box = pcall(function()
@@ -155,17 +161,18 @@ local function notify(title, body, duration, kind)
 		BackgroundColor3 = tint,
 		BackgroundTransparency = 0.82,
 		BorderSizePixel = 0,
+		ClipsDescendants = true,
 		Position = UDim2.fromOffset(chip_x, env.mobile and 11 or 10),
 		Size = UDim2.fromOffset(chip_size, chip_size),
 		ZIndex = 4,
 		Parent = content,
 	})
-	util.corner(chip, 7)
+	util.corner(chip, chip_size / 2)
 	util.stroke(chip, tint, 0.4)
 	util.depth(chip, 0.65)
 	local chip_scale = util.new("UIScale", { Scale = 0.7, Parent = chip })
 
-	local badge = icons.kind(kind, chip, icon_size, tint)
+	local badge = icons.image(chip, kind_icons[kind] or "info", icon_size, tint) or icons.kind(kind, chip, icon_size, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
 	badge.Position = UDim2.fromScale(0.5, 0.5)
 	icons.layer(badge, 5)
