@@ -4405,7 +4405,6 @@ local function notify(title, body, duration, kind)
 		BackgroundColor3 = tint,
 		BackgroundTransparency = 0.82,
 		BorderSizePixel = 0,
-		ClipsDescendants = true,
 		Position = UDim2.fromOffset(chip_x, env.mobile and 11 or 10),
 		Size = UDim2.fromOffset(chip_size, chip_size),
 		ZIndex = 4,
@@ -4413,7 +4412,6 @@ local function notify(title, body, duration, kind)
 	})
 	util.corner(chip, chip_size / 2)
 	util.stroke(chip, tint, 0.4)
-	util.depth(chip, 0.65)
 	local chip_scale = util.new("UIScale", { Scale = 0.7, Parent = chip })
 
 	local badge = icons.image(chip, kind_icons[kind] or "info", icon_size, tint) or icons.kind(kind, chip, icon_size, tint)
@@ -11502,7 +11500,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.0.0"
+Library.Build = "1.0.1"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
