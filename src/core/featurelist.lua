@@ -43,18 +43,50 @@ local top_offset = env.mobile and 90 or 12
 local right_margin = 12
 local rail_width = 4
 local rail_gap = 0
-local row_height = util.size(20)
 local row_gap = 0
 local row_transparency = 0.28
-local pad_left = env.mobile and 9 or 10
-local pad_right = env.mobile and 8 or 10
-local label_gap = 6
-local text_size = util.size(13)
-local value_size = util.size(13)
+
+local base_row_height = util.size(20)
+local base_text_size = util.size(13)
+local base_value_size = util.size(13)
+local base_pad_left = env.mobile and 9 or 10
+local base_pad_right = env.mobile and 8 or 10
+local base_label_gap = 6
+
+local row_height = base_row_height
+local pad_left = base_pad_left
+local pad_right = base_pad_right
+local label_gap = base_label_gap
+local text_size = base_text_size
+local value_size = base_value_size
+
+local min_row_height = env.mobile and 14 or 13
+local min_text_size = env.mobile and 11 or 10
+local compact_after = env.mobile and 14 or 16
 
 local function card_width()
 	local view = env.viewport()
 	return math.min(base_width, math.max(160, view.X - 24))
+end
+
+local function apply_density(count)
+	local scale = 1
+	if count > compact_after then
+		scale = 1 - (count - compact_after) * 0.02
+	end
+	if count > 0 then
+		local view = env.viewport()
+		local available = math.max(96, view.Y - top_offset - 16)
+		local fit = (available - (count - 1) * row_gap) / (count * base_row_height)
+		scale = math.min(scale, fit)
+	end
+	scale = math.clamp(scale, 0.58, 1)
+	row_height = math.max(min_row_height, math.floor(base_row_height * scale + 0.5))
+	text_size = math.max(min_text_size, math.floor(base_text_size * scale + 0.5))
+	value_size = math.max(min_text_size, math.floor(base_value_size * scale + 0.5))
+	pad_left = math.max(6, math.floor(base_pad_left * scale + 0.5))
+	pad_right = math.max(5, math.floor(base_pad_right * scale + 0.5))
+	label_gap = math.max(4, math.floor(base_label_gap * scale + 0.5))
 end
 
 local function max_row_width()
@@ -323,6 +355,7 @@ end
 
 local function apply_row_layout(row, instant)
 	local label_w, value_w, width = row_metrics(row.entry)
+	row.root.Size = UDim2.new(1, 0, 0, row_height)
 	row.label.Size = UDim2.fromOffset(label_w, row_height)
 	row.value.Size = UDim2.fromOffset(value_w, row_height)
 	row.value.Position = UDim2.fromOffset(pad_left + label_w + (value_w > 0 and label_gap or 0), 0)
@@ -565,9 +598,11 @@ local function paint()
 		row.strip.BackgroundColor3 = values().panel
 		row.strip.BackgroundTransparency = row_transparency
 		row.label.Font = values().font_medium
+		row.label.TextSize = text_size
 		row.label.TextColor3 = values().accent
 		row.label.TextTransparency = 0
 		row.value.Font = values().font
+		row.value.TextSize = value_size
 		row.value.TextColor3 = values().text
 		row.value.TextTransparency = 0
 		apply_row_layout(row, true)
@@ -599,8 +634,11 @@ local function collect()
 				id = "manual:" .. index,
 				seq = index,
 			}
-			entry.width = select(3, row_metrics(entry))
 			out[#out + 1] = entry
+		end
+		apply_density(#out)
+		for _, entry in ipairs(out) do
+			entry.width = select(3, row_metrics(entry))
 		end
 		last_widths = {}
 		for _, entry in ipairs(out) do
@@ -620,13 +658,16 @@ local function collect()
 				entry.seq = feature.seq
 				entry.order = feature.order
 				entry.explicit_order = feature.explicit_order
-				entry.width = select(3, row_metrics(entry))
 				candidates[#candidates + 1] = entry
 				if feature.explicit_order ~= nil then
 					has_explicit = true
 				end
 			end
 		end
+	end
+	apply_density(#candidates)
+	for _, entry in ipairs(candidates) do
+		entry.width = select(3, row_metrics(entry))
 	end
 
 	local widths = {}
@@ -1046,6 +1087,7 @@ local function watch_viewport()
 	if camera then
 		camera_link = camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 			if card.Parent then
+				featurelist.touch()
 				resize(#exiting > 0, false)
 				paint()
 			end
