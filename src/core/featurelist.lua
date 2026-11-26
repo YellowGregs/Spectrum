@@ -23,6 +23,7 @@ local left_mode = false
 local scheduled = false
 local sort_dirty = true
 local last_order = {}
+local last_widths = {}
 local visual_height = 0
 local animation_time = 0.2
 local dragging = false
@@ -601,6 +602,10 @@ local function collect()
 			entry.width = select(3, row_metrics(entry))
 			out[#out + 1] = entry
 		end
+		last_widths = {}
+		for _, entry in ipairs(out) do
+			last_widths[entry.id] = entry.width
+		end
 		return out
 	end
 
@@ -622,6 +627,20 @@ local function collect()
 				end
 			end
 		end
+	end
+
+	local widths = {}
+	local width_changed = false
+	for _, entry in ipairs(candidates) do
+		local previous = last_widths[entry.id]
+		if previous ~= nil and previous ~= entry.width then
+			width_changed = true
+		end
+		widths[entry.id] = entry.width
+	end
+	last_widths = widths
+	if width_changed then
+		sort_dirty = true
 	end
 
 	local same_set = #last_order == #candidates
