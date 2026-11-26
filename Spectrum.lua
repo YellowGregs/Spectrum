@@ -4971,8 +4971,13 @@ local feature_seq = 0
 local attach_seq = 0
 local entries = {}
 local rows = {}
+local exiting = {}
 local shown = true
 local scheduled = false
+local sort_dirty = true
+local last_order = {}
+local visual_height = 0
+local animation_time = 0.2
 
 local function values()
 	return style.values
@@ -4985,6 +4990,7 @@ local rail_width = 4
 local rail_gap = 0
 local row_height = util.size(20)
 local row_gap = 0
+local row_transparency = 0.28
 local pad_left = env.mobile and 9 or 10
 local pad_right = env.mobile and 8 or 10
 local label_gap = 6
@@ -5020,14 +5026,6 @@ local content = util.new("Frame", {
 	ZIndex = 2,
 	Parent = card,
 })
-util.new("UIListLayout", {
-	FillDirection = Enum.FillDirection.Vertical,
-	SortOrder = Enum.SortOrder.LayoutOrder,
-	HorizontalAlignment = Enum.HorizontalAlignment.Right,
-	VerticalAlignment = Enum.VerticalAlignment.Top,
-	Padding = UDim.new(0, row_gap),
-	Parent = content,
-})
 
 local rail = util.new("Frame", {
 	Name = "rail",
@@ -5039,6 +5037,7 @@ local rail = util.new("Frame", {
 	ZIndex = 4,
 	Parent = card,
 })
+util.corner(rail, 2)
 
 local function shorten(value)
 	local text = tostring(value):gsub("%s+", " ")
@@ -5130,13 +5129,16 @@ local function row_metrics(entry)
 	return label_w, value_w, math.min(width, max_row_width())
 end
 
-local function layout_row(row)
+local function apply_row_layout(row, instant)
 	local label_w, value_w, width = row_metrics(row.entry)
-	row.strip.Size = UDim2.fromOffset(width, row_height)
 	row.label.Size = UDim2.fromOffset(label_w, row_height)
 	row.value.Size = UDim2.fromOffset(value_w, row_height)
 	row.value.Position = UDim2.fromOffset(pad_left + label_w + (value_w > 0 and label_gap or 0), 0)
 	row.value.Visible = value_w > 0
+	row.target_width = width
+	if instant and not row.appearing then
+		row.strip.Size = UDim2.fromOffset(width, row_height)
+	end
 end
 
 local function height()
@@ -5147,96 +5149,302 @@ local function height()
 	return count * row_height + (count - 1) * row_gap
 end
 
-local function resize()
+local function place_row(row, index, animate)
+	local target = UDim2.fromOffset(0, (index - 1) * (row_height + row_gap))
+	if row.slot ~= index then
+		row.slot = index
+		if animate and row.root.Parent then
+			util.tween(row.root, animation_time, { Position = target }, Enum.EasingStyle.Quint)
+		else
+			row.root.Position = target
+		end
+	end
+end
+
+local function update_corners()
+	local count = #rows
+	for index, row in ipairs(rows) do
+		local top = index == 1 and 3 or 0
+		local bottom = index == count and 3 or 0
+		local corner = row.corner
+		if corner then
+			corner.TopLeftRadius = UDim.new(0, top)
+			corner.TopRightRadius = UDim.new(0, top)
+			corner.BottomLeftRadius = UDim.new(0, bottom)
+			corner.BottomRightRadius = UDim.new(0, bottom)
+		end
+	end
+end
+
+local function grow_row(row)
+	if not row.strip.Parent then
+		return
+	end
+	row.appearing = true
+	row.grow_token = (row.grow_token or 0) + 1
+	local token = row.grow_token
+	util.tween(row.strip, animation_time, {
+		Size = UDim2.fromOffset(row.target_width or 0, row_height),
+	}, Enum.EasingStyle.Quint)
+	task.delay(animation_time, function()
+		if row.grow_token == token then
+			row.appearing = false
+		end
+	end)
+end
+
+local function resize(hold, animate)
 	local total = height()
-	card.Size = UDim2.fromOffset(card_width(), total)
+	if hold then
+		total = math.max(total, visual_height)
+	end
+	local width = card_width()
+	local changed = total ~= visual_height or card.Size.X.Offset ~= width
+	visual_height = total
+	if changed then
+		local target = UDim2.fromOffset(width, total)
+		if animate and card.Parent then
+			util.tween(card, animation_time, { Size = target }, Enum.EasingStyle.Quint)
+		else
+			util.cancel(card)
+			card.Size = target
+		end
+	end
 	content.Size = UDim2.new(1, -(rail_width + rail_gap), 1, 0)
-	card.Visible = shown and #entries > 0
+	card.Visible = shown and total > 0
+end
+
+local function remove_exiting(row)
+	for index, item in ipairs(exiting) do
+		if item == row then
+			table.remove(exiting, index)
+			return
+		end
+	end
+end
+
+local function cancel_exit(row)
+	if not row.removing then
+		return
+	end
+	row.removing = false
+	row.exit_token = (row.exit_token or 0) + 1
+	remove_exiting(row)
+	util.cancel(row.strip)
+	util.cancel(row.label)
+	util.cancel(row.value)
+	row.root.ZIndex = 3
+	row.strip.ZIndex = 3
+	row.label.ZIndex = 3
+	row.value.ZIndex = 3
+	row.strip.BackgroundTransparency = row_transparency
+	row.label.TextTransparency = 0
+	row.value.TextTransparency = 0
+	row.appearing = true
+end
+
+local function start_exit(row)
+	if row.removing then
+		return
+	end
+	row.removing = true
+	row.appearing = false
+	row.grow_token = (row.grow_token or 0) + 1
+	row.exit_token = (row.exit_token or 0) + 1
+	row.root.ZIndex = 2
+	row.strip.ZIndex = 2
+	row.label.ZIndex = 2
+	row.value.ZIndex = 2
+	local token = row.exit_token
+	exiting[#exiting + 1] = row
+	util.cancel(row.strip)
+	util.tween(row.strip, animation_time, {
+		Size = UDim2.fromOffset(0, row_height),
+		BackgroundTransparency = 1,
+	}, Enum.EasingStyle.Quint)
+	util.tween(row.label, animation_time, { TextTransparency = 1 }, Enum.EasingStyle.Quint)
+	util.tween(row.value, animation_time, { TextTransparency = 1 }, Enum.EasingStyle.Quint)
+	task.delay(animation_time, function()
+		if row.exit_token ~= token or not row.removing then
+			return
+		end
+		row.removing = false
+		remove_exiting(row)
+		if row.root.Parent then
+			row.root:Destroy()
+		end
+		if card.Parent and #exiting == 0 then
+			resize(false, true)
+		end
+	end)
 end
 
 local function paint()
 	rail.BackgroundColor3 = values().accent
 	for _, row in ipairs(rows) do
+		row.root.ZIndex = 3
+		row.strip.ZIndex = 3
+		row.label.ZIndex = 3
+		row.value.ZIndex = 3
 		row.strip.BackgroundColor3 = values().panel
+		row.strip.BackgroundTransparency = row_transparency
 		row.label.Font = values().font_medium
 		row.label.TextColor3 = values().accent
+		row.label.TextTransparency = 0
 		row.value.Font = values().font
 		row.value.TextColor3 = values().text
-		layout_row(row)
-	end
-end
-
-local function clear()
-	for _, row in ipairs(rows) do
-		if row.root.Parent then
-			row.root:Destroy()
+		row.value.TextTransparency = 0
+		apply_row_layout(row, true)
+		if row.appearing then
+			grow_row(row)
 		end
 	end
-	table.clear(rows)
 end
 
 local function collect()
-	local out = {}
 	if manual_mode then
-		for _, entry in ipairs(manual) do
+		local out = {}
+		for index, item in ipairs(manual) do
+			local entry = {
+				label = item.label,
+				value = item.value,
+				id = "manual:" .. index,
+				seq = index,
+			}
+			entry.width = select(3, row_metrics(entry))
 			out[#out + 1] = entry
 		end
 		return out
 	end
 
-	local ordered = {}
+	local candidates = {}
+	local has_explicit = false
 	for _, feature in pairs(features) do
-		ordered[#ordered + 1] = feature
-	end
-	table.sort(ordered, function(a, b)
-		if a.order ~= b.order then
-			return a.order < b.order
-		end
-		return a.seq < b.seq
-	end)
-	for _, feature in ipairs(ordered) do
 		local ok, value = pcall(feature.getter)
 		if ok then
 			local entry = normalize(value, feature.label)
 			if entry then
-				out[#out + 1] = entry
+				entry.id = feature.id
+				entry.seq = feature.seq
+				entry.order = feature.order
+				entry.explicit_order = feature.explicit_order
+				entry.width = select(3, row_metrics(entry))
+				candidates[#candidates + 1] = entry
+				if feature.explicit_order ~= nil then
+					has_explicit = true
+				end
 			end
 		end
 	end
-	return out
-end
 
-local function same_structure(a, b)
-	if #a ~= #b then
-		return false
-	end
-	for index = 1, #a do
-		if a[index].label ~= b[index].label then
-			return false
+	local same_set = #last_order == #candidates
+	if same_set then
+		local present = {}
+		for _, id in ipairs(last_order) do
+			present[id] = true
+		end
+		for _, entry in ipairs(candidates) do
+			if not present[entry.id] then
+				same_set = false
+				break
+			end
 		end
 	end
-	return true
+
+	local function by_width(list)
+		table.sort(list, function(a, b)
+			if a.width ~= b.width then
+				return a.width > b.width
+			end
+			return a.seq < b.seq
+		end)
+	end
+
+	local function by_last(list)
+		local position = {}
+		for index, id in ipairs(last_order) do
+			position[id] = index
+		end
+		table.sort(list, function(a, b)
+			local pa = position[a.id] or math.huge
+			local pb = position[b.id] or math.huge
+			if pa ~= pb then
+				return pa < pb
+			end
+			return a.seq < b.seq
+		end)
+	end
+
+	if has_explicit then
+		local explicit_list = {}
+		local auto_list = {}
+		for _, entry in ipairs(candidates) do
+			if entry.explicit_order ~= nil then
+				explicit_list[#explicit_list + 1] = entry
+			else
+				auto_list[#auto_list + 1] = entry
+			end
+		end
+		table.sort(explicit_list, function(a, b)
+			if a.explicit_order ~= b.explicit_order then
+				return a.explicit_order < b.explicit_order
+			end
+			return a.seq < b.seq
+		end)
+		if sort_dirty or not same_set then
+			by_width(auto_list)
+			sort_dirty = false
+		else
+			by_last(auto_list)
+		end
+		local merged = {}
+		for _, entry in ipairs(explicit_list) do
+			merged[#merged + 1] = entry
+		end
+		for _, entry in ipairs(auto_list) do
+			merged[#merged + 1] = entry
+		end
+		candidates = merged
+	else
+		if sort_dirty or not same_set then
+			by_width(candidates)
+			sort_dirty = false
+		else
+			by_last(candidates)
+		end
+	end
+
+	local ids = {}
+	for index, entry in ipairs(candidates) do
+		ids[index] = entry.id
+	end
+	last_order = ids
+	return candidates
 end
 
-local function create_row(entry, index)
+local function create_row(entry)
 	local root = util.new("Frame", {
 		Name = "feature_row",
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 0, row_height),
-		LayoutOrder = index,
 		ZIndex = 3,
 		Parent = content,
 	})
 	local strip = util.new("Frame", {
 		Name = "strip",
 		BackgroundColor3 = values().panel,
-		BackgroundTransparency = 0.28,
+		BackgroundTransparency = row_transparency,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
 		Size = UDim2.fromOffset(0, row_height),
+		ClipsDescendants = true,
 		ZIndex = 3,
 		Parent = root,
+	})
+	local corner = util.new("UICorner", {
+		CornerRadius = UDim.new(0, 0),
+		Parent = strip,
 	})
 	local label = util.new("TextLabel", {
 		BackgroundTransparency = 1,
@@ -5272,24 +5480,18 @@ local function create_row(entry, index)
 		Parent = strip,
 	})
 	return {
+		id = entry.id,
+		entry = entry,
 		root = root,
 		strip = strip,
+		corner = corner,
 		label = label,
 		value = value,
-		entry = entry,
+		appearing = false,
+		removing = false,
+		exit_token = 0,
+		grow_token = 0,
 	}
-end
-
-local function update_rows()
-	for index, entry in ipairs(entries) do
-		local row = rows[index]
-		if row then
-			row.entry = entry
-			row.label.Text = entry.label
-			row.value.Text = entry.value or ""
-		end
-	end
-	paint()
 end
 
 local function build()
@@ -5297,24 +5499,54 @@ local function build()
 		return
 	end
 	local next_entries = collect()
-	if #rows > 0 and same_structure(entries, next_entries) then
-		entries = next_entries
-		update_rows()
-		resize()
-		return
+	local all = {}
+	for _, row in ipairs(rows) do
+		all[row.id] = row
+	end
+	for _, row in ipairs(exiting) do
+		all[row.id] = row
 	end
 
+	local used = {}
+	local next_rows = {}
+	for index, entry in ipairs(next_entries) do
+		local row = all[entry.id]
+		if row then
+			used[row] = true
+			if row.removing then
+				cancel_exit(row)
+			end
+			row.entry = entry
+			row.label.Text = entry.label
+			row.value.Text = entry.value or ""
+			apply_row_layout(row, not row.appearing)
+			next_rows[#next_rows + 1] = row
+		else
+			row = create_row(entry)
+			row.entry = entry
+			apply_row_layout(row, false)
+			row.strip.Size = UDim2.fromOffset(0, row_height)
+			row.root.Position = UDim2.fromOffset(0, (index - 1) * (row_height + row_gap))
+			row.slot = index
+			row.appearing = true
+			next_rows[#next_rows + 1] = row
+		end
+	end
+
+	for _, row in ipairs(rows) do
+		if not used[row] then
+			start_exit(row)
+		end
+	end
+
+	rows = next_rows
 	entries = next_entries
-	clear()
-	if #entries == 0 then
-		resize()
-		return
-	end
-	for index, entry in ipairs(entries) do
-		rows[#rows + 1] = create_row(entry, index)
-	end
-	resize()
+	update_corners()
 	paint()
+	for index, row in ipairs(rows) do
+		place_row(row, index, true)
+	end
+	resize(#exiting > 0, true)
 end
 
 function featurelist.set(list)
@@ -5345,6 +5577,7 @@ function featurelist.set(list)
 	end
 	manual = next_manual
 	manual_mode = #manual > 0
+	sort_dirty = true
 	if manual_mode then
 		shown = true
 	end
@@ -5358,14 +5591,17 @@ function featurelist.bind(id, label, getter, opts)
 	end
 	opts = type(opts) == "table" and opts or {}
 	feature_seq = feature_seq + 1
+	local explicit = tonumber(opts.order)
 	features[id] = {
 		id = id,
 		label = tostring(label or id),
 		getter = getter,
 		opts = opts,
-		order = tonumber(opts.order) or feature_seq,
+		explicit_order = explicit,
+		order = explicit or feature_seq,
 		seq = feature_seq,
 	}
+	sort_dirty = true
 	build()
 	return {
 		id = id,
@@ -5402,6 +5638,7 @@ end
 function featurelist.unbind(id)
 	if features[id] then
 		features[id] = nil
+		sort_dirty = true
 		build()
 	end
 end
@@ -5421,7 +5658,7 @@ end
 
 function featurelist.visible(state)
 	shown = state == true
-	card.Visible = shown and #entries > 0
+	card.Visible = shown and visual_height > 0
 	return shown
 end
 
@@ -5449,7 +5686,7 @@ local function watch_viewport()
 	if camera then
 		camera_link = camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 			if card.Parent then
-				resize()
+				resize(#exiting > 0, false)
 				paint()
 			end
 		end)
@@ -11073,7 +11310,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-26.featurelist6"
+Library.Build = "2026-11-26.featurelist8"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
