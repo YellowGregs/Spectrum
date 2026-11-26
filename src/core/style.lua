@@ -116,7 +116,7 @@ local font_order = {
 }
 
 local defaults = {
-	accent = Color3.fromRGB(230, 162, 58),
+	accent = Color3.fromRGB(17, 42, 103),
 	background = Color3.fromRGB(13, 14, 16),
 	panel = Color3.fromRGB(24, 26, 29),
 	hover = Color3.fromRGB(35, 38, 42),

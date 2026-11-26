@@ -5,7 +5,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.0.1"
+Library.Build = "1.0.2"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -13,6 +13,9 @@ if type(previous) == "table" and previous ~= Library and type(previous.Destroy) 
 end
 
 config.load()
+if S.featurelist and S.featurelist.restore then
+	S.featurelist.restore()
+end
 local DEFAULT_MENU_KEY = "RightControl+LeftShift"
 local menu_key = DEFAULT_MENU_KEY
 local panic_key
@@ -321,6 +324,9 @@ end
 
 function Library:LoadConfig(name)
 	config.load(name)
+	if S.featurelist and S.featurelist.restore then
+		S.featurelist.restore()
+	end
 	menu_key = normalize_key(config.toggle_key())
 	menu_held = {}
 	combo_fired = false

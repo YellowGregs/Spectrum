@@ -316,7 +316,7 @@ local font_order = {
 }
 
 local defaults = {
-	accent = Color3.fromRGB(230, 162, 58),
+	accent = Color3.fromRGB(17, 42, 103),
 	background = Color3.fromRGB(13, 14, 16),
 	panel = Color3.fromRGB(24, 26, 29),
 	hover = Color3.fromRGB(35, 38, 42),
@@ -3982,6 +3982,23 @@ function config.place_launcher(state)
 	config.touch()
 end
 
+function config.featurelist_state()
+	return data.settings and data.settings.feature_list
+end
+
+function config.place_featurelist(state)
+	if type(state) ~= "table" then
+		return
+	end
+	data.settings = type(data.settings) == "table" and data.settings or {}
+	data.settings.feature_list = {
+		v = 1,
+		x = tonumber(state.x) or -12,
+		y = tonumber(state.y) or 12,
+	}
+	config.touch()
+end
+
 function config.flush()
 	if auto_save_enabled then
 		config.save()
@@ -4513,18 +4530,6 @@ local function notify(title, body, duration, kind)
 		ZIndex = 4,
 		Parent = rail,
 	})
-	local dot = util.new("Frame", {
-		BackgroundColor3 = tint,
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0, width - 2, 0.5, 0),
-		Size = UDim2.fromOffset(4, 4),
-		ZIndex = 5,
-		Parent = rail,
-	})
-	util.corner(dot, 2)
-
 	local closed = false
 	local function close()
 		if closed then
@@ -4535,7 +4540,6 @@ local function notify(title, body, duration, kind)
 			return
 		end
 		util.cancel(line)
-		util.cancel(dot)
 		util.tween(face, 0.16, { Size = UDim2.new(1, 0, 0, 0) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		util.tween(content, 0.16, { Position = UDim2.fromOffset(6, -2) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		util.tween(scale, 0.16, { Scale = 0.96 })
@@ -4547,7 +4551,6 @@ local function notify(title, body, duration, kind)
 		-- fade_icon(close_icon, 1, 0.12)
 		util.tween(rail, 0.12, { BackgroundTransparency = 1 })
 		util.tween(line, 0.12, { BackgroundTransparency = 1 })
-		util.tween(dot, 0.12, { BackgroundTransparency = 1 })
 		task.delay(0.18, function()
 			if face.Parent then
 				face:Destroy()
@@ -4582,10 +4585,8 @@ local function notify(title, body, duration, kind)
 		-- fade_icon(close_icon, 0, 0.2)
 		util.tween(rail, 0.2, { BackgroundTransparency = 0.55 })
 		util.tween(line, 0.2, { BackgroundTransparency = 0 })
-		util.tween(dot, 0.2, { BackgroundTransparency = 0 })
 	end)
 	util.tween(line, duration, { Size = UDim2.fromScale(0, 1) }, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
-	util.tween(dot, duration, { Position = UDim2.new(0, 2, 0.5, 0) }, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
 	task.delay(duration, close)
 
 	return close
@@ -4980,6 +4981,7 @@ do
 local env = S.env
 local util = S.util
 local style = S.style
+local config = S.config
 
 local TextService = game:GetService("TextService")
 
@@ -5001,6 +5003,7 @@ local last_order = {}
 local visual_height = 0
 local animation_time = 0.2
 local dragging = false
+local drag_moved = false
 local drag_from
 local drag_at
 
@@ -5121,6 +5124,13 @@ local function clamp_position(width, height)
 	update_side(width, x)
 end
 
+local function remember()
+	config.place_featurelist({
+		x = card.Position.X.Offset,
+		y = card.Position.Y.Offset,
+	})
+end
+
 local drag = util.new("TextButton", {
 	Name = "drag",
 	BackgroundTransparency = 1,
@@ -5138,6 +5148,7 @@ local drag_begin = drag.InputBegan:Connect(function(input)
 	local kind = input.UserInputType
 	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 		dragging = true
+		drag_moved = false
 		drag_from = input.Position
 		drag_at = Vector2.new(card.Position.X.Offset, card.Position.Y.Offset)
 	end
@@ -5155,6 +5166,7 @@ local drag_move = env.uis.InputChanged:Connect(function(input)
 	if delta.Magnitude < 1 then
 		return
 	end
+	drag_moved = true
 	local view = env.viewport()
 	local width = card.Size.X.Offset
 	local height = card_height()
@@ -5169,6 +5181,9 @@ local drag_end = env.uis.InputEnded:Connect(function(input)
 	if dragging and (kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch) then
 		dragging = false
 		clamp_position()
+		if drag_moved then
+			remember()
+		end
 	end
 end)
 
@@ -5825,6 +5840,14 @@ function featurelist.all(state)
 		build()
 	end
 	return all_mode
+end
+
+function featurelist.restore()
+	local saved = config.featurelist_state()
+	if type(saved) == "table" and type(saved.x) == "number" and type(saved.y) == "number" then
+		card.Position = UDim2.new(1, saved.x, 0, saved.y)
+	end
+	clamp_position()
 end
 
 function featurelist.visible(state)
@@ -11500,7 +11523,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.0.1"
+Library.Build = "1.0.2"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -11508,6 +11531,9 @@ if type(previous) == "table" and previous ~= Library and type(previous.Destroy) 
 end
 
 config.load()
+if S.featurelist and S.featurelist.restore then
+	S.featurelist.restore()
+end
 local DEFAULT_MENU_KEY = "RightControl+LeftShift"
 local menu_key = DEFAULT_MENU_KEY
 local panic_key
@@ -11816,6 +11842,9 @@ end
 
 function Library:LoadConfig(name)
 	config.load(name)
+	if S.featurelist and S.featurelist.restore then
+		S.featurelist.restore()
+	end
 	menu_key = normalize_key(config.toggle_key())
 	menu_held = {}
 	combo_fired = false

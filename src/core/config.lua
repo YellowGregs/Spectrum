@@ -369,6 +369,23 @@ function config.place_launcher(state)
 	config.touch()
 end
 
+function config.featurelist_state()
+	return data.settings and data.settings.feature_list
+end
+
+function config.place_featurelist(state)
+	if type(state) ~= "table" then
+		return
+	end
+	data.settings = type(data.settings) == "table" and data.settings or {}
+	data.settings.feature_list = {
+		v = 1,
+		x = tonumber(state.x) or -12,
+		y = tonumber(state.y) or 12,
+	}
+	config.touch()
+end
+
 function config.flush()
 	if auto_save_enabled then
 		config.save()

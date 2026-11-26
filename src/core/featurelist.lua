@@ -3,6 +3,7 @@ local S = ...
 local env = S.env
 local util = S.util
 local style = S.style
+local config = S.config
 
 local TextService = game:GetService("TextService")
 
@@ -24,6 +25,7 @@ local last_order = {}
 local visual_height = 0
 local animation_time = 0.2
 local dragging = false
+local drag_moved = false
 local drag_from
 local drag_at
 
@@ -144,6 +146,13 @@ local function clamp_position(width, height)
 	update_side(width, x)
 end
 
+local function remember()
+	config.place_featurelist({
+		x = card.Position.X.Offset,
+		y = card.Position.Y.Offset,
+	})
+end
+
 local drag = util.new("TextButton", {
 	Name = "drag",
 	BackgroundTransparency = 1,
@@ -161,6 +170,7 @@ local drag_begin = drag.InputBegan:Connect(function(input)
 	local kind = input.UserInputType
 	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 		dragging = true
+		drag_moved = false
 		drag_from = input.Position
 		drag_at = Vector2.new(card.Position.X.Offset, card.Position.Y.Offset)
 	end
@@ -178,6 +188,7 @@ local drag_move = env.uis.InputChanged:Connect(function(input)
 	if delta.Magnitude < 1 then
 		return
 	end
+	drag_moved = true
 	local view = env.viewport()
 	local width = card.Size.X.Offset
 	local height = card_height()
@@ -192,6 +203,9 @@ local drag_end = env.uis.InputEnded:Connect(function(input)
 	if dragging and (kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch) then
 		dragging = false
 		clamp_position()
+		if drag_moved then
+			remember()
+		end
 	end
 end)
 
@@ -848,6 +862,14 @@ function featurelist.all(state)
 		build()
 	end
 	return all_mode
+end
+
+function featurelist.restore()
+	local saved = config.featurelist_state()
+	if type(saved) == "table" and type(saved.x) == "number" and type(saved.y) == "number" then
+		card.Position = UDim2.new(1, saved.x, 0, saved.y)
+	end
+	clamp_position()
 end
 
 function featurelist.visible(state)
