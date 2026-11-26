@@ -1,8 +1,6 @@
 local S = {}
 
 do
-local S = ...
-
 local cloneref = cloneref or function(obj)
 	return obj
 end
@@ -202,8 +200,6 @@ S.env = env
 end
 
 do
-local S = ...
-
 local env = S.env
 local style = {}
 
@@ -567,8 +563,6 @@ S.style = style
 end
 
 do
-local S = ...
-
 local env = S.env
 local style = S.style
 local white = Color3.new(1, 1, 1)
@@ -1029,8 +1023,6 @@ S.util = util
 end
 
 do
-local S = ...
-
 local util = S.util
 local style = S.style
 local icons = {}
@@ -2403,8 +2395,6 @@ S.icons = icons
 end
 
 do
-local S = ...
-
 local brand = {}
 local DATA = table.concat({
 	"iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABTGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8kZOcW8wkwMCQm1dSFOTu",
@@ -2943,8 +2933,6 @@ S.brand = brand
 end
 
 do
-local S = ...
-
 local background = {}
 
 local state = {
@@ -3268,8 +3256,6 @@ S.background = background
 end
 
 do
-local S = ...
-
 local env = S.env
 local util = S.util
 local modal = {}
@@ -3320,8 +3306,6 @@ S.modal = modal
 end
 
 do
-local S = ...
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -3629,8 +3613,6 @@ S.options = options
 end
 
 do
-local S = ...
-
 local config = {}
 
 local ROOT = "spectrum/configs"
@@ -4042,8 +4024,6 @@ S.config = config
 end
 
 do
-local S = ...
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -4264,8 +4244,6 @@ S.launcher = launcher
 end
 
 do
-local S = ...
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -4602,8 +4580,6 @@ S.notify = notify
 end
 
 do
-local S = ...
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -4893,8 +4869,6 @@ S.tooltip = tooltip
 end
 
 do
-local S = ...
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -4988,8 +4962,6 @@ S.watermark = watermark
 end
 
 do
-local S = ...
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -5848,8 +5820,6 @@ S.featurelist = featurelist
 end
 
 do
-local S = ...
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -6084,8 +6054,6 @@ S.splash = splash
 end
 
 do
-local S = ...
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -7616,8 +7584,6 @@ S.window = Window
 end
 
 do
-local S = ...
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -8930,8 +8896,6 @@ S.inputs = inputs
 end
 
 do
-local S = ...
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -10914,8 +10878,6 @@ S.selects = selects
 end
 
 do
-local S = ...
-
 local env = S.env
 local util = S.util
 local style = S.style
@@ -11464,8 +11426,6 @@ S.text = text
 end
 
 do
-local S = ...
-
 local env = S.env
 local config = S.config
 local util = S.util
