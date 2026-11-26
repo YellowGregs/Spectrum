@@ -16,6 +16,32 @@ function util.new(class, props)
 		end
 		object.Parent = props.Parent
 	end
+	if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
+		local role = style.font_role(object.Font)
+		if role then
+			object:SetAttribute("SpectrumFontRole", role)
+		end
+	end
+	return object
+end
+
+function util.font(object, role)
+	local font
+	if role == "regular" then
+		font = style.values.font
+	elseif role == "medium" then
+		font = style.values.font_medium
+	elseif role == "bold" then
+		font = style.values.font_bold
+	elseif role == "mono" then
+		font = style.values.font_mono
+	end
+	if font then
+		object.Font = font
+	end
+	if role then
+		object:SetAttribute("SpectrumFontRole", role)
+	end
 	return object
 end
 

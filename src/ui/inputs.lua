@@ -5,9 +5,15 @@ local util = S.util
 local style = S.style
 local icons = S.icons
 local tooltip = S.tooltip
-local bold = Enum.Font.GothamBold
-local font = Enum.Font.RobotoCondensed
-local mono = Enum.Font.RobotoMono
+local function bold()
+	return style.values.font_bold
+end
+local function font()
+	return style.values.font
+end
+local function mono()
+	return style.values.font_mono
+end
 local inputs = {}
 
 local function values()
@@ -19,7 +25,7 @@ local function label(parent, text, y, height)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(10, y or 0),
 		Size = UDim2.new(1, -90, 0, height or 14),
-		Font = font,
+		Font = font(),
 		Text = string.upper(tostring(text or "")),
 		TextColor3 = values().text,
 		TextSize = util.size(10),
@@ -79,7 +85,7 @@ function inputs.button(win, text, callback, icon, opts)
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(1, -16, 0, mobile and 36 or 24),
-		Font = bold,
+		Font = bold(),
 		Text = string.upper(tostring(text or "Button")),
 		TextColor3 = front,
 		TextSize = util.size(mobile and 10 or 9),
@@ -581,7 +587,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -10, 0, compact and 2 or (mobile and 6 or 4)),
 		Size = UDim2.fromOffset(88, 14),
-		Font = mono,
+		Font = mono(),
 		Text = "",
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
@@ -850,7 +856,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -10, 0.5, 0),
 		Size = UDim2.fromOffset(mobile and 96 or 84, mobile and 28 or 21),
-		Font = mono,
+		Font = mono(),
 		Text = default or empty_text,
 		TextColor3 = values().muted,
 		TextSize = util.size(9),

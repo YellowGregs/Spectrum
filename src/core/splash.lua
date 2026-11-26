@@ -4,8 +4,12 @@ local env = S.env
 local util = S.util
 local style = S.style
 local brand = S.brand
-local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local function bold()
+	return style.values.font_bold
+end
+local function font()
+	return style.values.font_medium
+end
 local splash = {}
 
 local function values()
@@ -90,7 +94,7 @@ function splash.mount()
 		util.corner(fallback, (plate_size - 16) / 2)
 		fallback_label = util.new("TextLabel", {
 			BackgroundTransparency = 1,
-			Font = bold,
+			Font = bold(),
 			Size = UDim2.fromScale(1, 1),
 			Text = "AF",
 			TextColor3 = values().text,
@@ -107,7 +111,7 @@ function splash.mount()
 		BackgroundTransparency = 1,
 		Position = UDim2.new(0, 0, 0, title_y),
 		Size = UDim2.new(1, 0, 0, 18),
-		Font = bold,
+		Font = bold(),
 		Text = "AdvanceFalling",
 		TextColor3 = values().text,
 		TextSize = util.size(15),
@@ -119,7 +123,7 @@ function splash.mount()
 		BackgroundTransparency = 1,
 		Position = UDim2.new(0, 0, 0, title_y + 20),
 		Size = UDim2.new(1, 0, 0, 12),
-		Font = font,
+		Font = font(),
 		Text = "SPECTRUM",
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
@@ -152,7 +156,7 @@ function splash.mount()
 		BackgroundTransparency = 1,
 		Position = UDim2.new(0, 0, 0, rail_y + 12),
 		Size = UDim2.new(1, 0, 0, 12),
-		Font = font,
+		Font = font(),
 		Text = "Loading UI",
 		TextColor3 = values().muted,
 		TextSize = util.size(9),

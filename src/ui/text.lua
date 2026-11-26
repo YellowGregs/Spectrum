@@ -5,9 +5,15 @@ local util = S.util
 local style = S.style
 local icons = S.icons
 local tooltip = S.tooltip
-local bold = Enum.Font.GothamBold
-local font = Enum.Font.RobotoCondensed
-local mono = Enum.Font.RobotoMono
+local function bold()
+	return style.values.font_bold
+end
+local function font()
+	return style.values.font
+end
+local function mono()
+	return style.values.font_mono
+end
 local text = {}
 
 local function values()
@@ -19,7 +25,7 @@ local function label(parent, title)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(10, 0),
 		Size = UDim2.new(1, -90, 0, 14),
-		Font = font,
+		Font = font(),
 		Text = string.upper(tostring(title or "")),
 		TextColor3 = values().text,
 		TextSize = util.size(10),
@@ -72,7 +78,7 @@ function text.section(win, title, icon, opts)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(20, 0),
 		Size = UDim2.new(1, -44, 1, 0),
-		Font = bold,
+		Font = bold(),
 		Text = string.upper(tostring(title or "Section")),
 		TextColor3 = values().text,
 		TextSize = util.size(9),
@@ -212,7 +218,7 @@ function text.label(win, body)
 		BackgroundTransparency = 1,
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Size = UDim2.new(1, 0, 0, 0),
-		Font = font,
+		Font = font(),
 		Text = tostring(body or ""),
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
@@ -301,7 +307,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 			ClearTextOnFocus = clear_focus,
 			Active = not disabled,
 			TextEditable = not disabled,
-			Font = mono,
+			Font = mono(),
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = placeholder,
 			Position = UDim2.new(0, 10, 0, 27),
@@ -322,7 +328,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 			ClearTextOnFocus = clear_focus,
 			Active = not disabled,
 			TextEditable = not disabled,
-			Font = mono,
+			Font = mono(),
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = placeholder,
 			AnchorPoint = Vector2.new(1, 0.5),

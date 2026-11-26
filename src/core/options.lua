@@ -5,8 +5,12 @@ local util = S.util
 local style = S.style
 local icons = S.icons
 local modal = S.modal
-local bold = Enum.Font.GothamBold
-local font = Enum.Font.RobotoCondensed
+local function bold()
+	return style.values.font_bold
+end
+local function font()
+	return style.values.font
+end
 
 local options = {}
 local panel
@@ -51,7 +55,7 @@ local function ensure()
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(11, 0),
 		Size = UDim2.new(1, -42, 1, 0),
-		Font = bold,
+		Font = bold(),
 		Text = "OPTIONS",
 		TextColor3 = values().text,
 		TextSize = util.size(9),
@@ -166,7 +170,7 @@ function options.open(title, actions, anchor)
 			AutoButtonColor = false,
 			LayoutOrder = index,
 			Size = UDim2.new(1, 0, 0, action_h),
-			Font = font,
+			Font = font(),
 			Text = "",
 			TextColor3 = values().text,
 			TextSize = util.size(10),
@@ -185,7 +189,7 @@ function options.open(title, actions, anchor)
 			BackgroundTransparency = 1,
 			Position = UDim2.fromOffset(9, 0),
 			Size = UDim2.new(1, -22, 1, 0),
-			Font = action.accent and bold or font,
+			Font = action.accent and bold() or font(),
 			Text = string.upper(label),
 			TextColor3 = action.accent and values().accent or values().text,
 			TextSize = util.size(10),

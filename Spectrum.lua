@@ -199,7 +199,120 @@ end
 S.env = env
 end
 do
+local env = S.env
 local style = {}
+
+local font_enums = {}
+do
+	local ok, items = pcall(function()
+		return Enum.Font:GetEnumItems()
+	end)
+	if ok then
+		for _, item in ipairs(items) do
+			font_enums[item.Name] = item
+		end
+	end
+end
+
+local function font_enum(name, fallback)
+	return font_enums[name] or fallback
+end
+
+local function face(label, regular, bold, mono, medium)
+	return {
+		label = label,
+		regular = regular,
+		medium = medium or bold or regular,
+		bold = bold or regular,
+		mono = mono or Enum.Font.Code,
+	}
+end
+
+local font_sets = {
+	spectrum = face("Spectrum", Enum.Font.RobotoCondensed, Enum.Font.GothamBold, Enum.Font.RobotoMono, Enum.Font.GothamMedium),
+	gotham = face("Gotham", Enum.Font.Gotham, Enum.Font.GothamBold, Enum.Font.RobotoMono, Enum.Font.GothamMedium),
+	black = face("Gotham Black", Enum.Font.GothamBlack),
+	roboto = face("Roboto", Enum.Font.Roboto, Enum.Font.Roboto, Enum.Font.RobotoMono),
+	source = face("Source Sans", Enum.Font.SourceSans, Enum.Font.SourceSansBold, Enum.Font.Code, Enum.Font.SourceSansSemibold),
+	code = face("Code", Enum.Font.Code, Enum.Font.Code, Enum.Font.Code),
+	arial = face("Arial", Enum.Font.Arial, Enum.Font.ArialBold, Enum.Font.Code),
+	bodoni = face("Bodoni", Enum.Font.Bodoni),
+	garamond = face("Garamond", Enum.Font.Garamond),
+	highway = face("Highway", Enum.Font.Highway),
+	cartoon = face("Cartoon", Enum.Font.Cartoon),
+	scifi = face("Sci-Fi", Enum.Font.SciFi),
+	arcade = face("Arcade", Enum.Font.Arcade),
+	fantasy = face("Fantasy", Enum.Font.Fantasy),
+	antique = face("Antique", Enum.Font.Antique),
+	legacy = face("Legacy", Enum.Font.Legacy),
+	amatic = face("Amatic SC", Enum.Font.AmaticSC),
+	bangers = face("Bangers", Enum.Font.Bangers),
+	creepster = face("Creepster", Enum.Font.Creepster),
+	denkone = face("Denk One", Enum.Font.DenkOne),
+	fondamento = face("Fondamento", Enum.Font.Fondamento),
+	fredoka = face("Fredoka One", Enum.Font.FredokaOne),
+	grenze = face("Grenze Gotisch", Enum.Font.GrenzeGotisch),
+	indie = face("Indie Flower", Enum.Font.IndieFlower),
+	josefin = face("Josefin Sans", Enum.Font.JosefinSans),
+	jura = face("Jura", Enum.Font.Jura),
+	kalam = face("Kalam", Enum.Font.Kalam),
+	luckiest = face("Luckiest Guy", Enum.Font.LuckiestGuy),
+	merriweather = face("Merriweather", Enum.Font.Merriweather),
+	michroma = face("Michroma", Enum.Font.Michroma),
+	nunito = face("Nunito", Enum.Font.Nunito),
+	oswald = face("Oswald", Enum.Font.Oswald),
+	patrick = face("Patrick Hand", Enum.Font.PatrickHand),
+	marker = face("Permanent Marker", Enum.Font.PermanentMarker),
+	sarpanch = face("Sarpanch", Enum.Font.Sarpanch),
+	specialelite = face("Special Elite", Enum.Font.SpecialElite),
+	titillium = face("Titillium Web", Enum.Font.TitilliumWeb),
+	ubuntu = face("Ubuntu", Enum.Font.Ubuntu),
+	builder = face("Builder Sans", font_enum("BuilderSans", Enum.Font.SourceSans), font_enum("BuilderSansBold", Enum.Font.SourceSansBold), Enum.Font.Code, font_enum("BuilderSansMedium", Enum.Font.SourceSansSemibold)),
+	arimo = face("Arimo", font_enum("Arimo", Enum.Font.Arial), font_enum("ArimoBold", Enum.Font.ArialBold), Enum.Font.Code),
+}
+
+local font_order = {
+	"spectrum",
+	"gotham",
+	"black",
+	"roboto",
+	"source",
+	"code",
+	"arial",
+	"bodoni",
+	"garamond",
+	"highway",
+	"cartoon",
+	"scifi",
+	"arcade",
+	"fantasy",
+	"antique",
+	"legacy",
+	"amatic",
+	"bangers",
+	"creepster",
+	"denkone",
+	"fondamento",
+	"fredoka",
+	"grenze",
+	"indie",
+	"josefin",
+	"jura",
+	"kalam",
+	"luckiest",
+	"merriweather",
+	"michroma",
+	"nunito",
+	"oswald",
+	"patrick",
+	"marker",
+	"sarpanch",
+	"specialelite",
+	"titillium",
+	"ubuntu",
+	"builder",
+	"arimo",
+}
 
 local defaults = {
 	accent = Color3.fromRGB(230, 162, 58),
@@ -215,6 +328,11 @@ local defaults = {
 	bad = Color3.fromRGB(176, 52, 46),
 	ink = Color3.fromRGB(15, 13, 9),
 	radius = 0,
+	font_key = "spectrum",
+	font = font_sets.spectrum.regular,
+	font_medium = font_sets.spectrum.medium,
+	font_bold = font_sets.spectrum.bold,
+	font_mono = font_sets.spectrum.mono,
 }
 
 local values = {}
@@ -238,6 +356,107 @@ local color_keys = {
 	"ink",
 }
 
+local function font_target(role)
+	if role == "regular" then
+		return values.font
+	elseif role == "medium" then
+		return values.font_medium
+	elseif role == "bold" then
+		return values.font_bold
+	elseif role == "mono" then
+		return values.font_mono
+	end
+end
+
+function style.font_role(font)
+	if not font then
+		return nil
+	end
+	if values.font_bold ~= values.font and font == values.font_bold then
+		return "bold"
+	end
+	if values.font_medium ~= values.font and font == values.font_medium then
+		return "medium"
+	end
+	if font == values.font then
+		return "regular"
+	end
+	if font == values.font_mono or font == Enum.Font.Code then
+		return "mono"
+	end
+	if font == Enum.Font.GothamBold then
+		return "bold"
+	end
+	if font == Enum.Font.GothamMedium then
+		return "medium"
+	end
+	if font == Enum.Font.Gotham then
+		return "regular"
+	end
+	if font == Enum.Font.RobotoCondensed or font == Enum.Font.Roboto then
+		return "regular"
+	end
+	if font == Enum.Font.RobotoMono then
+		return "mono"
+	end
+	return nil
+end
+
+local function refresh_fonts()
+	local layers = { env and env.windows, env and env.notes, env and env.modal, env and env.launcher, env and env.splash }
+	for _, layer in ipairs(layers) do
+		if layer and layer.Parent then
+			local ok, list = pcall(function()
+				return layer:GetDescendants()
+			end)
+			if ok then
+				for _, object in ipairs(list) do
+					if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
+						local role = object:GetAttribute("SpectrumFontRole")
+						if role == nil then
+							role = style.font_role(object.Font)
+							if role then
+								object:SetAttribute("SpectrumFontRole", role)
+							end
+						end
+						local target = font_target(role)
+						if target and object.Font ~= target then
+							object.Font = target
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+local function apply_font(name)
+	local set = font_sets[name]
+	if not set then
+		return false
+	end
+	if values.font_key == name then
+		return true
+	end
+	values.font_key = name
+	values.font = set.regular
+	values.font_medium = set.medium
+	values.font_bold = set.bold
+	values.font_mono = set.mono
+	refresh_fonts()
+	return true
+end
+
+local function refit_windows()
+	if S.window and S.window.windows then
+		for _, win in ipairs(S.window.windows) do
+			if win._fit then
+				pcall(win._fit, true)
+			end
+		end
+	end
+end
+
 function style.paint(fn)
 	painters[#painters + 1] = fn
 	fn()
@@ -251,9 +470,56 @@ function style.copy()
 	return copy
 end
 
+function style.font_list()
+	local list = {}
+	for _, key in ipairs(font_order) do
+		local set = font_sets[key]
+		if set then
+			list[#list + 1] = { key = key, label = set.label }
+		end
+	end
+	return list
+end
+
+function style.font_key()
+	return values.font_key, font_sets[values.font_key] and font_sets[values.font_key].label
+end
+
+function style.font_set(name)
+	local set = font_sets[name]
+	if not set then
+		return nil
+	end
+	return {
+		key = name,
+		label = set.label,
+		regular = set.regular,
+		medium = set.medium,
+		bold = set.bold,
+		mono = set.mono,
+	}
+end
+
+function style.set_font(name)
+	if not apply_font(name) then
+		return false
+	end
+	for _, painter in ipairs(painters) do
+		pcall(painter)
+	end
+	refit_windows()
+	return true
+end
+
 function style.apply(props)
 	if type(props) ~= "table" then
 		return style.copy()
+	end
+	local old_font = values.font_key
+	local font_name = type(props.font) == "string" and props.font
+		or (type(props.font_key) == "string" and props.font_key)
+	if font_name then
+		apply_font(font_name)
 	end
 	for _, key in ipairs(color_keys) do
 		if typeof(props[key]) == "Color3" then
@@ -265,6 +531,9 @@ function style.apply(props)
 	end
 	for _, painter in ipairs(painters) do
 		pcall(painter)
+	end
+	if values.font_key ~= old_font then
+		refit_windows()
 	end
 	return style.copy()
 end
@@ -307,6 +576,32 @@ function util.new(class, props)
 			end
 		end
 		object.Parent = props.Parent
+	end
+	if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
+		local role = style.font_role(object.Font)
+		if role then
+			object:SetAttribute("SpectrumFontRole", role)
+		end
+	end
+	return object
+end
+
+function util.font(object, role)
+	local font
+	if role == "regular" then
+		font = style.values.font
+	elseif role == "medium" then
+		font = style.values.font_medium
+	elseif role == "bold" then
+		font = style.values.font_bold
+	elseif role == "mono" then
+		font = style.values.font_mono
+	end
+	if font then
+		object.Font = font
+	end
+	if role then
+		object:SetAttribute("SpectrumFontRole", role)
 	end
 	return object
 end
@@ -1014,6 +1309,37 @@ local function ring(parent, x, y, size, color, thickness)
 	return shape
 end
 
+local function block(parent, x, y, width, height, color, radius)
+	local shape = util.new("Frame", {
+		BackgroundColor3 = color,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(x, y),
+		Size = UDim2.fromOffset(width, height),
+		ZIndex = parent.ZIndex,
+		Parent = parent,
+	})
+	if radius then
+		util.corner(shape, radius)
+	end
+	return shape
+end
+
+local function outline(parent, x, y, width, height, color, radius, thickness)
+	local shape = block(parent, x, y, width, height, color, radius)
+	shape.BackgroundTransparency = 1
+	local edge = util.stroke(shape, color, 0)
+	edge.Thickness = thickness or 1
+	return shape
+end
+
+local function glyph(parent, size, color, draw)
+	size = size or 14
+	local frame = shell(parent, size)
+	draw(frame, size, color or values().muted)
+	return frame
+end
+
 function icons.check(parent, size, color)
 	size = size or 14
 	local frame = shell(parent, size)
@@ -1356,6 +1682,504 @@ function icons.shield(parent, size, color)
 	return frame
 end
 
+function icons.home(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.34, s * 0.58, math.max(1, s * 0.1), tint, 45)
+		bar(frame, 0.5, 0.34, s * 0.58, math.max(1, s * 0.1), tint, -45)
+		outline(frame, 0.5, 0.63, s * 0.52, s * 0.34, tint, 1, 1)
+		block(frame, 0.5, 0.69, s * 0.14, s * 0.22, tint, 0)
+	end)
+end
+
+function icons.star(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		local thick = math.max(1, math.floor(s * 0.1))
+		bar(frame, 0.5, 0.5, s * 0.62, thick, tint)
+		bar(frame, 0.5, 0.5, s * 0.62, thick, tint, 60)
+		bar(frame, 0.5, 0.5, s * 0.62, thick, tint, 120)
+		dot(frame, 0.5, 0.5, s * 0.18, tint)
+	end)
+end
+
+function icons.heart(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		dot(frame, 0.36, 0.36, s * 0.3, tint)
+		dot(frame, 0.64, 0.36, s * 0.3, tint)
+		local point = block(frame, 0.5, 0.58, s * 0.42, s * 0.42, tint, 1)
+		point.Rotation = 45
+	end)
+end
+
+function icons.bell(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.38, s * 0.42, tint, math.max(1, s * 0.09))
+		block(frame, 0.5, 0.58, s * 0.42, s * 0.24, tint, 1)
+		dot(frame, 0.5, 0.78, s * 0.12, tint)
+	end)
+end
+
+function icons.calendar(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.54, s * 0.66, s * 0.54, tint, 1, 1)
+		bar(frame, 0.5, 0.25, s * 0.46, math.max(1, s * 0.08), tint)
+		dot(frame, 0.36, 0.55, s * 0.1, tint)
+		dot(frame, 0.64, 0.55, s * 0.1, tint)
+		dot(frame, 0.36, 0.72, s * 0.1, tint)
+	end)
+end
+
+function icons.clock(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.5, s * 0.7, tint, math.max(1, s * 0.08))
+		bar(frame, 0.5, 0.42, math.max(1, s * 0.08), s * 0.24, tint)
+		bar(frame, 0.58, 0.52, s * 0.2, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.mail(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.52, s * 0.7, s * 0.5, tint, 1, 1)
+		bar(frame, 0.34, 0.42, s * 0.32, math.max(1, s * 0.07), tint, 35)
+		bar(frame, 0.66, 0.42, s * 0.32, math.max(1, s * 0.07), tint, -35)
+	end)
+end
+
+function icons.phone(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		local thick = math.max(2, s * 0.12)
+		bar(frame, 0.5, 0.5, s * 0.58, thick, tint, 45)
+		dot(frame, 0.25, 0.25, s * 0.2, tint)
+		dot(frame, 0.75, 0.75, s * 0.2, tint)
+	end)
+end
+
+function icons.map(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.28, 0.5, s * 0.24, s * 0.58, tint, 0, 1)
+		outline(frame, 0.5, 0.5, s * 0.24, s * 0.58, tint, 0, 1)
+		outline(frame, 0.72, 0.5, s * 0.24, s * 0.58, tint, 0, 1)
+		bar(frame, 0.4, 0.5, math.max(1, s * 0.07), s * 0.5, tint)
+		bar(frame, 0.6, 0.5, math.max(1, s * 0.07), s * 0.5, tint)
+	end)
+end
+
+function icons.pin(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.36, s * 0.46, tint, math.max(1, s * 0.08))
+		local point = block(frame, 0.5, 0.62, s * 0.24, s * 0.24, tint, 1)
+		point.Rotation = 45
+		dot(frame, 0.5, 0.36, s * 0.12, tint)
+	end)
+end
+
+function icons.camera(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.57, s * 0.7, s * 0.42, tint, 1)
+		block(frame, 0.38, 0.3, s * 0.22, s * 0.1, tint, 1)
+		ring(frame, 0.5, 0.57, s * 0.3, tint, math.max(1, s * 0.08))
+	end)
+end
+
+function icons.picture(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.5, s * 0.7, s * 0.56, tint, 1, 1)
+		dot(frame, 0.34, 0.36, s * 0.12, tint)
+		bar(frame, 0.42, 0.62, s * 0.34, math.max(1, s * 0.08), tint, -28)
+		bar(frame, 0.62, 0.6, s * 0.26, math.max(1, s * 0.08), tint, 32)
+	end)
+end
+
+function icons.music(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.62, 0.42, math.max(1, s * 0.09), s * 0.46, tint)
+		dot(frame, 0.44, 0.76, s * 0.2, tint)
+		bar(frame, 0.62, 0.28, s * 0.3, math.max(1, s * 0.09), tint, 18)
+	end)
+end
+
+function icons.video(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.44, 0.5, s * 0.52, s * 0.46, tint, 1)
+		local lens = block(frame, 0.76, 0.5, s * 0.2, s * 0.24, tint, 1)
+		lens.Rotation = 0
+		bar(frame, 0.44, 0.5, s * 0.24, math.max(1, s * 0.1), tint, 45)
+		bar(frame, 0.44, 0.5, s * 0.24, math.max(1, s * 0.1), tint, -45)
+	end)
+end
+
+function icons.play(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.55, 0.5, s * 0.5, math.max(1, s * 0.1), tint, 45)
+		bar(frame, 0.55, 0.5, s * 0.5, math.max(1, s * 0.1), tint, -45)
+		bar(frame, 0.74, 0.5, math.max(1, s * 0.1), s * 0.42, tint)
+	end)
+end
+
+function icons.pause(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.38, 0.5, math.max(2, s * 0.12), s * 0.46, tint)
+		bar(frame, 0.62, 0.5, math.max(2, s * 0.12), s * 0.46, tint)
+	end)
+end
+
+function icons.download(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.42, math.max(1, s * 0.09), s * 0.34, tint)
+		bar(frame, 0.5, 0.58, s * 0.32, math.max(1, s * 0.09), tint, 45)
+		bar(frame, 0.5, 0.58, s * 0.32, math.max(1, s * 0.09), tint, -45)
+		bar(frame, 0.5, 0.8, s * 0.56, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.upload(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.42, math.max(1, s * 0.09), s * 0.34, tint)
+		bar(frame, 0.5, 0.28, s * 0.32, math.max(1, s * 0.09), tint, 45)
+		bar(frame, 0.5, 0.28, s * 0.32, math.max(1, s * 0.09), tint, -45)
+		bar(frame, 0.5, 0.8, s * 0.56, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.link(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.34, 0.5, s * 0.36, tint, math.max(1, s * 0.08))
+		ring(frame, 0.66, 0.5, s * 0.36, tint, math.max(1, s * 0.08))
+		bar(frame, 0.5, 0.5, s * 0.3, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.share(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		dot(frame, 0.24, 0.5, s * 0.16, tint)
+		dot(frame, 0.76, 0.28, s * 0.16, tint)
+		dot(frame, 0.76, 0.72, s * 0.16, tint)
+		bar(frame, 0.5, 0.39, s * 0.38, math.max(1, s * 0.07), tint, -28)
+		bar(frame, 0.5, 0.61, s * 0.38, math.max(1, s * 0.07), tint, 28)
+	end)
+end
+
+function icons.edit(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.52, 0.48, s * 0.56, math.max(2, s * 0.12), tint, -45)
+		dot(frame, 0.26, 0.74, s * 0.14, tint)
+	end)
+end
+
+function icons.filter(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.28, s * 0.62, math.max(1, s * 0.08), tint)
+		bar(frame, 0.5, 0.5, s * 0.42, math.max(1, s * 0.08), tint)
+		bar(frame, 0.5, 0.72, s * 0.22, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.grid(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		for _, spot in ipairs({ { 0.32, 0.32 }, { 0.68, 0.32 }, { 0.32, 0.68 }, { 0.68, 0.68 } }) do
+			block(frame, spot[1], spot[2], s * 0.24, s * 0.24, tint, 1)
+		end
+	end)
+end
+
+function icons.list(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		for index = 0, 2 do
+			dot(frame, 0.24, 0.3 + index * 0.2, s * 0.1, tint)
+			bar(frame, 0.56, 0.3 + index * 0.2, s * 0.4, math.max(1, s * 0.07), tint)
+		end
+	end)
+end
+
+function icons.layers(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		for index = 0, 2 do
+			local layer = block(frame, 0.5, 0.32 + index * 0.2, s * 0.5, s * 0.24, tint, 1)
+			layer.Rotation = 45
+		end
+	end)
+end
+
+function icons.database(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.5, s * 0.52, s * 0.54, tint, 4, 1)
+		bar(frame, 0.5, 0.32, s * 0.52, math.max(1, s * 0.07), tint)
+		bar(frame, 0.5, 0.5, s * 0.52, math.max(1, s * 0.07), tint)
+		bar(frame, 0.5, 0.68, s * 0.52, math.max(1, s * 0.07), tint)
+	end)
+end
+
+function icons.server(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.36, s * 0.62, s * 0.26, tint, 1, 1)
+		outline(frame, 0.5, 0.68, s * 0.62, s * 0.26, tint, 1, 1)
+		dot(frame, 0.3, 0.36, s * 0.08, tint)
+		dot(frame, 0.3, 0.68, s * 0.08, tint)
+	end)
+end
+
+function icons.cloud(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		dot(frame, 0.34, 0.48, s * 0.3, tint)
+		dot(frame, 0.56, 0.38, s * 0.36, tint)
+		dot(frame, 0.72, 0.52, s * 0.24, tint)
+		bar(frame, 0.5, 0.64, s * 0.62, math.max(1, s * 0.14), tint)
+	end)
+end
+
+function icons.wifi(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.48, s * 0.62, math.max(1, s * 0.08), tint, 30)
+		bar(frame, 0.5, 0.48, s * 0.62, math.max(1, s * 0.08), tint, -30)
+		bar(frame, 0.5, 0.36, s * 0.4, math.max(1, s * 0.08), tint, 30)
+		bar(frame, 0.5, 0.36, s * 0.4, math.max(1, s * 0.08), tint, -30)
+		dot(frame, 0.5, 0.72, s * 0.14, tint)
+	end)
+end
+
+function icons.battery(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.48, 0.5, s * 0.62, s * 0.38, tint, 1, 1)
+		block(frame, 0.84, 0.5, s * 0.08, s * 0.18, tint, 1)
+		block(frame, 0.42, 0.5, s * 0.3, s * 0.2, tint, 0)
+	end)
+end
+
+function icons.power(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.52, s * 0.62, tint, math.max(1, s * 0.09))
+		bar(frame, 0.5, 0.34, math.max(1, s * 0.09), s * 0.26, tint)
+	end)
+end
+
+function icons.sun(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		dot(frame, 0.5, 0.5, s * 0.28, tint)
+		for index = 0, 7 do
+			local angle = math.rad(index * 45)
+			bar(frame, 0.5 + math.cos(angle) * 0.38, 0.5 + math.sin(angle) * 0.38, s * 0.16, math.max(1, s * 0.07), tint, index * 45)
+		end
+	end)
+end
+
+function icons.fire(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.55, s * 0.38, math.max(1, s * 0.1), tint, 20)
+		bar(frame, 0.42, 0.5, s * 0.34, math.max(1, s * 0.1), tint, -25)
+		bar(frame, 0.58, 0.5, s * 0.34, math.max(1, s * 0.1), tint, 25)
+		dot(frame, 0.5, 0.72, s * 0.18, tint)
+	end)
+end
+
+function icons.drop(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		local shape = block(frame, 0.5, 0.56, s * 0.38, s * 0.38, tint, 1)
+		shape.Rotation = 45
+		dot(frame, 0.5, 0.62, s * 0.12, tint)
+	end)
+end
+
+function icons.crown(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.66, s * 0.58, math.max(1, s * 0.1), tint)
+		bar(frame, 0.3, 0.5, s * 0.18, math.max(1, s * 0.1), tint, 45)
+		bar(frame, 0.5, 0.46, s * 0.18, math.max(1, s * 0.1), tint)
+		bar(frame, 0.7, 0.5, s * 0.18, math.max(1, s * 0.1), tint, -45)
+		dot(frame, 0.5, 0.7, s * 0.1, tint)
+	end)
+end
+
+function icons.gem(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		local shape = outline(frame, 0.5, 0.5, s * 0.48, s * 0.48, tint, 1, 1)
+		shape.Rotation = 45
+		bar(frame, 0.5, 0.5, s * 0.3, math.max(1, s * 0.07), tint)
+		bar(frame, 0.5, 0.5, s * 0.3, math.max(1, s * 0.07), tint, 90)
+	end)
+end
+
+function icons.gift(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.6, s * 0.58, s * 0.38, tint, 1)
+		bar(frame, 0.5, 0.5, math.max(1, s * 0.1), s * 0.5, tint)
+		bar(frame, 0.5, 0.5, s * 0.58, math.max(1, s * 0.08), tint)
+		dot(frame, 0.35, 0.32, s * 0.16, tint)
+		dot(frame, 0.65, 0.32, s * 0.16, tint)
+	end)
+end
+
+function icons.tag(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		local shape = block(frame, 0.5, 0.5, s * 0.5, s * 0.5, tint, 1)
+		shape.Rotation = 45
+		dot(frame, 0.62, 0.38, s * 0.12, tint)
+	end)
+end
+
+function icons.bookmark(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.46, s * 0.4, s * 0.56, tint, 1)
+		bar(frame, 0.38, 0.72, s * 0.18, math.max(1, s * 0.08), tint, 45)
+		bar(frame, 0.62, 0.72, s * 0.18, math.max(1, s * 0.08), tint, -45)
+	end)
+end
+
+function icons.flag(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.3, 0.5, math.max(1, s * 0.09), s * 0.62, tint)
+		block(frame, 0.56, 0.36, s * 0.4, s * 0.26, tint, 1)
+		bar(frame, 0.56, 0.56, s * 0.4, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.compass(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.5, s * 0.68, tint, math.max(1, s * 0.08))
+		bar(frame, 0.5, 0.5, s * 0.3, math.max(1, s * 0.08), tint, 45)
+		bar(frame, 0.5, 0.5, s * 0.3, math.max(1, s * 0.08), tint, -45)
+	end)
+end
+
+function icons.rocket(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.5, s * 0.28, s * 0.48, tint, 4)
+		bar(frame, 0.36, 0.66, s * 0.2, math.max(1, s * 0.1), tint, 45)
+		bar(frame, 0.64, 0.66, s * 0.2, math.max(1, s * 0.1), tint, -45)
+		dot(frame, 0.5, 0.42, s * 0.12, tint)
+		bar(frame, 0.5, 0.8, s * 0.14, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.plane(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.5, s * 0.64, math.max(1, s * 0.1), tint, -18)
+		bar(frame, 0.5, 0.5, s * 0.44, math.max(1, s * 0.1), tint, 72)
+		bar(frame, 0.36, 0.6, s * 0.22, math.max(1, s * 0.08), tint, 45)
+		bar(frame, 0.64, 0.4, s * 0.22, math.max(1, s * 0.08), tint, 45)
+	end)
+end
+
+function icons.car(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.55, s * 0.68, s * 0.24, tint, 2)
+		bar(frame, 0.5, 0.42, s * 0.38, math.max(1, s * 0.08), tint)
+		dot(frame, 0.32, 0.72, s * 0.14, tint)
+		dot(frame, 0.68, 0.72, s * 0.14, tint)
+	end)
+end
+
+function icons.smartphone(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.5, s * 0.38, s * 0.7, tint, 2, 1)
+		dot(frame, 0.5, 0.74, s * 0.08, tint)
+	end)
+end
+
+function icons.monitor(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.42, s * 0.66, s * 0.44, tint, 1, 1)
+		bar(frame, 0.5, 0.72, s * 0.2, math.max(1, s * 0.08), tint)
+		bar(frame, 0.5, 0.82, s * 0.38, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.mouse(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.5, s * 0.36, s * 0.58, tint, 8, 1)
+		bar(frame, 0.5, 0.34, math.max(1, s * 0.07), s * 0.18, tint)
+	end)
+end
+
+function icons.keyboard(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.55, s * 0.7, s * 0.38, tint, 1, 1)
+		for index = 0, 3 do
+			dot(frame, 0.32 + index * 0.12, 0.48, s * 0.06, tint)
+			dot(frame, 0.32 + index * 0.12, 0.62, s * 0.06, tint)
+		end
+	end)
+end
+
+function icons.gamepad(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.55, s * 0.68, s * 0.34, tint, 4, 1)
+		bar(frame, 0.32, 0.55, s * 0.14, math.max(1, s * 0.08), tint)
+		bar(frame, 0.32, 0.55, math.max(1, s * 0.08), s * 0.14, tint)
+		dot(frame, 0.68, 0.48, s * 0.08, tint)
+		dot(frame, 0.78, 0.62, s * 0.08, tint)
+	end)
+end
+
+function icons.volume(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.3, 0.5, s * 0.18, s * 0.24, tint, 1)
+		bar(frame, 0.46, 0.5, s * 0.22, math.max(1, s * 0.08), tint, 45)
+		bar(frame, 0.46, 0.5, s * 0.22, math.max(1, s * 0.08), tint, -45)
+		ring(frame, 0.56, 0.5, s * 0.42, tint, math.max(1, s * 0.07))
+	end)
+end
+
+function icons.mic(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.4, s * 0.22, s * 0.38, tint, 8)
+		bar(frame, 0.5, 0.68, s * 0.32, math.max(1, s * 0.08), tint)
+		bar(frame, 0.5, 0.8, math.max(1, s * 0.08), s * 0.16, tint)
+	end)
+end
+
+function icons.headphones(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.44, s * 0.58, tint, math.max(1, s * 0.08))
+		block(frame, 0.26, 0.58, s * 0.14, s * 0.28, tint, 2)
+		block(frame, 0.74, 0.58, s * 0.14, s * 0.28, tint, 2)
+	end)
+end
+
+function icons.terminal(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.5, s * 0.68, s * 0.54, tint, 1, 1)
+		bar(frame, 0.34, 0.42, s * 0.14, math.max(1, s * 0.08), tint, 45)
+		bar(frame, 0.34, 0.56, s * 0.14, math.max(1, s * 0.08), tint, -45)
+		bar(frame, 0.62, 0.62, s * 0.2, math.max(1, s * 0.07), tint)
+	end)
+end
+
+function icons.bug(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.52, s * 0.26, s * 0.34, tint, 4)
+		dot(frame, 0.5, 0.32, s * 0.14, tint)
+		for index = 0, 2 do
+			bar(frame, 0.5, 0.44 + index * 0.12, s * 0.52, math.max(1, s * 0.06), tint)
+		end
+	end)
+end
+
+function icons.skull(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.42, s * 0.54, tint, math.max(1, s * 0.09))
+		dot(frame, 0.38, 0.42, s * 0.1, tint)
+		dot(frame, 0.62, 0.42, s * 0.1, tint)
+		block(frame, 0.5, 0.7, s * 0.26, s * 0.16, tint, 1)
+	end)
+end
+
+function icons.ghost(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.46, s * 0.56, tint, math.max(1, s * 0.08))
+		block(frame, 0.5, 0.66, s * 0.52, s * 0.2, tint, 2)
+		dot(frame, 0.38, 0.44, s * 0.08, tint)
+		dot(frame, 0.62, 0.44, s * 0.08, tint)
+	end)
+end
+
+function icons.alien(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.46, s * 0.56, tint, math.max(1, s * 0.08))
+		dot(frame, 0.36, 0.46, s * 0.12, tint)
+		dot(frame, 0.64, 0.46, s * 0.12, tint)
+		bar(frame, 0.5, 0.7, s * 0.18, math.max(1, s * 0.07), tint)
+	end)
+end
+
 local named = {
 	gear = icons.gear,
 	settings = icons.gear,
@@ -1389,6 +2213,94 @@ local named = {
 	shield = icons.shield,
 	alert = icons.alert,
 	info = icons.info,
+	home = icons.home,
+	house = icons.home,
+	star = icons.star,
+	favorite = icons.star,
+	heart = icons.heart,
+	like = icons.heart,
+	bell = icons.bell,
+	notification = icons.bell,
+	calendar = icons.calendar,
+	schedule = icons.calendar,
+	clock = icons.clock,
+	time = icons.clock,
+	mail = icons.mail,
+	email = icons.mail,
+	phone = icons.phone,
+	call = icons.phone,
+	map = icons.map,
+	pin = icons.pin,
+	location = icons.pin,
+	camera = icons.camera,
+	photo = icons.camera,
+	image = icons.picture,
+	picture = icons.picture,
+	music = icons.music,
+	audio = icons.music,
+	video = icons.video,
+	film = icons.video,
+	play = icons.play,
+	pause = icons.pause,
+	download = icons.download,
+	upload = icons.upload,
+	link = icons.link,
+	share = icons.share,
+	edit = icons.edit,
+	pencil = icons.edit,
+	filter = icons.filter,
+	grid = icons.grid,
+	apps = icons.grid,
+	list = icons.list,
+	rows = icons.list,
+	layers = icons.layers,
+	database = icons.database,
+	data = icons.database,
+	server = icons.server,
+	host = icons.server,
+	cloud = icons.cloud,
+	wifi = icons.wifi,
+	signal = icons.wifi,
+	battery = icons.battery,
+	power = icons.power,
+	sun = icons.sun,
+	light = icons.sun,
+	fire = icons.fire,
+	flame = icons.fire,
+	drop = icons.drop,
+	water = icons.drop,
+	crown = icons.crown,
+	gem = icons.gem,
+	diamond = icons.gem,
+	gift = icons.gift,
+	present = icons.gift,
+	tag = icons.tag,
+	label = icons.tag,
+	bookmark = icons.bookmark,
+	flag = icons.flag,
+	compass = icons.compass,
+	rocket = icons.rocket,
+	plane = icons.plane,
+	car = icons.car,
+	smartphone = icons.smartphone,
+	mobile = icons.smartphone,
+	monitor = icons.monitor,
+	screen = icons.monitor,
+	mouse = icons.mouse,
+	keyboard = icons.keyboard,
+	gamepad = icons.gamepad,
+	controller = icons.gamepad,
+	volume = icons.volume,
+	sound = icons.volume,
+	mic = icons.mic,
+	microphone = icons.mic,
+	headphones = icons.headphones,
+	terminal = icons.terminal,
+	console = icons.terminal,
+	bug = icons.bug,
+	skull = icons.skull,
+	ghost = icons.ghost,
+	alien = icons.alien,
 }
 
 function icons.kind(kind, parent, size, color)
@@ -2392,8 +3304,12 @@ local util = S.util
 local style = S.style
 local icons = S.icons
 local modal = S.modal
-local bold = Enum.Font.GothamBold
-local font = Enum.Font.RobotoCondensed
+local function bold()
+	return style.values.font_bold
+end
+local function font()
+	return style.values.font
+end
 
 local options = {}
 local panel
@@ -2438,7 +3354,7 @@ local function ensure()
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(11, 0),
 		Size = UDim2.new(1, -42, 1, 0),
-		Font = bold,
+		Font = bold(),
 		Text = "OPTIONS",
 		TextColor3 = values().text,
 		TextSize = util.size(9),
@@ -2553,7 +3469,7 @@ function options.open(title, actions, anchor)
 			AutoButtonColor = false,
 			LayoutOrder = index,
 			Size = UDim2.new(1, 0, 0, action_h),
-			Font = font,
+			Font = font(),
 			Text = "",
 			TextColor3 = values().text,
 			TextSize = util.size(10),
@@ -2572,7 +3488,7 @@ function options.open(title, actions, anchor)
 			BackgroundTransparency = 1,
 			Position = UDim2.fromOffset(9, 0),
 			Size = UDim2.new(1, -22, 1, 0),
-			Font = action.accent and bold or font,
+			Font = action.accent and bold() or font(),
 			Text = string.upper(label),
 			TextColor3 = action.accent and values().accent or values().text,
 			TextSize = util.size(10),
@@ -3322,8 +4238,12 @@ local env = S.env
 local util = S.util
 local style = S.style
 local icons = S.icons
-local bold = Enum.Font.GothamBold
-local font = Enum.Font.Gotham
+local function bold()
+	return style.values.font_bold
+end
+local function font()
+	return style.values.font
+end
 local TextService = game:GetService("TextService")
 
 local holder = util.new("Frame", {
@@ -3354,7 +4274,7 @@ local kind_labels = {
 
 local function wrapped_height(text, width, size)
 	local ok, box = pcall(function()
-		return TextService:GetTextSize(text, size or 10, font, Vector2.new(width, 4096))
+		return TextService:GetTextSize(text, size or 10, font(), Vector2.new(width, 4096))
 	end)
 	if ok and typeof(box) == "Vector2" then
 		return math.ceil(box.Y)
@@ -3489,7 +4409,7 @@ local function notify(title, body, duration, kind)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(text_left, env.mobile and 10 or 9),
 		Size = UDim2.new(1, -(text_left + 110), 0, 18),
-		Font = bold,
+		Font = bold(),
 		Text = tostring(title or "Spectrum"),
 		TextColor3 = style.values.text,
 		TextSize = title_size,
@@ -3507,7 +4427,7 @@ local function notify(title, body, duration, kind)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -34, 0, env.mobile and 12 or 11),
 		Size = UDim2.fromOffset(64, 12),
-		Font = bold,
+		Font = bold(),
 		Text = kind_labels[kind] or "INFO",
 		TextColor3 = tint,
 		TextSize = util.size(8),
@@ -3521,7 +4441,7 @@ local function notify(title, body, duration, kind)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(text_left, caption_y),
 		Size = UDim2.new(1, -(text_left + 20), 0, caption_height),
-		Font = font,
+		Font = font(),
 		Text = body or "",
 		TextColor3 = style.values.muted:Lerp(style.values.text, 0.5),
 		TextSize = body_size,
@@ -3661,8 +4581,12 @@ local env = S.env
 local util = S.util
 local style = S.style
 local icons = S.icons
-local font = Enum.Font.RobotoCondensed
-local bold = Enum.Font.GothamBold
+local function font()
+	return style.values.font
+end
+local function bold()
+	return style.values.font_bold
+end
 
 local tooltip = {}
 
@@ -3711,7 +4635,7 @@ local kicker = util.new("TextLabel", {
 	BackgroundTransparency = 1,
 	Position = UDim2.fromOffset(PAD, PAD_Y),
 	Size = UDim2.fromOffset(0, 0),
-	Font = bold,
+	Font = bold(),
 	Text = "",
 	TextColor3 = values().text,
 	TextSize = util.size(9),
@@ -3727,7 +4651,7 @@ local body = util.new("TextLabel", {
 	BackgroundTransparency = 1,
 	Position = UDim2.fromOffset(PAD, PAD_Y),
 	Size = UDim2.fromOffset(0, 0),
-	Font = font,
+	Font = font(),
 	Text = "",
 	TextColor3 = values().text,
 	TextSize = util.size(10),
@@ -3768,14 +4692,14 @@ local function render(value)
 	local head_w, head_h = 0, 0
 	if head then
 		head = string.upper(head)
-		head_w, head_h = measure(head, head_size, bold, MAX_TEXT)
+		head_w, head_h = measure(head, head_size, bold(), MAX_TEXT)
 	end
-	local body_w = measure(rest, text_size, font, MAX_TEXT)
+	local body_w = measure(rest, text_size, font(), MAX_TEXT)
 	local text_w = math.clamp(math.max(head_w, body_w), MIN_TEXT, MAX_TEXT)
-	local _, wrapped_body = measure(rest, text_size, font, text_w)
+	local _, wrapped_body = measure(rest, text_size, font(), text_w)
 	local wrapped_head = head_h
 	if head then
-		local _, fit = measure(head, head_size, bold, text_w)
+		local _, fit = measure(head, head_size, bold(), text_w)
 		wrapped_head = math.max(1, fit)
 	end
 	local content = wrapped_body + (head and (wrapped_head + 2) or 0)
@@ -3944,7 +4868,9 @@ do
 local env = S.env
 local util = S.util
 local style = S.style
-local bold = Enum.Font.GothamBold
+local function bold()
+	return style.values.font_bold
+end
 
 local watermark = {}
 
@@ -3989,7 +4915,7 @@ local label = util.new("TextLabel", {
 	AutomaticSize = Enum.AutomaticSize.X,
 	Position = UDim2.fromOffset(19, 0),
 	Size = UDim2.fromOffset(0, 24),
-	Font = bold,
+	Font = bold(),
 	Text = "",
 	TextColor3 = values().text,
 	TextSize = util.size(10),
@@ -4034,9 +4960,237 @@ do
 local env = S.env
 local util = S.util
 local style = S.style
+
+local featurelist = {}
+local entries = {}
+local rows = {}
+local shown = false
+
+local function values()
+	return style.values
+end
+
+local base_width = env.mobile and 164 or 184
+local top_offset = env.mobile and 90 or 12
+local pad_x = 10
+local pad_right = 12
+local pad_y = 7
+local row_height = util.size(15)
+local gap = 2
+
+local function card_width()
+	local view = env.viewport()
+	return math.min(base_width, math.max(120, view.X - 24))
+end
+
+local card = util.new("Frame", {
+	Name = "feature_list",
+	BackgroundColor3 = values().panel,
+	BackgroundTransparency = 0.12,
+	BorderSizePixel = 0,
+	AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -12, 0, top_offset),
+		Size = UDim2.fromOffset(card_width(), 0),
+	Visible = false,
+	ClipsDescendants = true,
+	ZIndex = 2,
+	Parent = env.notes,
+})
+util.corner(card, 4)
+local edge = util.stroke(card, values().line, 0.35)
+
+local content = util.new("Frame", {
+	Name = "content",
+	BackgroundTransparency = 1,
+	Position = UDim2.fromOffset(pad_x, pad_y),
+	Size = UDim2.new(1, -(pad_x + pad_right), 0, 0),
+	ZIndex = 2,
+	Parent = card,
+})
+util.new("UIListLayout", {
+	FillDirection = Enum.FillDirection.Vertical,
+	SortOrder = Enum.SortOrder.LayoutOrder,
+	HorizontalAlignment = Enum.HorizontalAlignment.Right,
+	Padding = UDim.new(0, gap),
+	Parent = content,
+})
+
+local bar = util.new("Frame", {
+	Name = "edge",
+	BackgroundColor3 = values().accent,
+	BorderSizePixel = 0,
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -2, 0, 0),
+	Size = UDim2.new(0, 2, 1, 0),
+	ZIndex = 4,
+	Parent = card,
+})
+util.corner(bar, 1)
+
+local function hex(color)
+	return string.format(
+		"#%02X%02X%02X",
+		math.floor(color.R * 255 + 0.5),
+		math.floor(color.G * 255 + 0.5),
+		math.floor(color.B * 255 + 0.5)
+	)
+end
+
+local function escape(text)
+	return tostring(text):gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
+end
+
+local function line_text(entry)
+	local line = '<b><font color="' .. hex(values().accent) .. '">' .. escape(entry.label) .. "</font></b>"
+	if entry.value and entry.value ~= "" then
+		line = line .. ' <font color="' .. hex(values().text) .. '">' .. escape(entry.value) .. "</font>"
+	end
+	return line
+end
+
+local function height()
+	local count = #entries
+	if count == 0 then
+		return 0
+	end
+	return pad_y * 2 + count * row_height + math.max(0, count - 1) * gap
+end
+
+local function paint()
+	card.BackgroundColor3 = values().panel
+	edge.Color = values().line
+	bar.BackgroundColor3 = values().accent
+	for _, row in ipairs(rows) do
+		if row.text.Parent then
+			row.text.Text = line_text(row.entry)
+		end
+	end
+end
+
+local function clear()
+	for _, row in ipairs(rows) do
+		if row.text.Parent then
+			row.text:Destroy()
+		end
+	end
+	table.clear(rows)
+end
+
+local function build()
+	clear()
+	for index, entry in ipairs(entries) do
+		local text = util.new("TextLabel", {
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, 0, 0, row_height),
+			Font = values().font,
+			Text = "",
+			TextColor3 = values().text,
+			TextSize = util.size(10),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			TextYAlignment = Enum.TextYAlignment.Center,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			RichText = true,
+			LayoutOrder = index,
+			ZIndex = 3,
+			Parent = content,
+		})
+		rows[#rows + 1] = { entry = entry, text = text }
+	end
+
+	local total = height()
+	card.Size = UDim2.fromOffset(card_width(), total)
+	content.Size = UDim2.new(1, -(pad_x + pad_right), 0, math.max(0, total - pad_y * 2))
+	card.Visible = shown and #entries > 0
+	paint()
+end
+
+function featurelist.set(list)
+	if type(list) == "string" then
+		list = { list }
+	end
+	local next_entries = {}
+	if type(list) == "table" then
+		for _, item in ipairs(list) do
+			local entry
+			if type(item) == "string" then
+				entry = { label = item }
+			elseif type(item) == "table" then
+				local label = item.label or item.name or item[1]
+				local value = item.value
+				if value == nil then
+					value = item[2]
+				end
+				if label ~= nil then
+					entry = {
+						label = tostring(label),
+						value = value ~= nil and tostring(value) or nil,
+					}
+				end
+			end
+			if entry then
+				next_entries[#next_entries + 1] = entry
+			end
+		end
+	end
+	entries = next_entries
+	shown = #entries > 0
+	build()
+	return featurelist.get()
+end
+
+function featurelist.visible(state)
+	shown = state == true
+	card.Visible = shown and #entries > 0
+	return shown
+end
+
+function featurelist.get()
+	local copy = {}
+	for index, entry in ipairs(entries) do
+		copy[index] = { label = entry.label, value = entry.value }
+	end
+	return copy, shown
+end
+
+style.paint(paint)
+paint()
+
+local camera_link
+local function watch_viewport()
+	if camera_link then
+		camera_link:Disconnect()
+		camera_link = nil
+	end
+	local camera = workspace.CurrentCamera
+	if camera then
+		camera_link = camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+			if card.Parent then
+				card.Size = UDim2.fromOffset(card_width(), height())
+			end
+		end)
+	end
+end
+watch_viewport()
+card.Destroying:Connect(function()
+	if camera_link then
+		camera_link:Disconnect()
+		camera_link = nil
+	end
+end)
+
+S.featurelist = featurelist
+end
+do
+local env = S.env
+local util = S.util
+local style = S.style
 local brand = S.brand
-local bold = Enum.Font.GothamBold
-local font = Enum.Font.GothamMedium
+local function bold()
+	return style.values.font_bold
+end
+local function font()
+	return style.values.font_medium
+end
 local splash = {}
 
 local function values()
@@ -4121,7 +5275,7 @@ function splash.mount()
 		util.corner(fallback, (plate_size - 16) / 2)
 		fallback_label = util.new("TextLabel", {
 			BackgroundTransparency = 1,
-			Font = bold,
+			Font = bold(),
 			Size = UDim2.fromScale(1, 1),
 			Text = "AF",
 			TextColor3 = values().text,
@@ -4138,7 +5292,7 @@ function splash.mount()
 		BackgroundTransparency = 1,
 		Position = UDim2.new(0, 0, 0, title_y),
 		Size = UDim2.new(1, 0, 0, 18),
-		Font = bold,
+		Font = bold(),
 		Text = "AdvanceFalling",
 		TextColor3 = values().text,
 		TextSize = util.size(15),
@@ -4150,7 +5304,7 @@ function splash.mount()
 		BackgroundTransparency = 1,
 		Position = UDim2.new(0, 0, 0, title_y + 20),
 		Size = UDim2.new(1, 0, 0, 12),
-		Font = font,
+		Font = font(),
 		Text = "SPECTRUM",
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
@@ -4183,7 +5337,7 @@ function splash.mount()
 		BackgroundTransparency = 1,
 		Position = UDim2.new(0, 0, 0, rail_y + 12),
 		Size = UDim2.new(1, 0, 0, 12),
-		Font = font,
+		Font = font(),
 		Text = "Loading UI",
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
@@ -4268,8 +5422,12 @@ local icons = S.icons
 local config = S.config
 local tooltip = S.tooltip
 local background = S.background
-local bold = Enum.Font.GothamBold
-local font = Enum.Font.RobotoCondensed
+local function bold()
+	return style.values.font_bold
+end
+local function font()
+	return style.values.font
+end
 
 local Window = {}
 Window.roots = {}
@@ -4503,7 +5661,7 @@ function Window.new(title, opts)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(19, 0),
 		Size = UDim2.new(1, -62, 1, 0),
-		Font = bold,
+		Font = bold(),
 		Text = string.upper(tostring(title or "Window")),
 		TextColor3 = values().text,
 		TextSize = util.size(10),
@@ -4809,7 +5967,7 @@ function Window.new(title, opts)
 			AutomaticSize = Enum.AutomaticSize.X,
 			LayoutOrder = tab.order,
 			Size = UDim2.fromOffset(0, tab_h - 2),
-			Font = font,
+			Font = font(),
 			Text = string.upper(tab.name),
 			TextColor3 = values().muted,
 			TextSize = util.size(9),
@@ -5790,9 +6948,15 @@ local util = S.util
 local style = S.style
 local icons = S.icons
 local tooltip = S.tooltip
-local bold = Enum.Font.GothamBold
-local font = Enum.Font.RobotoCondensed
-local mono = Enum.Font.RobotoMono
+local function bold()
+	return style.values.font_bold
+end
+local function font()
+	return style.values.font
+end
+local function mono()
+	return style.values.font_mono
+end
 local inputs = {}
 
 local function values()
@@ -5804,7 +6968,7 @@ local function label(parent, text, y, height)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(10, y or 0),
 		Size = UDim2.new(1, -90, 0, height or 14),
-		Font = font,
+		Font = font(),
 		Text = string.upper(tostring(text or "")),
 		TextColor3 = values().text,
 		TextSize = util.size(10),
@@ -5864,7 +7028,7 @@ function inputs.button(win, text, callback, icon, opts)
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(1, -16, 0, mobile and 36 or 24),
-		Font = bold,
+		Font = bold(),
 		Text = string.upper(tostring(text or "Button")),
 		TextColor3 = front,
 		TextSize = util.size(mobile and 10 or 9),
@@ -6366,7 +7530,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -10, 0, compact and 2 or (mobile and 6 or 4)),
 		Size = UDim2.fromOffset(88, 14),
-		Font = mono,
+		Font = mono(),
 		Text = "",
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
@@ -6635,7 +7799,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -10, 0.5, 0),
 		Size = UDim2.fromOffset(mobile and 96 or 84, mobile and 28 or 21),
-		Font = mono,
+		Font = mono(),
 		Text = default or empty_text,
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
@@ -7046,8 +8210,12 @@ local style = S.style
 local modal = S.modal
 local icons = S.icons
 local tooltip = S.tooltip
-local font = Enum.Font.RobotoCondensed
-local mono = Enum.Font.RobotoMono
+local function font()
+	return style.values.font
+end
+local function mono()
+	return style.values.font_mono
+end
 local selects = {}
 local GuiService = game:GetService("GuiService")
 
@@ -7067,7 +8235,7 @@ local function caption(parent, title)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(10, 0),
 		Size = UDim2.new(0.5, -20, 1, 0),
-		Font = font,
+		Font = font(),
 		Text = string.upper(tostring(title or "")),
 		TextColor3 = values().text,
 		TextSize = util.size(10),
@@ -7161,7 +8329,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -29, 0.5, 0),
 		Size = UDim2.new(0.4, 0, 1, 0),
-		Font = mono,
+		Font = mono(),
 		Text = placeholder,
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
@@ -7224,7 +8392,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			BackgroundTransparency = 1,
 			Position = UDim2.fromOffset(2, 0),
 			Size = UDim2.new(1, mobile and -84 or -96, 1, 0),
-			Font = font,
+			Font = font(),
 			Text = "SELECT OPTIONS",
 			TextColor3 = values().muted,
 			TextSize = util.size(9),
@@ -7253,7 +8421,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, offset, 0.5, 0),
 				Size = UDim2.fromOffset(width, bulk_h),
-				Font = font,
+				Font = font(),
 				Text = string.upper(text),
 				TextColor3 = values().text,
 				TextSize = util.size(mobile and 9 or 10),
@@ -7294,7 +8462,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			BackgroundColor3 = values().raised,
 			BorderSizePixel = 0,
 			ClearTextOnFocus = false,
-			Font = mono,
+			Font = mono(),
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = "SEARCH",
 			Position = UDim2.fromOffset(pad, pad + bulk_h + bulk_gap),
@@ -7540,7 +8708,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		else
 			readout.TextColor3 = values().muted
 		end
-		readout.Font = font
+		util.font(readout, "regular")
 		if bulk_count then
 			if picked == 0 then
 				bulk_count.Text = "SELECT OPTIONS"
@@ -7561,7 +8729,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			local on = multi and picks[option] or single == option
 			local option_disabled = disabled_options[option] == true
 			item.TextColor3 = option_disabled and values().muted or values().text
-			item.Font = font
+			util.font(item, "regular")
 			item.BackgroundColor3 = on and values().hover:Lerp(values().accent, 0.12) or values().hover
 			item.BackgroundTransparency = on and 0.55 or 1
 			local item_edge = item_edges[option]
@@ -7776,7 +8944,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			AutoButtonColor = false,
 			LayoutOrder = index,
 			Size = UDim2.new(1, 0, 0, item_h),
-			Font = font,
+			Font = font(),
 			Text = string.upper(option),
 			TextColor3 = values().text,
 			TextSize = util.size(10),
@@ -7849,7 +9017,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		local empty = util.new("TextLabel", {
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, 0, 0, item_h),
-			Font = font,
+			Font = font(),
 			Text = "No options",
 			TextColor3 = values().muted,
 			TextSize = util.size(10),
@@ -7865,7 +9033,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			BackgroundTransparency = 1,
 			LayoutOrder = #choices + 1,
 			Size = UDim2.new(1, 0, 0, 0),
-			Font = font,
+			Font = font(),
 			Text = "No matches",
 			TextColor3 = values().muted,
 			TextSize = util.size(10),
@@ -8365,7 +9533,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		BorderSizePixel = 0,
 		ClearTextOnFocus = false,
 		TextEditable = not disabled,
-		Font = Enum.Font.Code,
+		Font = mono(),
 		Position = UDim2.fromOffset(pad + 36, bottom_y),
 		Size = UDim2.new(1, -(pad * 2 + 36 + 2 * 28 + 8), 0, 28),
 		Text = "#000000",
@@ -8429,7 +9597,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(pad, rgb_y),
 		Size = UDim2.fromOffset(30, rgb_h),
-		Font = mono,
+		Font = mono(),
 		Text = "RGB",
 		TextColor3 = values().muted,
 		TextSize = util.size(8),
@@ -8442,7 +9610,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		BorderSizePixel = 0,
 		ClearTextOnFocus = false,
 		TextEditable = not disabled,
-		Font = mono,
+		Font = mono(),
 		Position = UDim2.fromOffset(pad + 30, rgb_y),
 		Size = UDim2.new(1, -(pad * 2 + 30), 0, rgb_h),
 		Text = "230, 162, 58",
@@ -8985,9 +10153,15 @@ local util = S.util
 local style = S.style
 local icons = S.icons
 local tooltip = S.tooltip
-local bold = Enum.Font.GothamBold
-local font = Enum.Font.RobotoCondensed
-local mono = Enum.Font.RobotoMono
+local function bold()
+	return style.values.font_bold
+end
+local function font()
+	return style.values.font
+end
+local function mono()
+	return style.values.font_mono
+end
 local text = {}
 
 local function values()
@@ -8999,7 +10173,7 @@ local function label(parent, title)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(10, 0),
 		Size = UDim2.new(1, -90, 0, 14),
-		Font = font,
+		Font = font(),
 		Text = string.upper(tostring(title or "")),
 		TextColor3 = values().text,
 		TextSize = util.size(10),
@@ -9052,7 +10226,7 @@ function text.section(win, title, icon, opts)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(20, 0),
 		Size = UDim2.new(1, -44, 1, 0),
-		Font = bold,
+		Font = bold(),
 		Text = string.upper(tostring(title or "Section")),
 		TextColor3 = values().text,
 		TextSize = util.size(9),
@@ -9192,7 +10366,7 @@ function text.label(win, body)
 		BackgroundTransparency = 1,
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Size = UDim2.new(1, 0, 0, 0),
-		Font = font,
+		Font = font(),
 		Text = tostring(body or ""),
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
@@ -9281,7 +10455,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 			ClearTextOnFocus = clear_focus,
 			Active = not disabled,
 			TextEditable = not disabled,
-			Font = mono,
+			Font = mono(),
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = placeholder,
 			Position = UDim2.new(0, 10, 0, 27),
@@ -9302,7 +10476,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 			ClearTextOnFocus = clear_focus,
 			Active = not disabled,
 			TextEditable = not disabled,
-			Font = mono,
+			Font = mono(),
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = placeholder,
 			AnchorPoint = Vector2.new(1, 0.5),
@@ -9502,7 +10676,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-25.signal6"
+Library.Build = "2026-11-26.featurelist3"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -9637,6 +10811,18 @@ function Library:GetDesign()
 	return S.style.copy()
 end
 
+function Library:SetFont(name)
+	return S.style.set_font(name)
+end
+
+function Library:GetFont()
+	return S.style.font_key()
+end
+
+function Library:GetFonts()
+	return S.style.font_list()
+end
+
 function Library:SetDisabled(control, value)
 	if type(control) == "table" and type(control.SetDisabled) == "function" then
 		control:SetDisabled(value)
@@ -9682,6 +10868,18 @@ end
 
 function Library:GetWatermark()
 	return S.watermark.get()
+end
+
+function Library:SetFeatureList(lines)
+	return S.featurelist.set(lines)
+end
+
+function Library:SetFeatureListVisible(state)
+	return S.featurelist.visible(state)
+end
+
+function Library:GetFeatureList()
+	return S.featurelist.get()
 end
 
 function Library:Window(title, opts)

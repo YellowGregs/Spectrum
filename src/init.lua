@@ -5,7 +5,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-25.signal6"
+Library.Build = "2026-11-26.featurelist3"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -140,6 +140,18 @@ function Library:GetDesign()
 	return S.style.copy()
 end
 
+function Library:SetFont(name)
+	return S.style.set_font(name)
+end
+
+function Library:GetFont()
+	return S.style.font_key()
+end
+
+function Library:GetFonts()
+	return S.style.font_list()
+end
+
 function Library:SetDisabled(control, value)
 	if type(control) == "table" and type(control.SetDisabled) == "function" then
 		control:SetDisabled(value)
@@ -185,6 +197,18 @@ end
 
 function Library:GetWatermark()
 	return S.watermark.get()
+end
+
+function Library:SetFeatureList(lines)
+	return S.featurelist.set(lines)
+end
+
+function Library:SetFeatureListVisible(state)
+	return S.featurelist.visible(state)
+end
+
+function Library:GetFeatureList()
+	return S.featurelist.get()
 end
 
 function Library:Window(title, opts)

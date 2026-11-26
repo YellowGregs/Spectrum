@@ -4,8 +4,12 @@ local env = S.env
 local util = S.util
 local style = S.style
 local icons = S.icons
-local font = Enum.Font.RobotoCondensed
-local bold = Enum.Font.GothamBold
+local function font()
+	return style.values.font
+end
+local function bold()
+	return style.values.font_bold
+end
 
 local tooltip = {}
 
@@ -54,7 +58,7 @@ local kicker = util.new("TextLabel", {
 	BackgroundTransparency = 1,
 	Position = UDim2.fromOffset(PAD, PAD_Y),
 	Size = UDim2.fromOffset(0, 0),
-	Font = bold,
+	Font = bold(),
 	Text = "",
 	TextColor3 = values().text,
 	TextSize = util.size(9),
@@ -70,7 +74,7 @@ local body = util.new("TextLabel", {
 	BackgroundTransparency = 1,
 	Position = UDim2.fromOffset(PAD, PAD_Y),
 	Size = UDim2.fromOffset(0, 0),
-	Font = font,
+	Font = font(),
 	Text = "",
 	TextColor3 = values().text,
 	TextSize = util.size(10),
@@ -111,14 +115,14 @@ local function render(value)
 	local head_w, head_h = 0, 0
 	if head then
 		head = string.upper(head)
-		head_w, head_h = measure(head, head_size, bold, MAX_TEXT)
+		head_w, head_h = measure(head, head_size, bold(), MAX_TEXT)
 	end
-	local body_w = measure(rest, text_size, font, MAX_TEXT)
+	local body_w = measure(rest, text_size, font(), MAX_TEXT)
 	local text_w = math.clamp(math.max(head_w, body_w), MIN_TEXT, MAX_TEXT)
-	local _, wrapped_body = measure(rest, text_size, font, text_w)
+	local _, wrapped_body = measure(rest, text_size, font(), text_w)
 	local wrapped_head = head_h
 	if head then
-		local _, fit = measure(head, head_size, bold, text_w)
+		local _, fit = measure(head, head_size, bold(), text_w)
 		wrapped_head = math.max(1, fit)
 	end
 	local content = wrapped_body + (head and (wrapped_head + 2) or 0)

@@ -8,8 +8,12 @@ local icons = S.icons
 local config = S.config
 local tooltip = S.tooltip
 local background = S.background
-local bold = Enum.Font.GothamBold
-local font = Enum.Font.RobotoCondensed
+local function bold()
+	return style.values.font_bold
+end
+local function font()
+	return style.values.font
+end
 
 local Window = {}
 Window.roots = {}
@@ -243,7 +247,7 @@ function Window.new(title, opts)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(19, 0),
 		Size = UDim2.new(1, -62, 1, 0),
-		Font = bold,
+		Font = bold(),
 		Text = string.upper(tostring(title or "Window")),
 		TextColor3 = values().text,
 		TextSize = util.size(10),
@@ -549,7 +553,7 @@ function Window.new(title, opts)
 			AutomaticSize = Enum.AutomaticSize.X,
 			LayoutOrder = tab.order,
 			Size = UDim2.fromOffset(0, tab_h - 2),
-			Font = font,
+			Font = font(),
 			Text = string.upper(tab.name),
 			TextColor3 = values().muted,
 			TextSize = util.size(9),

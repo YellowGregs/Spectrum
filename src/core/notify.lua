@@ -4,8 +4,12 @@ local env = S.env
 local util = S.util
 local style = S.style
 local icons = S.icons
-local bold = Enum.Font.GothamBold
-local font = Enum.Font.Gotham
+local function bold()
+	return style.values.font_bold
+end
+local function font()
+	return style.values.font
+end
 local TextService = game:GetService("TextService")
 
 local holder = util.new("Frame", {
@@ -36,7 +40,7 @@ local kind_labels = {
 
 local function wrapped_height(text, width, size)
 	local ok, box = pcall(function()
-		return TextService:GetTextSize(text, size or 10, font, Vector2.new(width, 4096))
+		return TextService:GetTextSize(text, size or 10, font(), Vector2.new(width, 4096))
 	end)
 	if ok and typeof(box) == "Vector2" then
 		return math.ceil(box.Y)
@@ -171,7 +175,7 @@ local function notify(title, body, duration, kind)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(text_left, env.mobile and 10 or 9),
 		Size = UDim2.new(1, -(text_left + 110), 0, 18),
-		Font = bold,
+		Font = bold(),
 		Text = tostring(title or "Spectrum"),
 		TextColor3 = style.values.text,
 		TextSize = title_size,
@@ -189,7 +193,7 @@ local function notify(title, body, duration, kind)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -34, 0, env.mobile and 12 or 11),
 		Size = UDim2.fromOffset(64, 12),
-		Font = bold,
+		Font = bold(),
 		Text = kind_labels[kind] or "INFO",
 		TextColor3 = tint,
 		TextSize = util.size(8),
@@ -203,7 +207,7 @@ local function notify(title, body, duration, kind)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(text_left, caption_y),
 		Size = UDim2.new(1, -(text_left + 20), 0, caption_height),
-		Font = font,
+		Font = font(),
 		Text = body or "",
 		TextColor3 = style.values.muted:Lerp(style.values.text, 0.5),
 		TextSize = body_size,

@@ -3,7 +3,9 @@ local S = ...
 local env = S.env
 local util = S.util
 local style = S.style
-local bold = Enum.Font.GothamBold
+local function bold()
+	return style.values.font_bold
+end
 
 local watermark = {}
 
@@ -48,7 +50,7 @@ local label = util.new("TextLabel", {
 	AutomaticSize = Enum.AutomaticSize.X,
 	Position = UDim2.fromOffset(19, 0),
 	Size = UDim2.fromOffset(0, 24),
-	Font = bold,
+	Font = bold(),
 	Text = "",
 	TextColor3 = values().text,
 	TextSize = util.size(10),

@@ -289,6 +289,37 @@ local function ring(parent, x, y, size, color, thickness)
 	return shape
 end
 
+local function block(parent, x, y, width, height, color, radius)
+	local shape = util.new("Frame", {
+		BackgroundColor3 = color,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(x, y),
+		Size = UDim2.fromOffset(width, height),
+		ZIndex = parent.ZIndex,
+		Parent = parent,
+	})
+	if radius then
+		util.corner(shape, radius)
+	end
+	return shape
+end
+
+local function outline(parent, x, y, width, height, color, radius, thickness)
+	local shape = block(parent, x, y, width, height, color, radius)
+	shape.BackgroundTransparency = 1
+	local edge = util.stroke(shape, color, 0)
+	edge.Thickness = thickness or 1
+	return shape
+end
+
+local function glyph(parent, size, color, draw)
+	size = size or 14
+	local frame = shell(parent, size)
+	draw(frame, size, color or values().muted)
+	return frame
+end
+
 function icons.check(parent, size, color)
 	size = size or 14
 	local frame = shell(parent, size)
@@ -631,6 +662,504 @@ function icons.shield(parent, size, color)
 	return frame
 end
 
+function icons.home(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.34, s * 0.58, math.max(1, s * 0.1), tint, 45)
+		bar(frame, 0.5, 0.34, s * 0.58, math.max(1, s * 0.1), tint, -45)
+		outline(frame, 0.5, 0.63, s * 0.52, s * 0.34, tint, 1, 1)
+		block(frame, 0.5, 0.69, s * 0.14, s * 0.22, tint, 0)
+	end)
+end
+
+function icons.star(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		local thick = math.max(1, math.floor(s * 0.1))
+		bar(frame, 0.5, 0.5, s * 0.62, thick, tint)
+		bar(frame, 0.5, 0.5, s * 0.62, thick, tint, 60)
+		bar(frame, 0.5, 0.5, s * 0.62, thick, tint, 120)
+		dot(frame, 0.5, 0.5, s * 0.18, tint)
+	end)
+end
+
+function icons.heart(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		dot(frame, 0.36, 0.36, s * 0.3, tint)
+		dot(frame, 0.64, 0.36, s * 0.3, tint)
+		local point = block(frame, 0.5, 0.58, s * 0.42, s * 0.42, tint, 1)
+		point.Rotation = 45
+	end)
+end
+
+function icons.bell(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.38, s * 0.42, tint, math.max(1, s * 0.09))
+		block(frame, 0.5, 0.58, s * 0.42, s * 0.24, tint, 1)
+		dot(frame, 0.5, 0.78, s * 0.12, tint)
+	end)
+end
+
+function icons.calendar(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.54, s * 0.66, s * 0.54, tint, 1, 1)
+		bar(frame, 0.5, 0.25, s * 0.46, math.max(1, s * 0.08), tint)
+		dot(frame, 0.36, 0.55, s * 0.1, tint)
+		dot(frame, 0.64, 0.55, s * 0.1, tint)
+		dot(frame, 0.36, 0.72, s * 0.1, tint)
+	end)
+end
+
+function icons.clock(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.5, s * 0.7, tint, math.max(1, s * 0.08))
+		bar(frame, 0.5, 0.42, math.max(1, s * 0.08), s * 0.24, tint)
+		bar(frame, 0.58, 0.52, s * 0.2, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.mail(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.52, s * 0.7, s * 0.5, tint, 1, 1)
+		bar(frame, 0.34, 0.42, s * 0.32, math.max(1, s * 0.07), tint, 35)
+		bar(frame, 0.66, 0.42, s * 0.32, math.max(1, s * 0.07), tint, -35)
+	end)
+end
+
+function icons.phone(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		local thick = math.max(2, s * 0.12)
+		bar(frame, 0.5, 0.5, s * 0.58, thick, tint, 45)
+		dot(frame, 0.25, 0.25, s * 0.2, tint)
+		dot(frame, 0.75, 0.75, s * 0.2, tint)
+	end)
+end
+
+function icons.map(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.28, 0.5, s * 0.24, s * 0.58, tint, 0, 1)
+		outline(frame, 0.5, 0.5, s * 0.24, s * 0.58, tint, 0, 1)
+		outline(frame, 0.72, 0.5, s * 0.24, s * 0.58, tint, 0, 1)
+		bar(frame, 0.4, 0.5, math.max(1, s * 0.07), s * 0.5, tint)
+		bar(frame, 0.6, 0.5, math.max(1, s * 0.07), s * 0.5, tint)
+	end)
+end
+
+function icons.pin(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.36, s * 0.46, tint, math.max(1, s * 0.08))
+		local point = block(frame, 0.5, 0.62, s * 0.24, s * 0.24, tint, 1)
+		point.Rotation = 45
+		dot(frame, 0.5, 0.36, s * 0.12, tint)
+	end)
+end
+
+function icons.camera(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.57, s * 0.7, s * 0.42, tint, 1)
+		block(frame, 0.38, 0.3, s * 0.22, s * 0.1, tint, 1)
+		ring(frame, 0.5, 0.57, s * 0.3, tint, math.max(1, s * 0.08))
+	end)
+end
+
+function icons.picture(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.5, s * 0.7, s * 0.56, tint, 1, 1)
+		dot(frame, 0.34, 0.36, s * 0.12, tint)
+		bar(frame, 0.42, 0.62, s * 0.34, math.max(1, s * 0.08), tint, -28)
+		bar(frame, 0.62, 0.6, s * 0.26, math.max(1, s * 0.08), tint, 32)
+	end)
+end
+
+function icons.music(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.62, 0.42, math.max(1, s * 0.09), s * 0.46, tint)
+		dot(frame, 0.44, 0.76, s * 0.2, tint)
+		bar(frame, 0.62, 0.28, s * 0.3, math.max(1, s * 0.09), tint, 18)
+	end)
+end
+
+function icons.video(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.44, 0.5, s * 0.52, s * 0.46, tint, 1)
+		local lens = block(frame, 0.76, 0.5, s * 0.2, s * 0.24, tint, 1)
+		lens.Rotation = 0
+		bar(frame, 0.44, 0.5, s * 0.24, math.max(1, s * 0.1), tint, 45)
+		bar(frame, 0.44, 0.5, s * 0.24, math.max(1, s * 0.1), tint, -45)
+	end)
+end
+
+function icons.play(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.55, 0.5, s * 0.5, math.max(1, s * 0.1), tint, 45)
+		bar(frame, 0.55, 0.5, s * 0.5, math.max(1, s * 0.1), tint, -45)
+		bar(frame, 0.74, 0.5, math.max(1, s * 0.1), s * 0.42, tint)
+	end)
+end
+
+function icons.pause(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.38, 0.5, math.max(2, s * 0.12), s * 0.46, tint)
+		bar(frame, 0.62, 0.5, math.max(2, s * 0.12), s * 0.46, tint)
+	end)
+end
+
+function icons.download(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.42, math.max(1, s * 0.09), s * 0.34, tint)
+		bar(frame, 0.5, 0.58, s * 0.32, math.max(1, s * 0.09), tint, 45)
+		bar(frame, 0.5, 0.58, s * 0.32, math.max(1, s * 0.09), tint, -45)
+		bar(frame, 0.5, 0.8, s * 0.56, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.upload(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.42, math.max(1, s * 0.09), s * 0.34, tint)
+		bar(frame, 0.5, 0.28, s * 0.32, math.max(1, s * 0.09), tint, 45)
+		bar(frame, 0.5, 0.28, s * 0.32, math.max(1, s * 0.09), tint, -45)
+		bar(frame, 0.5, 0.8, s * 0.56, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.link(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.34, 0.5, s * 0.36, tint, math.max(1, s * 0.08))
+		ring(frame, 0.66, 0.5, s * 0.36, tint, math.max(1, s * 0.08))
+		bar(frame, 0.5, 0.5, s * 0.3, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.share(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		dot(frame, 0.24, 0.5, s * 0.16, tint)
+		dot(frame, 0.76, 0.28, s * 0.16, tint)
+		dot(frame, 0.76, 0.72, s * 0.16, tint)
+		bar(frame, 0.5, 0.39, s * 0.38, math.max(1, s * 0.07), tint, -28)
+		bar(frame, 0.5, 0.61, s * 0.38, math.max(1, s * 0.07), tint, 28)
+	end)
+end
+
+function icons.edit(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.52, 0.48, s * 0.56, math.max(2, s * 0.12), tint, -45)
+		dot(frame, 0.26, 0.74, s * 0.14, tint)
+	end)
+end
+
+function icons.filter(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.28, s * 0.62, math.max(1, s * 0.08), tint)
+		bar(frame, 0.5, 0.5, s * 0.42, math.max(1, s * 0.08), tint)
+		bar(frame, 0.5, 0.72, s * 0.22, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.grid(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		for _, spot in ipairs({ { 0.32, 0.32 }, { 0.68, 0.32 }, { 0.32, 0.68 }, { 0.68, 0.68 } }) do
+			block(frame, spot[1], spot[2], s * 0.24, s * 0.24, tint, 1)
+		end
+	end)
+end
+
+function icons.list(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		for index = 0, 2 do
+			dot(frame, 0.24, 0.3 + index * 0.2, s * 0.1, tint)
+			bar(frame, 0.56, 0.3 + index * 0.2, s * 0.4, math.max(1, s * 0.07), tint)
+		end
+	end)
+end
+
+function icons.layers(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		for index = 0, 2 do
+			local layer = block(frame, 0.5, 0.32 + index * 0.2, s * 0.5, s * 0.24, tint, 1)
+			layer.Rotation = 45
+		end
+	end)
+end
+
+function icons.database(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.5, s * 0.52, s * 0.54, tint, 4, 1)
+		bar(frame, 0.5, 0.32, s * 0.52, math.max(1, s * 0.07), tint)
+		bar(frame, 0.5, 0.5, s * 0.52, math.max(1, s * 0.07), tint)
+		bar(frame, 0.5, 0.68, s * 0.52, math.max(1, s * 0.07), tint)
+	end)
+end
+
+function icons.server(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.36, s * 0.62, s * 0.26, tint, 1, 1)
+		outline(frame, 0.5, 0.68, s * 0.62, s * 0.26, tint, 1, 1)
+		dot(frame, 0.3, 0.36, s * 0.08, tint)
+		dot(frame, 0.3, 0.68, s * 0.08, tint)
+	end)
+end
+
+function icons.cloud(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		dot(frame, 0.34, 0.48, s * 0.3, tint)
+		dot(frame, 0.56, 0.38, s * 0.36, tint)
+		dot(frame, 0.72, 0.52, s * 0.24, tint)
+		bar(frame, 0.5, 0.64, s * 0.62, math.max(1, s * 0.14), tint)
+	end)
+end
+
+function icons.wifi(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.48, s * 0.62, math.max(1, s * 0.08), tint, 30)
+		bar(frame, 0.5, 0.48, s * 0.62, math.max(1, s * 0.08), tint, -30)
+		bar(frame, 0.5, 0.36, s * 0.4, math.max(1, s * 0.08), tint, 30)
+		bar(frame, 0.5, 0.36, s * 0.4, math.max(1, s * 0.08), tint, -30)
+		dot(frame, 0.5, 0.72, s * 0.14, tint)
+	end)
+end
+
+function icons.battery(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.48, 0.5, s * 0.62, s * 0.38, tint, 1, 1)
+		block(frame, 0.84, 0.5, s * 0.08, s * 0.18, tint, 1)
+		block(frame, 0.42, 0.5, s * 0.3, s * 0.2, tint, 0)
+	end)
+end
+
+function icons.power(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.52, s * 0.62, tint, math.max(1, s * 0.09))
+		bar(frame, 0.5, 0.34, math.max(1, s * 0.09), s * 0.26, tint)
+	end)
+end
+
+function icons.sun(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		dot(frame, 0.5, 0.5, s * 0.28, tint)
+		for index = 0, 7 do
+			local angle = math.rad(index * 45)
+			bar(frame, 0.5 + math.cos(angle) * 0.38, 0.5 + math.sin(angle) * 0.38, s * 0.16, math.max(1, s * 0.07), tint, index * 45)
+		end
+	end)
+end
+
+function icons.fire(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.55, s * 0.38, math.max(1, s * 0.1), tint, 20)
+		bar(frame, 0.42, 0.5, s * 0.34, math.max(1, s * 0.1), tint, -25)
+		bar(frame, 0.58, 0.5, s * 0.34, math.max(1, s * 0.1), tint, 25)
+		dot(frame, 0.5, 0.72, s * 0.18, tint)
+	end)
+end
+
+function icons.drop(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		local shape = block(frame, 0.5, 0.56, s * 0.38, s * 0.38, tint, 1)
+		shape.Rotation = 45
+		dot(frame, 0.5, 0.62, s * 0.12, tint)
+	end)
+end
+
+function icons.crown(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.66, s * 0.58, math.max(1, s * 0.1), tint)
+		bar(frame, 0.3, 0.5, s * 0.18, math.max(1, s * 0.1), tint, 45)
+		bar(frame, 0.5, 0.46, s * 0.18, math.max(1, s * 0.1), tint)
+		bar(frame, 0.7, 0.5, s * 0.18, math.max(1, s * 0.1), tint, -45)
+		dot(frame, 0.5, 0.7, s * 0.1, tint)
+	end)
+end
+
+function icons.gem(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		local shape = outline(frame, 0.5, 0.5, s * 0.48, s * 0.48, tint, 1, 1)
+		shape.Rotation = 45
+		bar(frame, 0.5, 0.5, s * 0.3, math.max(1, s * 0.07), tint)
+		bar(frame, 0.5, 0.5, s * 0.3, math.max(1, s * 0.07), tint, 90)
+	end)
+end
+
+function icons.gift(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.6, s * 0.58, s * 0.38, tint, 1)
+		bar(frame, 0.5, 0.5, math.max(1, s * 0.1), s * 0.5, tint)
+		bar(frame, 0.5, 0.5, s * 0.58, math.max(1, s * 0.08), tint)
+		dot(frame, 0.35, 0.32, s * 0.16, tint)
+		dot(frame, 0.65, 0.32, s * 0.16, tint)
+	end)
+end
+
+function icons.tag(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		local shape = block(frame, 0.5, 0.5, s * 0.5, s * 0.5, tint, 1)
+		shape.Rotation = 45
+		dot(frame, 0.62, 0.38, s * 0.12, tint)
+	end)
+end
+
+function icons.bookmark(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.46, s * 0.4, s * 0.56, tint, 1)
+		bar(frame, 0.38, 0.72, s * 0.18, math.max(1, s * 0.08), tint, 45)
+		bar(frame, 0.62, 0.72, s * 0.18, math.max(1, s * 0.08), tint, -45)
+	end)
+end
+
+function icons.flag(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.3, 0.5, math.max(1, s * 0.09), s * 0.62, tint)
+		block(frame, 0.56, 0.36, s * 0.4, s * 0.26, tint, 1)
+		bar(frame, 0.56, 0.56, s * 0.4, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.compass(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.5, s * 0.68, tint, math.max(1, s * 0.08))
+		bar(frame, 0.5, 0.5, s * 0.3, math.max(1, s * 0.08), tint, 45)
+		bar(frame, 0.5, 0.5, s * 0.3, math.max(1, s * 0.08), tint, -45)
+	end)
+end
+
+function icons.rocket(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.5, s * 0.28, s * 0.48, tint, 4)
+		bar(frame, 0.36, 0.66, s * 0.2, math.max(1, s * 0.1), tint, 45)
+		bar(frame, 0.64, 0.66, s * 0.2, math.max(1, s * 0.1), tint, -45)
+		dot(frame, 0.5, 0.42, s * 0.12, tint)
+		bar(frame, 0.5, 0.8, s * 0.14, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.plane(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		bar(frame, 0.5, 0.5, s * 0.64, math.max(1, s * 0.1), tint, -18)
+		bar(frame, 0.5, 0.5, s * 0.44, math.max(1, s * 0.1), tint, 72)
+		bar(frame, 0.36, 0.6, s * 0.22, math.max(1, s * 0.08), tint, 45)
+		bar(frame, 0.64, 0.4, s * 0.22, math.max(1, s * 0.08), tint, 45)
+	end)
+end
+
+function icons.car(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.55, s * 0.68, s * 0.24, tint, 2)
+		bar(frame, 0.5, 0.42, s * 0.38, math.max(1, s * 0.08), tint)
+		dot(frame, 0.32, 0.72, s * 0.14, tint)
+		dot(frame, 0.68, 0.72, s * 0.14, tint)
+	end)
+end
+
+function icons.smartphone(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.5, s * 0.38, s * 0.7, tint, 2, 1)
+		dot(frame, 0.5, 0.74, s * 0.08, tint)
+	end)
+end
+
+function icons.monitor(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.42, s * 0.66, s * 0.44, tint, 1, 1)
+		bar(frame, 0.5, 0.72, s * 0.2, math.max(1, s * 0.08), tint)
+		bar(frame, 0.5, 0.82, s * 0.38, math.max(1, s * 0.08), tint)
+	end)
+end
+
+function icons.mouse(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.5, s * 0.36, s * 0.58, tint, 8, 1)
+		bar(frame, 0.5, 0.34, math.max(1, s * 0.07), s * 0.18, tint)
+	end)
+end
+
+function icons.keyboard(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.55, s * 0.7, s * 0.38, tint, 1, 1)
+		for index = 0, 3 do
+			dot(frame, 0.32 + index * 0.12, 0.48, s * 0.06, tint)
+			dot(frame, 0.32 + index * 0.12, 0.62, s * 0.06, tint)
+		end
+	end)
+end
+
+function icons.gamepad(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.55, s * 0.68, s * 0.34, tint, 4, 1)
+		bar(frame, 0.32, 0.55, s * 0.14, math.max(1, s * 0.08), tint)
+		bar(frame, 0.32, 0.55, math.max(1, s * 0.08), s * 0.14, tint)
+		dot(frame, 0.68, 0.48, s * 0.08, tint)
+		dot(frame, 0.78, 0.62, s * 0.08, tint)
+	end)
+end
+
+function icons.volume(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.3, 0.5, s * 0.18, s * 0.24, tint, 1)
+		bar(frame, 0.46, 0.5, s * 0.22, math.max(1, s * 0.08), tint, 45)
+		bar(frame, 0.46, 0.5, s * 0.22, math.max(1, s * 0.08), tint, -45)
+		ring(frame, 0.56, 0.5, s * 0.42, tint, math.max(1, s * 0.07))
+	end)
+end
+
+function icons.mic(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.4, s * 0.22, s * 0.38, tint, 8)
+		bar(frame, 0.5, 0.68, s * 0.32, math.max(1, s * 0.08), tint)
+		bar(frame, 0.5, 0.8, math.max(1, s * 0.08), s * 0.16, tint)
+	end)
+end
+
+function icons.headphones(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.44, s * 0.58, tint, math.max(1, s * 0.08))
+		block(frame, 0.26, 0.58, s * 0.14, s * 0.28, tint, 2)
+		block(frame, 0.74, 0.58, s * 0.14, s * 0.28, tint, 2)
+	end)
+end
+
+function icons.terminal(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		outline(frame, 0.5, 0.5, s * 0.68, s * 0.54, tint, 1, 1)
+		bar(frame, 0.34, 0.42, s * 0.14, math.max(1, s * 0.08), tint, 45)
+		bar(frame, 0.34, 0.56, s * 0.14, math.max(1, s * 0.08), tint, -45)
+		bar(frame, 0.62, 0.62, s * 0.2, math.max(1, s * 0.07), tint)
+	end)
+end
+
+function icons.bug(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		block(frame, 0.5, 0.52, s * 0.26, s * 0.34, tint, 4)
+		dot(frame, 0.5, 0.32, s * 0.14, tint)
+		for index = 0, 2 do
+			bar(frame, 0.5, 0.44 + index * 0.12, s * 0.52, math.max(1, s * 0.06), tint)
+		end
+	end)
+end
+
+function icons.skull(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.42, s * 0.54, tint, math.max(1, s * 0.09))
+		dot(frame, 0.38, 0.42, s * 0.1, tint)
+		dot(frame, 0.62, 0.42, s * 0.1, tint)
+		block(frame, 0.5, 0.7, s * 0.26, s * 0.16, tint, 1)
+	end)
+end
+
+function icons.ghost(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.46, s * 0.56, tint, math.max(1, s * 0.08))
+		block(frame, 0.5, 0.66, s * 0.52, s * 0.2, tint, 2)
+		dot(frame, 0.38, 0.44, s * 0.08, tint)
+		dot(frame, 0.62, 0.44, s * 0.08, tint)
+	end)
+end
+
+function icons.alien(parent, size, color)
+	return glyph(parent, size, color, function(frame, s, tint)
+		ring(frame, 0.5, 0.46, s * 0.56, tint, math.max(1, s * 0.08))
+		dot(frame, 0.36, 0.46, s * 0.12, tint)
+		dot(frame, 0.64, 0.46, s * 0.12, tint)
+		bar(frame, 0.5, 0.7, s * 0.18, math.max(1, s * 0.07), tint)
+	end)
+end
+
 local named = {
 	gear = icons.gear,
 	settings = icons.gear,
@@ -664,6 +1193,94 @@ local named = {
 	shield = icons.shield,
 	alert = icons.alert,
 	info = icons.info,
+	home = icons.home,
+	house = icons.home,
+	star = icons.star,
+	favorite = icons.star,
+	heart = icons.heart,
+	like = icons.heart,
+	bell = icons.bell,
+	notification = icons.bell,
+	calendar = icons.calendar,
+	schedule = icons.calendar,
+	clock = icons.clock,
+	time = icons.clock,
+	mail = icons.mail,
+	email = icons.mail,
+	phone = icons.phone,
+	call = icons.phone,
+	map = icons.map,
+	pin = icons.pin,
+	location = icons.pin,
+	camera = icons.camera,
+	photo = icons.camera,
+	image = icons.picture,
+	picture = icons.picture,
+	music = icons.music,
+	audio = icons.music,
+	video = icons.video,
+	film = icons.video,
+	play = icons.play,
+	pause = icons.pause,
+	download = icons.download,
+	upload = icons.upload,
+	link = icons.link,
+	share = icons.share,
+	edit = icons.edit,
+	pencil = icons.edit,
+	filter = icons.filter,
+	grid = icons.grid,
+	apps = icons.grid,
+	list = icons.list,
+	rows = icons.list,
+	layers = icons.layers,
+	database = icons.database,
+	data = icons.database,
+	server = icons.server,
+	host = icons.server,
+	cloud = icons.cloud,
+	wifi = icons.wifi,
+	signal = icons.wifi,
+	battery = icons.battery,
+	power = icons.power,
+	sun = icons.sun,
+	light = icons.sun,
+	fire = icons.fire,
+	flame = icons.fire,
+	drop = icons.drop,
+	water = icons.drop,
+	crown = icons.crown,
+	gem = icons.gem,
+	diamond = icons.gem,
+	gift = icons.gift,
+	present = icons.gift,
+	tag = icons.tag,
+	label = icons.tag,
+	bookmark = icons.bookmark,
+	flag = icons.flag,
+	compass = icons.compass,
+	rocket = icons.rocket,
+	plane = icons.plane,
+	car = icons.car,
+	smartphone = icons.smartphone,
+	mobile = icons.smartphone,
+	monitor = icons.monitor,
+	screen = icons.monitor,
+	mouse = icons.mouse,
+	keyboard = icons.keyboard,
+	gamepad = icons.gamepad,
+	controller = icons.gamepad,
+	volume = icons.volume,
+	sound = icons.volume,
+	mic = icons.mic,
+	microphone = icons.mic,
+	headphones = icons.headphones,
+	terminal = icons.terminal,
+	console = icons.terminal,
+	bug = icons.bug,
+	skull = icons.skull,
+	ghost = icons.ghost,
+	alien = icons.alien,
 }
 
 function icons.kind(kind, parent, size, color)

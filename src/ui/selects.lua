@@ -6,8 +6,12 @@ local style = S.style
 local modal = S.modal
 local icons = S.icons
 local tooltip = S.tooltip
-local font = Enum.Font.RobotoCondensed
-local mono = Enum.Font.RobotoMono
+local function font()
+	return style.values.font
+end
+local function mono()
+	return style.values.font_mono
+end
 local selects = {}
 local GuiService = game:GetService("GuiService")
 
@@ -27,7 +31,7 @@ local function caption(parent, title)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(10, 0),
 		Size = UDim2.new(0.5, -20, 1, 0),
-		Font = font,
+		Font = font(),
 		Text = string.upper(tostring(title or "")),
 		TextColor3 = values().text,
 		TextSize = util.size(10),
@@ -121,7 +125,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -29, 0.5, 0),
 		Size = UDim2.new(0.4, 0, 1, 0),
-		Font = mono,
+		Font = mono(),
 		Text = placeholder,
 		TextColor3 = values().muted,
 		TextSize = util.size(9),
@@ -184,7 +188,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			BackgroundTransparency = 1,
 			Position = UDim2.fromOffset(2, 0),
 			Size = UDim2.new(1, mobile and -84 or -96, 1, 0),
-			Font = font,
+			Font = font(),
 			Text = "SELECT OPTIONS",
 			TextColor3 = values().muted,
 			TextSize = util.size(9),
@@ -213,7 +217,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, offset, 0.5, 0),
 				Size = UDim2.fromOffset(width, bulk_h),
-				Font = font,
+				Font = font(),
 				Text = string.upper(text),
 				TextColor3 = values().text,
 				TextSize = util.size(mobile and 9 or 10),
@@ -254,7 +258,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			BackgroundColor3 = values().raised,
 			BorderSizePixel = 0,
 			ClearTextOnFocus = false,
-			Font = mono,
+			Font = mono(),
 			PlaceholderColor3 = values().muted,
 			PlaceholderText = "SEARCH",
 			Position = UDim2.fromOffset(pad, pad + bulk_h + bulk_gap),
@@ -500,7 +504,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		else
 			readout.TextColor3 = values().muted
 		end
-		readout.Font = font
+		util.font(readout, "regular")
 		if bulk_count then
 			if picked == 0 then
 				bulk_count.Text = "SELECT OPTIONS"
@@ -521,7 +525,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			local on = multi and picks[option] or single == option
 			local option_disabled = disabled_options[option] == true
 			item.TextColor3 = option_disabled and values().muted or values().text
-			item.Font = font
+			util.font(item, "regular")
 			item.BackgroundColor3 = on and values().hover:Lerp(values().accent, 0.12) or values().hover
 			item.BackgroundTransparency = on and 0.55 or 1
 			local item_edge = item_edges[option]
@@ -736,7 +740,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			AutoButtonColor = false,
 			LayoutOrder = index,
 			Size = UDim2.new(1, 0, 0, item_h),
-			Font = font,
+			Font = font(),
 			Text = string.upper(option),
 			TextColor3 = values().text,
 			TextSize = util.size(10),
@@ -809,7 +813,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		local empty = util.new("TextLabel", {
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, 0, 0, item_h),
-			Font = font,
+			Font = font(),
 			Text = "No options",
 			TextColor3 = values().muted,
 			TextSize = util.size(10),
@@ -825,7 +829,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			BackgroundTransparency = 1,
 			LayoutOrder = #choices + 1,
 			Size = UDim2.new(1, 0, 0, 0),
-			Font = font,
+			Font = font(),
 			Text = "No matches",
 			TextColor3 = values().muted,
 			TextSize = util.size(10),
@@ -1325,7 +1329,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		BorderSizePixel = 0,
 		ClearTextOnFocus = false,
 		TextEditable = not disabled,
-		Font = Enum.Font.Code,
+		Font = mono(),
 		Position = UDim2.fromOffset(pad + 36, bottom_y),
 		Size = UDim2.new(1, -(pad * 2 + 36 + 2 * 28 + 8), 0, 28),
 		Text = "#000000",
@@ -1389,7 +1393,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(pad, rgb_y),
 		Size = UDim2.fromOffset(30, rgb_h),
-		Font = mono,
+		Font = mono(),
 		Text = "RGB",
 		TextColor3 = values().muted,
 		TextSize = util.size(8),
@@ -1402,7 +1406,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		BorderSizePixel = 0,
 		ClearTextOnFocus = false,
 		TextEditable = not disabled,
-		Font = mono,
+		Font = mono(),
 		Position = UDim2.fromOffset(pad + 30, rgb_y),
 		Size = UDim2.new(1, -(pad * 2 + 30), 0, rgb_h),
 		Text = "230, 162, 58",
