@@ -316,7 +316,7 @@ local font_order = {
 }
 
 local defaults = {
-	accent = Color3.fromRGB(17, 42, 103),
+	accent = Color3.fromRGB(105, 146, 170),
 	background = Color3.fromRGB(13, 14, 16),
 	panel = Color3.fromRGB(24, 26, 29),
 	hover = Color3.fromRGB(35, 38, 42),
@@ -5471,22 +5471,34 @@ local function rgb_gradient(row)
 	return row.rgb_gradient
 end
 
+local function rgb_phase(phase)
+	local cycle = (phase * 0.22) % 2
+	return cycle <= 1 and cycle or 2 - cycle
+end
+
 local function paint_rgb(phase)
-	local base = 0.5 + 0.5 * math.sin((phase or os.clock()) * 1.6)
+	local base = rgb_phase(phase or os.clock())
 	rail.BackgroundColor3 = Color3.new(1, 1, 1)
 	rail_gradient.Enabled = true
 	rail_gradient.Offset = Vector2.new(0, base)
-	for index, row in ipairs(rows) do
+	local total = math.max(2, #rows + #exiting)
+	local function paint_row(row, index)
 		row.label.TextColor3 = Color3.new(1, 1, 1)
 		local gradient = rgb_gradient(row)
 		gradient.Enabled = true
-		gradient.Offset = Vector2.new(0, (base + index * 0.07) % 1)
+		gradient.Offset = Vector2.new(0, 0)
+		local hue = (base - index / total) % 1
+		local next_hue = (base - (index + 1) / total) % 1
+		gradient.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromHSV(hue, 1, 1)),
+			ColorSequenceKeypoint.new(1, Color3.fromHSV(next_hue, 1, 1)),
+		})
+	end
+	for index, row in ipairs(rows) do
+		paint_row(row, index)
 	end
 	for index, row in ipairs(exiting) do
-		row.label.TextColor3 = Color3.new(1, 1, 1)
-		local gradient = rgb_gradient(row)
-		gradient.Enabled = true
-		gradient.Offset = Vector2.new(0, (base + (#rows + index) * 0.07) % 1)
+		paint_row(row, #rows + index)
 	end
 end
 
@@ -11637,7 +11649,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.0.4"
+Library.Build = "1.0.5"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
