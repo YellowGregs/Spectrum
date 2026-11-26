@@ -4358,7 +4358,7 @@ local function notify(title, body, duration, kind)
 
 	local scrim = util.new("Frame", {
 		Name = "scrim",
-		BackgroundColor3 = style.values.panel,
+		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		Size = UDim2.fromScale(1, 1),
@@ -4366,14 +4366,6 @@ local function notify(title, body, duration, kind)
 		Parent = face,
 	})
 	util.corner(scrim, 6)
-	util.new("UIGradient", {
-		Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, style.values.panel),
-			ColorSequenceKeypoint.new(1, style.values.raised),
-		}),
-		Rotation = 90,
-		Parent = scrim,
-	})
 
 	local content = util.new("Frame", {
 		Name = "content",
@@ -4399,7 +4391,7 @@ local function notify(title, body, duration, kind)
 	util.stroke(chip, tint, 0.4)
 	local chip_scale = util.new("UIScale", { Scale = 0.7, Parent = chip })
 
-	local badge = icons.kind(kind, chip, icon_size, tint)
+	local badge = icons.bell(chip, icon_size, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
 	badge.Position = UDim2.fromScale(0.5, 0.5)
 	icons.layer(badge, 5)
@@ -4553,7 +4545,7 @@ local function notify(title, body, duration, kind)
 	util.tween(content, 0.28, { Position = UDim2.fromOffset(0, 0) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	util.tween(scale, 0.32, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	util.tween(chip_scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-	util.tween(scrim, 0.22, { BackgroundTransparency = 0.28 })
+	util.tween(scrim, 0.22, { BackgroundTransparency = 0 })
 	util.tween(heading, 0.2, { TextTransparency = 0, TextStrokeTransparency = 0.25 })
 	task.delay(0.04, function()
 		if closed or not face.Parent then
@@ -5677,7 +5669,7 @@ function featurelist.touch_if(opts, auto)
 end
 
 function featurelist.all(state)
-	if state ~= nil then
+	if state ~= nil and state ~= all_mode then
 		all_mode = state == true
 		sort_dirty = true
 		build()
@@ -7787,7 +7779,6 @@ function inputs.toggle(win, text, a, b, opts)
 	local kind = tostring(opts.style or "switch"):lower()
 	local checkbox = kind == "checkbox" or kind == "check"
 	local disabled = opts.disabled == true
-	local feature_enabled = opts.feature ~= false
 	local row = win._row()
 	local initial = state
 	local heading = label(row, text, 0)
@@ -7933,8 +7924,8 @@ function inputs.toggle(win, text, a, b, opts)
 		for _, listener in ipairs(listeners) do
 			pcall(listener, state)
 		end
-		if feature_enabled and S.featurelist then
-			S.featurelist.touch()
+		if S.featurelist then
+			S.featurelist.touch_if(opts, true)
 		end
 	end
 
@@ -7953,8 +7944,8 @@ function inputs.toggle(win, text, a, b, opts)
 			icons.tint(emblem, disabled and values().line or values().muted)
 		end
 		sync()
-		if feature_enabled and S.featurelist then
-			S.featurelist.touch()
+		if S.featurelist then
+			S.featurelist.touch_if(opts, true)
 		end
 		if win._nav_refresh then
 			win._nav_refresh()
@@ -8012,7 +8003,7 @@ function inputs.toggle(win, text, a, b, opts)
 	end
 	win._fit(true)
 
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		local binder = S.featurelist.attach(win, "toggle", text, opts, function()
 			if disabled then
 				return nil
@@ -8061,7 +8052,6 @@ end
 function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
-	local feature_enabled = opts.feature ~= false
 	local mobile = win._mobile
 	local compact = opts.compact == true
 	local suffix = type(opts.suffix) == "string" and opts.suffix or ""
@@ -8171,7 +8161,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		readout.Text = shown
 		feature_value = string.format("%." .. decimals .. "f", value)
 		readout.TextColor3 = disabled and values().muted or (dragging and values().accent or values().muted)
-		if feature_enabled and S.featurelist then
+		if S.featurelist then
 			S.featurelist.touch_if(opts, false)
 		end
 		if fire then
@@ -8315,7 +8305,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	end
 	win._fit(true)
 
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		local binder = S.featurelist.attach(win, "slider", text, opts, function()
 			if disabled then
 				return nil
@@ -8350,7 +8340,6 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		icon = opts.icon
 	end
 	opts = type(opts) == "table" and opts or {}
-	local feature_enabled = opts.feature ~= false
 	local on_change = type(opts.onChange) == "function" and opts.onChange or nil
 	local on_press = type(opts.onPress) == "function" and opts.onPress or nil
 	local on_release = type(opts.onRelease) == "function" and opts.onRelease or nil
@@ -8459,7 +8448,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		pill.BackgroundColor3 = fill
 		edge.Color = border
 		edge.Transparency = border_alpha
-		if feature_enabled and S.featurelist then
+		if S.featurelist then
 			S.featurelist.touch_if(opts, false)
 		end
 	end
@@ -8768,7 +8757,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	})
 	win._fit(true)
 
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		local binder = S.featurelist.attach(win, "keybind", text, opts, function()
 			if disabled then
 				return nil
@@ -8857,7 +8846,6 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 	opts = type(opts) == "table" and opts or {}
 	local mobile = win._mobile
-	local feature_enabled = opts.feature ~= false
 	local clearable = opts.clearable ~= false
 	local choices = {}
 	for _, option in ipairs(options or {}) do
@@ -9356,7 +9344,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		if active_option and items[active_option] then
 			items[active_option].BackgroundTransparency = 0
 		end
-		if feature_enabled and S.featurelist then
+		if S.featurelist then
 			S.featurelist.touch_if(opts, false)
 		end
 	end
@@ -9878,7 +9866,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 	win._fit(true)
 
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		local binder = S.featurelist.attach(win, "dropdown", title, opts, function()
 			if disabled then
 				return nil
@@ -9936,7 +9924,6 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	end
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
-	local feature_enabled = opts.feature ~= false
 	local mobile = win._mobile
 	local hue, sat, val = 0.58, 0.68, 1
 	if typeof(default) == "Color3" then
@@ -10395,7 +10382,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				callback(picked)
 			end
 		end
-		if feature_enabled and S.featurelist then
+		if S.featurelist then
 			S.featurelist.touch_if(opts, false)
 		end
 	end
@@ -10745,7 +10732,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	end
 	win._fit(true)
 
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		local binder = S.featurelist.attach(win, "colorpicker", title, opts, function()
 			if disabled then
 				return nil
@@ -11055,7 +11042,6 @@ function text.textbox(win, title, default, callback, icon, opts)
 	end
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
-	local feature_enabled = opts.feature ~= false
 	local placeholder = type(opts.placeholder) == "string" and opts.placeholder ~= "" and opts.placeholder or "Enter text"
 	local numeric = opts.numericOnly == true or opts.numbersOnly == true
 	local max_length = tonumber(opts.maxLength)
@@ -11173,7 +11159,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 			fixing = false
 		end
 	end)
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		box:GetPropertyChangedSignal("Text"):Connect(function()
 			S.featurelist.touch_if(opts, false)
 		end)
@@ -11235,7 +11221,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 		if emblem then
 			icons.tint(emblem, disabled and values().line or values().muted)
 		end
-		if feature_enabled and S.featurelist then
+		if S.featurelist then
 			S.featurelist.touch_if(opts, false)
 		end
 		if win._nav_refresh then
@@ -11298,7 +11284,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 	end
 	win._fit(true)
 
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		local binder = S.featurelist.attach(win, "textbox", title, opts, function()
 			if disabled then
 				return nil
@@ -11344,7 +11330,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-26.featurelist9"
+Library.Build = "2026-11-26.featurelist10"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then

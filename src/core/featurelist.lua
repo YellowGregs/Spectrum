@@ -720,7 +720,7 @@ function featurelist.touch_if(opts, auto)
 end
 
 function featurelist.all(state)
-	if state ~= nil then
+	if state ~= nil and state ~= all_mode then
 		all_mode = state == true
 		sort_dirty = true
 		build()

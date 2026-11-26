@@ -124,7 +124,7 @@ local function notify(title, body, duration, kind)
 
 	local scrim = util.new("Frame", {
 		Name = "scrim",
-		BackgroundColor3 = style.values.panel,
+		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		Size = UDim2.fromScale(1, 1),
@@ -132,14 +132,6 @@ local function notify(title, body, duration, kind)
 		Parent = face,
 	})
 	util.corner(scrim, 6)
-	util.new("UIGradient", {
-		Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, style.values.panel),
-			ColorSequenceKeypoint.new(1, style.values.raised),
-		}),
-		Rotation = 90,
-		Parent = scrim,
-	})
 
 	local content = util.new("Frame", {
 		Name = "content",
@@ -165,7 +157,7 @@ local function notify(title, body, duration, kind)
 	util.stroke(chip, tint, 0.4)
 	local chip_scale = util.new("UIScale", { Scale = 0.7, Parent = chip })
 
-	local badge = icons.kind(kind, chip, icon_size, tint)
+	local badge = icons.bell(chip, icon_size, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
 	badge.Position = UDim2.fromScale(0.5, 0.5)
 	icons.layer(badge, 5)
@@ -319,7 +311,7 @@ local function notify(title, body, duration, kind)
 	util.tween(content, 0.28, { Position = UDim2.fromOffset(0, 0) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	util.tween(scale, 0.32, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	util.tween(chip_scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-	util.tween(scrim, 0.22, { BackgroundTransparency = 0.28 })
+	util.tween(scrim, 0.22, { BackgroundTransparency = 0 })
 	util.tween(heading, 0.2, { TextTransparency = 0, TextStrokeTransparency = 0.25 })
 	task.delay(0.04, function()
 		if closed or not face.Parent then

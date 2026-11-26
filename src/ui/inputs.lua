@@ -293,7 +293,6 @@ function inputs.toggle(win, text, a, b, opts)
 	local kind = tostring(opts.style or "switch"):lower()
 	local checkbox = kind == "checkbox" or kind == "check"
 	local disabled = opts.disabled == true
-	local feature_enabled = opts.feature ~= false
 	local row = win._row()
 	local initial = state
 	local heading = label(row, text, 0)
@@ -439,8 +438,8 @@ function inputs.toggle(win, text, a, b, opts)
 		for _, listener in ipairs(listeners) do
 			pcall(listener, state)
 		end
-		if feature_enabled and S.featurelist then
-			S.featurelist.touch()
+		if S.featurelist then
+			S.featurelist.touch_if(opts, true)
 		end
 	end
 
@@ -459,8 +458,8 @@ function inputs.toggle(win, text, a, b, opts)
 			icons.tint(emblem, disabled and values().line or values().muted)
 		end
 		sync()
-		if feature_enabled and S.featurelist then
-			S.featurelist.touch()
+		if S.featurelist then
+			S.featurelist.touch_if(opts, true)
 		end
 		if win._nav_refresh then
 			win._nav_refresh()
@@ -518,7 +517,7 @@ function inputs.toggle(win, text, a, b, opts)
 	end
 	win._fit(true)
 
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		local binder = S.featurelist.attach(win, "toggle", text, opts, function()
 			if disabled then
 				return nil
@@ -567,7 +566,6 @@ end
 function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
-	local feature_enabled = opts.feature ~= false
 	local mobile = win._mobile
 	local compact = opts.compact == true
 	local suffix = type(opts.suffix) == "string" and opts.suffix or ""
@@ -677,7 +675,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		readout.Text = shown
 		feature_value = string.format("%." .. decimals .. "f", value)
 		readout.TextColor3 = disabled and values().muted or (dragging and values().accent or values().muted)
-		if feature_enabled and S.featurelist then
+		if S.featurelist then
 			S.featurelist.touch_if(opts, false)
 		end
 		if fire then
@@ -821,7 +819,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	end
 	win._fit(true)
 
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		local binder = S.featurelist.attach(win, "slider", text, opts, function()
 			if disabled then
 				return nil
@@ -856,7 +854,6 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		icon = opts.icon
 	end
 	opts = type(opts) == "table" and opts or {}
-	local feature_enabled = opts.feature ~= false
 	local on_change = type(opts.onChange) == "function" and opts.onChange or nil
 	local on_press = type(opts.onPress) == "function" and opts.onPress or nil
 	local on_release = type(opts.onRelease) == "function" and opts.onRelease or nil
@@ -965,7 +962,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		pill.BackgroundColor3 = fill
 		edge.Color = border
 		edge.Transparency = border_alpha
-		if feature_enabled and S.featurelist then
+		if S.featurelist then
 			S.featurelist.touch_if(opts, false)
 		end
 	end
@@ -1274,7 +1271,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	})
 	win._fit(true)
 
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		local binder = S.featurelist.attach(win, "keybind", text, opts, function()
 			if disabled then
 				return nil

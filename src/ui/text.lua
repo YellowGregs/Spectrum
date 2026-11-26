@@ -264,7 +264,6 @@ function text.textbox(win, title, default, callback, icon, opts)
 	end
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
-	local feature_enabled = opts.feature ~= false
 	local placeholder = type(opts.placeholder) == "string" and opts.placeholder ~= "" and opts.placeholder or "Enter text"
 	local numeric = opts.numericOnly == true or opts.numbersOnly == true
 	local max_length = tonumber(opts.maxLength)
@@ -382,7 +381,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 			fixing = false
 		end
 	end)
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		box:GetPropertyChangedSignal("Text"):Connect(function()
 			S.featurelist.touch_if(opts, false)
 		end)
@@ -444,7 +443,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 		if emblem then
 			icons.tint(emblem, disabled and values().line or values().muted)
 		end
-		if feature_enabled and S.featurelist then
+		if S.featurelist then
 			S.featurelist.touch_if(opts, false)
 		end
 		if win._nav_refresh then
@@ -507,7 +506,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 	end
 	win._fit(true)
 
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		local binder = S.featurelist.attach(win, "textbox", title, opts, function()
 			if disabled then
 				return nil

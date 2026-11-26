@@ -49,7 +49,6 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 	opts = type(opts) == "table" and opts or {}
 	local mobile = win._mobile
-	local feature_enabled = opts.feature ~= false
 	local clearable = opts.clearable ~= false
 	local choices = {}
 	for _, option in ipairs(options or {}) do
@@ -548,7 +547,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		if active_option and items[active_option] then
 			items[active_option].BackgroundTransparency = 0
 		end
-		if feature_enabled and S.featurelist then
+		if S.featurelist then
 			S.featurelist.touch_if(opts, false)
 		end
 	end
@@ -1070,7 +1069,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 	win._fit(true)
 
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		local binder = S.featurelist.attach(win, "dropdown", title, opts, function()
 			if disabled then
 				return nil
@@ -1128,7 +1127,6 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	end
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
-	local feature_enabled = opts.feature ~= false
 	local mobile = win._mobile
 	local hue, sat, val = 0.58, 0.68, 1
 	if typeof(default) == "Color3" then
@@ -1587,7 +1585,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				callback(picked)
 			end
 		end
-		if feature_enabled and S.featurelist then
+		if S.featurelist then
 			S.featurelist.touch_if(opts, false)
 		end
 	end
@@ -1937,7 +1935,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	end
 	win._fit(true)
 
-	if feature_enabled and S.featurelist then
+	if S.featurelist then
 		local binder = S.featurelist.attach(win, "colorpicker", title, opts, function()
 			if disabled then
 				return nil
