@@ -4,6 +4,8 @@ local env = S.env
 local util = S.util
 local style = S.style
 
+local TextService = game:GetService("TextService")
+
 local featurelist = {}
 local manual = {}
 local manual_mode = false
@@ -12,11 +14,6 @@ local feature_seq = 0
 local attach_seq = 0
 local entries = {}
 local rows = {}
-local header_root
-local header_title
-local header_count
-local header_tick
-local header_line
 local shown = true
 local scheduled = false
 
@@ -24,43 +21,45 @@ local function values()
 	return style.values
 end
 
-local base_width = env.mobile and 190 or 216
+local base_width = env.mobile and 220 or 260
 local top_offset = env.mobile and 90 or 12
-local pad_x = 10
-local pad_right = 14
-local pad_y = 8
-local row_height = util.size(17)
-local header_height = util.size(18)
-local divider_height = 1
-local gap = 1
-local value_width = env.mobile and 68 or 78
+local right_margin = 12
+local rail_width = 4
+local rail_gap = 0
+local row_height = util.size(20)
+local row_gap = 0
+local pad_left = env.mobile and 9 or 10
+local pad_right = env.mobile and 8 or 10
+local label_gap = 6
+local text_size = util.size(13)
+local value_size = util.size(13)
 
 local function card_width()
 	local view = env.viewport()
-	return math.min(base_width, math.max(150, view.X - 24))
+	return math.min(base_width, math.max(160, view.X - 24))
+end
+
+local function max_row_width()
+	return math.max(80, card_width() - rail_width - rail_gap)
 end
 
 local card = util.new("Frame", {
 	Name = "feature_list",
-	BackgroundColor3 = values().panel,
-	BackgroundTransparency = 0.06,
+	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -12, 0, top_offset),
+	Position = UDim2.new(1, -right_margin, 0, top_offset),
 	Size = UDim2.fromOffset(card_width(), 0),
 	Visible = false,
 	ClipsDescendants = true,
 	ZIndex = 2,
 	Parent = env.notes,
 })
-util.corner(card, 5)
-local edge = util.stroke(card, values().line, 0.35)
 
 local content = util.new("Frame", {
 	Name = "content",
 	BackgroundTransparency = 1,
-	Position = UDim2.fromOffset(pad_x, pad_y),
-	Size = UDim2.new(1, -(pad_x + pad_right), 0, 0),
+	Size = UDim2.new(1, -(rail_width + rail_gap), 1, 0),
 	ZIndex = 2,
 	Parent = card,
 })
@@ -68,21 +67,21 @@ util.new("UIListLayout", {
 	FillDirection = Enum.FillDirection.Vertical,
 	SortOrder = Enum.SortOrder.LayoutOrder,
 	HorizontalAlignment = Enum.HorizontalAlignment.Right,
-	Padding = UDim.new(0, gap),
+	VerticalAlignment = Enum.VerticalAlignment.Top,
+	Padding = UDim.new(0, row_gap),
 	Parent = content,
 })
 
-local bar = util.new("Frame", {
-	Name = "edge",
+local rail = util.new("Frame", {
+	Name = "rail",
 	BackgroundColor3 = values().accent,
 	BorderSizePixel = 0,
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -2, 0, 0),
-	Size = UDim2.new(0, 2, 1, 0),
+	Position = UDim2.new(1, 0, 0, 0),
+	Size = UDim2.new(0, rail_width, 1, 0),
 	ZIndex = 4,
 	Parent = card,
 })
-util.corner(bar, 1)
 
 local function shorten(value)
 	local text = tostring(value):gsub("%s+", " ")
@@ -129,32 +128,84 @@ local function normalize(value, label)
 	return nil
 end
 
+local measured = {}
+local measured_count = 0
+
+local function measure(text, size, font)
+	local value = tostring(text)
+	if value == "" then
+		return 0
+	end
+	local key = tostring(font) .. "|" .. tostring(size) .. "|" .. value
+	local cached = measured[key]
+	if cached then
+		return cached
+	end
+	local width
+	local ok, box = pcall(function()
+		return TextService:GetTextSize(value, size, font, Vector2.new(2048, 128))
+	end)
+	if ok and typeof(box) == "Vector2" then
+		width = math.ceil(box.X)
+	else
+		width = math.ceil(#value * size * 0.56)
+	end
+	if measured_count >= 512 then
+		table.clear(measured)
+		measured_count = 0
+	end
+	measured[key] = width
+	measured_count = measured_count + 1
+	return width
+end
+
+local function row_metrics(entry)
+	local available = max_row_width() - pad_left - pad_right
+	local label_w = measure(entry.label, text_size, values().font_medium)
+	local value_w = entry.value and measure(entry.value, value_size, values().font) or 0
+	if value_w > 0 then
+		value_w = math.min(value_w, math.max(20, available - label_gap - 36))
+		label_w = math.min(label_w, math.max(20, available - label_gap - value_w))
+	else
+		label_w = math.min(label_w, math.max(20, available))
+	end
+	local width = pad_left + label_w + (value_w > 0 and (label_gap + value_w) or 0) + pad_right
+	return label_w, value_w, math.min(width, max_row_width())
+end
+
+local function layout_row(row)
+	local label_w, value_w, width = row_metrics(row.entry)
+	row.strip.Size = UDim2.fromOffset(width, row_height)
+	row.label.Size = UDim2.fromOffset(label_w, row_height)
+	row.value.Size = UDim2.fromOffset(value_w, row_height)
+	row.value.Position = UDim2.fromOffset(pad_left + label_w + (value_w > 0 and label_gap or 0), 0)
+	row.value.Visible = value_w > 0
+end
+
 local function height()
 	local count = #entries
 	if count == 0 then
 		return 0
 	end
-	return pad_y * 2
-		+ header_height
-		+ divider_height
-		+ count * row_height
-		+ (count + 1) * gap
+	return count * row_height + (count - 1) * row_gap
+end
+
+local function resize()
+	local total = height()
+	card.Size = UDim2.fromOffset(card_width(), total)
+	content.Size = UDim2.new(1, -(rail_width + rail_gap), 1, 0)
+	card.Visible = shown and #entries > 0
 end
 
 local function paint()
-	card.BackgroundColor3 = values().panel
-	edge.Color = values().line
-	bar.BackgroundColor3 = values().accent
-	if header_title then
-		header_title.TextColor3 = values().muted
-		header_count.TextColor3 = values().accent
-		header_tick.BackgroundColor3 = values().accent
-		header_line.BackgroundColor3 = values().line
-	end
+	rail.BackgroundColor3 = values().accent
 	for _, row in ipairs(rows) do
-		row.dot.BackgroundColor3 = values().accent
-		row.label.TextColor3 = values().text
+		row.strip.BackgroundColor3 = values().panel
+		row.label.Font = values().font_medium
+		row.label.TextColor3 = values().accent
+		row.value.Font = values().font
 		row.value.TextColor3 = values().text
+		layout_row(row)
 	end
 end
 
@@ -165,17 +216,6 @@ local function clear()
 		end
 	end
 	table.clear(rows)
-	if header_root and header_root.Parent then
-		header_root:Destroy()
-	end
-	if header_line and header_line.Parent then
-		header_line:Destroy()
-	end
-	header_root = nil
-	header_line = nil
-	header_title = nil
-	header_count = nil
-	header_tick = nil
 end
 
 local function collect()
@@ -226,54 +266,57 @@ local function create_row(entry, index)
 		Name = "feature_row",
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 0, row_height),
-		LayoutOrder = index + 1,
+		LayoutOrder = index,
 		ZIndex = 3,
 		Parent = content,
 	})
-	local dot = util.new("Frame", {
-		BackgroundColor3 = values().accent,
+	local strip = util.new("Frame", {
+		Name = "strip",
+		BackgroundColor3 = values().panel,
+		BackgroundTransparency = 0.28,
 		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 0, 0.5, 0),
-		Size = UDim2.fromOffset(3, 3),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.fromOffset(0, row_height),
 		ZIndex = 3,
 		Parent = root,
 	})
-	util.corner(dot, 1)
-	local has_value = entry.value ~= nil
 	local label = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(9, 0),
-		Size = has_value and UDim2.new(1, -(value_width + 12), 1, 0) or UDim2.new(1, -12, 1, 0),
-		Font = values().font,
+		Position = UDim2.fromOffset(pad_left, 0),
+		Size = UDim2.fromOffset(0, row_height),
+		Font = values().font_medium,
 		Text = entry.label,
-		TextColor3 = values().text,
-		TextSize = util.size(10),
+		TextColor3 = values().accent,
+		TextSize = text_size,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Center,
 		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextStrokeColor3 = Color3.new(0, 0, 0),
+		TextStrokeTransparency = 0.72,
 		ZIndex = 3,
-		Parent = root,
+		Parent = strip,
 	})
 	local value = util.new("TextLabel", {
 		BackgroundTransparency = 1,
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, 0, 0.5, 0),
-		Size = UDim2.fromOffset(value_width, row_height),
-		Font = values().font_mono,
+		Position = UDim2.fromOffset(pad_left, 0),
+		Size = UDim2.fromOffset(0, row_height),
+		Font = values().font,
 		Text = entry.value or "",
 		TextColor3 = values().text,
-		TextSize = util.size(10),
-		TextXAlignment = Enum.TextXAlignment.Right,
+		TextSize = value_size,
+		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Center,
 		TextTruncate = Enum.TextTruncate.AtEnd,
-		Visible = has_value,
+		TextStrokeColor3 = Color3.new(0, 0, 0),
+		TextStrokeTransparency = 0.8,
+		Visible = false,
 		ZIndex = 3,
-		Parent = root,
+		Parent = strip,
 	})
 	return {
 		root = root,
-		dot = dot,
+		strip = strip,
 		label = label,
 		value = value,
 		entry = entry,
@@ -287,10 +330,6 @@ local function update_rows()
 			row.entry = entry
 			row.label.Text = entry.label
 			row.value.Text = entry.value or ""
-			row.value.Visible = entry.value ~= nil
-			row.label.Size = entry.value ~= nil
-				and UDim2.new(1, -(value_width + 12), 1, 0)
-				or UDim2.new(1, -12, 1, 0)
 		end
 	end
 	paint()
@@ -304,81 +343,20 @@ local function build()
 	if #rows > 0 and same_structure(entries, next_entries) then
 		entries = next_entries
 		update_rows()
-		local total = height()
-		card.Size = UDim2.fromOffset(card_width(), total)
-		content.Size = UDim2.new(1, -(pad_x + pad_right), 0, math.max(0, total - pad_y * 2))
-		card.Visible = shown and #entries > 0
+		resize()
 		return
 	end
 
 	entries = next_entries
 	clear()
 	if #entries == 0 then
-		card.Size = UDim2.fromOffset(card_width(), 0)
-		card.Visible = false
+		resize()
 		return
 	end
-
-	header_root = util.new("Frame", {
-		Name = "feature_header",
-		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, header_height),
-		LayoutOrder = 0,
-		ZIndex = 3,
-		Parent = content,
-	})
-	header_tick = util.new("Frame", {
-		BackgroundColor3 = values().accent,
-		BorderSizePixel = 0,
-		Position = UDim2.fromOffset(0, 4),
-		Size = UDim2.fromOffset(2, 10),
-		ZIndex = 3,
-		Parent = header_root,
-	})
-	header_title = util.new("TextLabel", {
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(9, 0),
-		Size = UDim2.new(1, -44, 1, 0),
-		Font = values().font_bold,
-		Text = "FEATURES",
-		TextColor3 = values().muted,
-		TextSize = util.size(9),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextYAlignment = Enum.TextYAlignment.Center,
-		ZIndex = 3,
-		Parent = header_root,
-	})
-	header_count = util.new("TextLabel", {
-		BackgroundTransparency = 1,
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, 0, 0.5, 0),
-		Size = UDim2.fromOffset(30, header_height),
-		Font = values().font_mono,
-		Text = tostring(#entries),
-		TextColor3 = values().accent,
-		TextSize = util.size(9),
-		TextXAlignment = Enum.TextXAlignment.Right,
-		TextYAlignment = Enum.TextYAlignment.Center,
-		ZIndex = 3,
-		Parent = header_root,
-	})
-	header_line = util.new("Frame", {
-		BackgroundColor3 = values().line,
-		BackgroundTransparency = 0.25,
-		BorderSizePixel = 0,
-		Size = UDim2.new(1, 0, 0, divider_height),
-		LayoutOrder = 1,
-		ZIndex = 3,
-		Parent = content,
-	})
 	for index, entry in ipairs(entries) do
 		rows[#rows + 1] = create_row(entry, index)
 	end
-
-	local total = height()
-	card.Size = UDim2.fromOffset(card_width(), total)
-	content.Size = UDim2.new(1, -(pad_x + pad_right), 0, math.max(0, total - pad_y * 2))
-	card.Visible = shown
+	resize()
 	paint()
 end
 
@@ -514,9 +492,8 @@ local function watch_viewport()
 	if camera then
 		camera_link = camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 			if card.Parent then
-				local total = height()
-				card.Size = UDim2.fromOffset(card_width(), total)
-				content.Size = UDim2.new(1, -(pad_x + pad_right), 0, math.max(0, total - pad_y * 2))
+				resize()
+				paint()
 			end
 		end)
 	end
