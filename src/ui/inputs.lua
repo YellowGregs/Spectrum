@@ -5,6 +5,7 @@ local util = S.util
 local style = S.style
 local icons = S.icons
 local tooltip = S.tooltip
+local sounds = S.sounds
 local function bold()
 	return style.values.font_bold
 end
@@ -171,6 +172,9 @@ function inputs.button(win, text, callback, icon, opts)
 			return
 		end
 		if confirm and not armed then
+			if sounds then
+				sounds.play("warning")
+			end
 			armed = true
 			arm_token = arm_token + 1
 			local mine = arm_token
@@ -186,6 +190,9 @@ function inputs.button(win, text, callback, icon, opts)
 		armed = false
 		arm_token = arm_token + 1
 		btn.Text = string.upper(tostring(text or "Button"))
+		if sounds then
+			sounds.play("click")
+		end
 		if callback then
 			callback()
 		end
@@ -433,6 +440,9 @@ function inputs.toggle(win, text, a, b, opts)
 			win._store(key, state)
 			if changed then
 				changed(state)
+			end
+			if sounds then
+				sounds.play(state and "toggle_on" or "toggle_off")
 			end
 		end
 		for _, listener in ipairs(listeners) do
@@ -701,6 +711,9 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	local function begin(input)
 		if disabled then
 			return
+		end
+		if sounds then
+			sounds.play("slider")
 		end
 		dragging = true
 		win._scroll.ScrollingEnabled = false
@@ -1041,6 +1054,9 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 			return
 		end
 		listening = not listening
+		if sounds then
+			sounds.play(listening and "open" or "close")
+		end
 		S.binding = listening
 		capture = {}
 		ordered = {}

@@ -6,6 +6,7 @@ local style = S.style
 local modal = S.modal
 local icons = S.icons
 local tooltip = S.tooltip
+local sounds = S.sounds
 local function font()
 	return style.values.font
 end
@@ -568,6 +569,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		if disabled or disabled_options[option] then
 			return
 		end
+		if sounds then
+			sounds.play("select")
+		end
 		active_option = option
 		paint_active()
 		if multi then
@@ -618,6 +622,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			if not changed then
 				return
 			end
+			if sounds then
+				sounds.play("select")
+			end
 			refresh()
 			local picked = current()
 			win._store(key, picked)
@@ -638,6 +645,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			end
 			if not had then
 				return
+			end
+			if sounds then
+				sounds.play("select")
 			end
 			picks = {}
 			refresh()
@@ -669,6 +679,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		end
 		open = state
 		if open then
+			if sounds then
+				sounds.play("open")
+			end
 			modal.claim(close)
 			local view = env.viewport()
 			local pos, size = row.AbsolutePosition, row.AbsoluteSize
@@ -1520,6 +1533,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				if disabled then
 					return
 				end
+				if sounds then
+					sounds.play("select")
+				end
 				hue, sat, val = Color3.toHSV(preset)
 				refresh(true)
 				add_recent(preset)
@@ -1556,6 +1572,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				local value = recent_list[index]
 				if not value then
 					return
+				end
+				if sounds then
+					sounds.play("select")
 				end
 				hue, sat, val = Color3.toHSV(Color3.fromHex("#" .. value))
 				refresh(true)
@@ -1634,6 +1653,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	random_btn.Activated:Connect(function()
 		if disabled then
 			return
+		end
+		if sounds then
+			sounds.play("select")
 		end
 		hue = math.random()
 		sat = 0.45 + math.random() * 0.55
@@ -1763,6 +1785,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		end
 		open = state
 		if open then
+			if sounds then
+				sounds.play("open")
+			end
 			modal.claim(close)
 			local view = env.viewport()
 			local pos, size = row.AbsolutePosition, row.AbsoluteSize

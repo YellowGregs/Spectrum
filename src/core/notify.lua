@@ -4,6 +4,7 @@ local env = S.env
 local util = S.util
 local style = S.style
 local icons = S.icons
+local sounds = S.sounds
 local function bold()
 	return style.values.font_bold
 end
@@ -100,6 +101,9 @@ end
 local function notify(title, body, duration, kind)
 	noted = noted + 1
 	duration = duration or 3
+	if sounds then
+		sounds.notify(kind)
+	end
 	local tint = style.values.accent
 	if kind == "good" then
 		tint = style.values.good

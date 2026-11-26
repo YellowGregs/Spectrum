@@ -10,6 +10,8 @@ local MODULES = {
 	"src/core/options",
 	"src/core/config",
 	"src/core/launcher",
+	"src/core/sounddata",
+	"src/core/sounds",
 	"src/core/notify",
 	"src/core/tooltip",
 	"src/core/watermark",

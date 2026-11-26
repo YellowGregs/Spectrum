@@ -8,6 +8,7 @@ local icons = S.icons
 local config = S.config
 local tooltip = S.tooltip
 local background = S.background
+local sounds = S.sounds
 local function bold()
 	return style.values.font_bold
 end
@@ -601,6 +602,9 @@ function Window.new(title, opts)
 			end
 		end)
 		chip.Activated:Connect(function()
+			if tab ~= active_tab and sounds then
+				sounds.play("tab")
+			end
 			set_tab(tab)
 		end)
 		if tooltip and tab.tooltip then
@@ -706,9 +710,17 @@ function Window.new(title, opts)
 	end
 
 	fold_hit.Activated:Connect(function()
+		if sounds then
+			sounds.play("click")
+		end
 		fold()
 	end)
-	close_hit.Activated:Connect(close)
+	close_hit.Activated:Connect(function()
+		if sounds then
+			sounds.play("close")
+		end
+		close()
+	end)
 
 	grab.InputBegan:Connect(function(input)
 		local kind = input.UserInputType

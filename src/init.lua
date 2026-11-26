@@ -5,7 +5,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.0.9"
+Library.Build = "1.1.0"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -13,6 +13,9 @@ if type(previous) == "table" and previous ~= Library and type(previous.Destroy) 
 end
 
 config.load()
+if S.sounds and S.sounds.restore then
+	S.sounds.restore()
+end
 if S.featurelist and S.featurelist.restore then
 	S.featurelist.restore()
 end
@@ -105,6 +108,7 @@ if saved_panic then
 end
 
 local function set_menu(state)
+	local was_open = menu_open
 	menu_open = state ~= false
 	for _, root in ipairs(S.window.roots) do
 		if root.Parent then
@@ -120,6 +124,9 @@ local function set_menu(state)
 	end
 	if mobile_launcher then
 		mobile_launcher.set_open(menu_open)
+	end
+	if S.sounds and was_open ~= menu_open then
+		S.sounds.play(menu_open and "open" or "close")
 	end
 	return menu_open
 end
@@ -176,6 +183,26 @@ end
 
 function Library:Notify(title, body, duration, kind)
 	return S.notify(title, body, duration, kind)
+end
+
+function Library:SetSoundsEnabled(state)
+	return S.sounds.set_enabled(state)
+end
+
+function Library:GetSoundsEnabled()
+	return S.sounds.get_enabled()
+end
+
+function Library:SetSoundVolume(value)
+	return S.sounds.set_volume(value)
+end
+
+function Library:GetSoundVolume()
+	return S.sounds.get_volume()
+end
+
+function Library:PlaySound(name)
+	return S.sounds.play(name)
 end
 
 function Library:SetBackground(asset, opts, callback)
@@ -332,6 +359,9 @@ end
 
 function Library:LoadConfig(name)
 	config.load(name)
+	if S.sounds and S.sounds.restore then
+		S.sounds.restore()
+	end
 	if S.featurelist and S.featurelist.restore then
 		S.featurelist.restore()
 	end
@@ -444,6 +474,9 @@ function Library:Destroy()
 	end
 	if S.modal then
 		pcall(S.modal.dismiss)
+	end
+	if S.sounds and S.sounds.destroy then
+		pcall(S.sounds.destroy)
 	end
 	if S.options then
 		if type(S.options.destroy) == "function" then

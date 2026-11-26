@@ -373,6 +373,29 @@ function config.featurelist_state()
 	return data.settings and data.settings.feature_list
 end
 
+function config.sound_state()
+	local state = data.settings and data.settings.sounds
+	if type(state) ~= "table" then
+		return nil
+	end
+	return {
+		enabled = state.enabled ~= false,
+		volume = math.clamp(tonumber(state.volume) or 0.4, 0, 1),
+	}
+end
+
+function config.place_sounds(state)
+	if type(state) ~= "table" then
+		return
+	end
+	data.settings = type(data.settings) == "table" and data.settings or {}
+	data.settings.sounds = {
+		enabled = state.enabled ~= false,
+		volume = math.clamp(tonumber(state.volume) or 0.4, 0, 1),
+	}
+	config.touch()
+end
+
 function config.place_featurelist(state)
 	if type(state) ~= "table" then
 		return

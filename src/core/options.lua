@@ -5,6 +5,7 @@ local util = S.util
 local style = S.style
 local icons = S.icons
 local modal = S.modal
+local sounds = S.sounds
 local function bold()
 	return style.values.font_bold
 end
@@ -127,6 +128,9 @@ function options.open(title, actions, anchor)
 	if type(actions) ~= "table" or #actions == 0 then
 		return
 	end
+	if sounds then
+		sounds.play("open")
+	end
 
 	for _, child in ipairs(action_list:GetChildren()) do
 		if child:IsA("GuiObject") then
@@ -210,6 +214,9 @@ function options.open(title, actions, anchor)
 		end
 
 		row.Activated:Connect(function()
+			if sounds then
+				sounds.play("click")
+			end
 			if type(action.run) == "function" then
 				local ok, err = pcall(action.run)
 				if not ok then

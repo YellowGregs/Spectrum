@@ -5,6 +5,7 @@ local util = S.util
 local style = S.style
 local icons = S.icons
 local tooltip = S.tooltip
+local sounds = S.sounds
 local function bold()
 	return style.values.font_bold
 end
@@ -151,6 +152,9 @@ function text.section(win, title, icon, opts)
 			state = not record.open
 		end
 		win._toggle_section(record, state)
+		if animate and sounds then
+			sounds.play(state and "open" or "close")
+		end
 		if animate then
 			util.tween(chevron, 0.15, { Rotation = state and 180 or 0 })
 		else
