@@ -20,6 +20,7 @@ local title_label
 local close_hit
 local action_list
 local close_button
+local active_play_sound
 
 local function values()
 	return style.values
@@ -128,7 +129,9 @@ function options.open(title, actions, anchor)
 	if type(actions) ~= "table" or #actions == 0 then
 		return
 	end
-	if sounds then
+	if active_play_sound then
+		active_play_sound("open")
+	elseif sounds then
 		sounds.play("open")
 	end
 
@@ -214,7 +217,9 @@ function options.open(title, actions, anchor)
 		end
 
 		row.Activated:Connect(function()
-			if sounds then
+			if active_play_sound then
+				active_play_sound("click")
+			elseif sounds then
 				sounds.play("click")
 			end
 			if type(action.run) == "function" then
@@ -269,7 +274,7 @@ local function hook(object, open)
 	end)
 end
 
-function options.attach(row, title, build)
+function options.attach(row, title, build, play_sound)
 	if not row or type(build) ~= "function" then
 		return
 	end
@@ -281,6 +286,7 @@ function options.attach(row, title, build)
 		last_open = os.clock()
 		local ok, actions = pcall(build)
 		if ok and type(actions) == "table" then
+			active_play_sound = type(play_sound) == "function" and play_sound or nil
 			options.open(title, actions, row)
 		end
 	end

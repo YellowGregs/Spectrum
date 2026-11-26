@@ -173,7 +173,7 @@ function inputs.button(win, text, callback, icon, opts)
 		end
 		if confirm and not armed then
 			if sounds then
-				sounds.play("warning")
+				win._play_sound("warning")
 			end
 			armed = true
 			arm_token = arm_token + 1
@@ -191,7 +191,7 @@ function inputs.button(win, text, callback, icon, opts)
 		arm_token = arm_token + 1
 		btn.Text = string.upper(tostring(text or "Button"))
 		if sounds then
-			sounds.play("click")
+			win._play_sound("click")
 		end
 		if callback then
 			callback()
@@ -442,7 +442,7 @@ function inputs.toggle(win, text, a, b, opts)
 				changed(state)
 			end
 			if sounds then
-				sounds.play(state and "toggle_on" or "toggle_off")
+				win._play_sound(state and "toggle_on" or "toggle_off")
 			end
 		end
 		for _, listener in ipairs(listeners) do
@@ -713,7 +713,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 			return
 		end
 		if sounds then
-			sounds.play("slider")
+			win._play_sound("slider")
 		end
 		dragging = true
 		win._scroll.ScrollingEnabled = false
@@ -1055,7 +1055,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		end
 		listening = not listening
 		if sounds then
-			sounds.play(listening and "open" or "close")
+			win._play_sound(listening and "open" or "close")
 		end
 		S.binding = listening
 		capture = {}

@@ -570,7 +570,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			return
 		end
 		if sounds then
-			sounds.play("select")
+			win._play_sound("select")
 		end
 		active_option = option
 		paint_active()
@@ -623,7 +623,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				return
 			end
 			if sounds then
-				sounds.play("select")
+				win._play_sound("select")
 			end
 			refresh()
 			local picked = current()
@@ -647,7 +647,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				return
 			end
 			if sounds then
-				sounds.play("select")
+				win._play_sound("select")
 			end
 			picks = {}
 			refresh()
@@ -680,7 +680,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		open = state
 		if open then
 			if sounds then
-				sounds.play("open")
+				win._play_sound("open")
 			end
 			modal.claim(close)
 			local view = env.viewport()
@@ -1534,7 +1534,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 					return
 				end
 				if sounds then
-					sounds.play("select")
+					win._play_sound("select")
 				end
 				hue, sat, val = Color3.toHSV(preset)
 				refresh(true)
@@ -1574,7 +1574,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 					return
 				end
 				if sounds then
-					sounds.play("select")
+					win._play_sound("select")
 				end
 				hue, sat, val = Color3.toHSV(Color3.fromHex("#" .. value))
 				refresh(true)
@@ -1655,7 +1655,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 			return
 		end
 		if sounds then
-			sounds.play("select")
+			win._play_sound("select")
 		end
 		hue = math.random()
 		sat = 0.45 + math.random() * 0.55
@@ -1786,7 +1786,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		open = state
 		if open then
 			if sounds then
-				sounds.play("open")
+				win._play_sound("open")
 			end
 			modal.claim(close)
 			local view = env.viewport()

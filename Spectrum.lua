@@ -3326,6 +3326,7 @@ local title_label
 local close_hit
 local action_list
 local close_button
+local active_play_sound
 
 local function values()
 	return style.values
@@ -3434,7 +3435,9 @@ function options.open(title, actions, anchor)
 	if type(actions) ~= "table" or #actions == 0 then
 		return
 	end
-	if sounds then
+	if active_play_sound then
+		active_play_sound("open")
+	elseif sounds then
 		sounds.play("open")
 	end
 
@@ -3520,7 +3523,9 @@ function options.open(title, actions, anchor)
 		end
 
 		row.Activated:Connect(function()
-			if sounds then
+			if active_play_sound then
+				active_play_sound("click")
+			elseif sounds then
 				sounds.play("click")
 			end
 			if type(action.run) == "function" then
@@ -3575,7 +3580,7 @@ local function hook(object, open)
 	end)
 end
 
-function options.attach(row, title, build)
+function options.attach(row, title, build, play_sound)
 	if not row or type(build) ~= "function" then
 		return
 	end
@@ -3587,6 +3592,7 @@ function options.attach(row, title, build)
 		last_open = os.clock()
 		local ok, actions = pcall(build)
 		if ok and type(actions) == "table" then
+			active_play_sound = type(play_sound) == "function" and play_sound or nil
 			options.open(title, actions, row)
 		end
 	end
@@ -8100,6 +8106,14 @@ function Window.new(title, opts)
 	w._head = head
 	w._scroll = nil
 	w._key = key
+	w._sound_muted = saved and saved.sound_muted == true
+
+	function w._play_sound(name, opts)
+		if not sounds or w._sound_muted then
+			return false
+		end
+		return sounds.play(name, opts)
+	end
 
 	top = top + 1
 	local root = util.new("Frame", {
@@ -8243,6 +8257,7 @@ function Window.new(title, opts)
 			width = width,
 			height = height_override,
 			open = open,
+			sound_muted = w._sound_muted,
 		})
 	end
 
@@ -8283,21 +8298,39 @@ function Window.new(title, opts)
 		ZIndex = 7,
 		Parent = sound_hit,
 	})
-	local function paint_sound(on)
+	local function paint_sound()
+		local on = (not sounds or sounds.get_enabled()) and not w._sound_muted
 		if sound_icon then
 			icons.tint(sound_icon, on and values().accent or values().muted)
 		end
 		sound_slash.BackgroundColor3 = values().bad
 		sound_slash.Visible = not on
 	end
-	local stop_sound_watch
 	if sounds and sounds.watch then
-		stop_sound_watch = sounds.watch(paint_sound)
+		local stop_sound_watch = sounds.watch(paint_sound)
 		root.Destroying:Connect(stop_sound_watch)
 	else
-		paint_sound(true)
+		paint_sound()
 	end
-	sound_hit.Activated:Connect(function()
+	w._paint_sound = paint_sound
+
+	local function toggle_window_sound()
+		if not sounds then
+			return
+		end
+		w._sound_muted = not w._sound_muted
+		remember()
+		paint_sound()
+		if w._sound_muted then
+			if sounds.get_enabled() then
+				sounds.play("toggle_off", { force = true })
+			end
+		else
+			w._play_sound("toggle_on")
+		end
+	end
+
+	local function toggle_global_sound()
 		if not sounds then
 			return
 		end
@@ -8306,11 +8339,47 @@ function Window.new(title, opts)
 			sounds.play("toggle_off", { force = true })
 		else
 			sounds.set_enabled(true)
-			sounds.play("toggle_on")
+			sounds.play("toggle_on", { force = true })
+		end
+		paint_sound()
+	end
+
+	local hold_started = false
+	local hold_fired = false
+	local hold_token = 0
+	sound_hit.InputBegan:Connect(function(input)
+		local kind = input.UserInputType
+		if kind ~= Enum.UserInputType.MouseButton1 and kind ~= Enum.UserInputType.Touch then
+			return
+		end
+		hold_started = true
+		hold_fired = false
+		hold_token = hold_token + 1
+		local token = hold_token
+		task.delay(0.55, function()
+			if hold_started and hold_token == token and sound_hit.Parent and root.Parent then
+				hold_started = false
+				hold_fired = true
+				toggle_global_sound()
+			end
+		end)
+	end)
+	sound_hit.InputEnded:Connect(function(input)
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+			hold_started = false
+			hold_token = hold_token + 1
 		end
 	end)
+	sound_hit.Activated:Connect(function()
+		if hold_fired then
+			hold_fired = false
+			return
+		end
+		toggle_window_sound()
+	end)
 	if tooltip then
-		tooltip.attach(sound_hit, "Toggle interface sound effects")
+		tooltip.attach(sound_hit, "Tap to mute this window; hold to mute all sound")
 	end
 	local fold_bar_h = util.new("Frame", {
 		BackgroundColor3 = values().muted,
@@ -8609,8 +8678,8 @@ function Window.new(title, opts)
 			end
 		end)
 		chip.Activated:Connect(function()
-			if tab ~= active_tab and sounds then
-				sounds.play("tab")
+			if tab ~= active_tab then
+				w._play_sound("tab")
 			end
 			set_tab(tab)
 		end)
@@ -8717,15 +8786,11 @@ function Window.new(title, opts)
 	end
 
 	fold_hit.Activated:Connect(function()
-		if sounds then
-			sounds.play("click")
-		end
+		w._play_sound("click")
 		fold()
 	end)
 	close_hit.Activated:Connect(function()
-		if sounds then
-			sounds.play("close")
-		end
+		w._play_sound("close")
 		close()
 	end)
 
@@ -8760,7 +8825,7 @@ function Window.new(title, opts)
 			{ label = open and "Collapse window" or "Expand window", run = function() fold() end },
 			{ label = "Close window", run = close },
 		}
-	end)
+	end, w._play_sound)
 
 	local resize_to
 	local resize_pending = false
@@ -9007,7 +9072,7 @@ function Window.new(title, opts)
 
 	function w._options(row, title, build)
 		if S.options then
-			return S.options.attach(row, title, build)
+			return S.options.attach(row, title, build, w._play_sound)
 		end
 	end
 
@@ -9315,8 +9380,12 @@ function Window.new(title, opts)
 
 		function api._options(row, caption, build)
 			if S.options then
-				return S.options.attach(row, caption, build)
+				return S.options.attach(row, caption, build, w._play_sound)
 			end
+		end
+
+		function api._play_sound(name, opts)
+			return w._play_sound(name, opts)
 		end
 
 		function api._popover(panel)
@@ -9461,6 +9530,10 @@ function Window.new(title, opts)
 				scroll.Visible = open
 				fold_bar_v.Size = UDim2.fromOffset(1, open and 0 or 9)
 			end
+			w._sound_muted = state.sound_muted == true
+			if w._paint_sound then
+				w._paint_sound()
+			end
 			for _, record in ipairs(section_records) do
 				local saved = config.section_state(key, record.id)
 				if saved ~= nil then
@@ -9530,7 +9603,7 @@ function Window.new(title, opts)
 		fold_bar_v.BackgroundColor3 = values().muted
 		close_a.BackgroundColor3 = values().muted
 		close_b.BackgroundColor3 = values().muted
-		paint_sound(not sounds or sounds.get_enabled())
+		paint_sound()
 		scroll.ScrollBarImageColor3 = values().muted
 		for _, pip in ipairs(pips) do
 			pip.BackgroundColor3 = values().muted
@@ -9723,7 +9796,7 @@ function inputs.button(win, text, callback, icon, opts)
 		end
 		if confirm and not armed then
 			if sounds then
-				sounds.play("warning")
+				win._play_sound("warning")
 			end
 			armed = true
 			arm_token = arm_token + 1
@@ -9741,7 +9814,7 @@ function inputs.button(win, text, callback, icon, opts)
 		arm_token = arm_token + 1
 		btn.Text = string.upper(tostring(text or "Button"))
 		if sounds then
-			sounds.play("click")
+			win._play_sound("click")
 		end
 		if callback then
 			callback()
@@ -9992,7 +10065,7 @@ function inputs.toggle(win, text, a, b, opts)
 				changed(state)
 			end
 			if sounds then
-				sounds.play(state and "toggle_on" or "toggle_off")
+				win._play_sound(state and "toggle_on" or "toggle_off")
 			end
 		end
 		for _, listener in ipairs(listeners) do
@@ -10263,7 +10336,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 			return
 		end
 		if sounds then
-			sounds.play("slider")
+			win._play_sound("slider")
 		end
 		dragging = true
 		win._scroll.ScrollingEnabled = false
@@ -10605,7 +10678,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		end
 		listening = not listening
 		if sounds then
-			sounds.play(listening and "open" or "close")
+			win._play_sound(listening and "open" or "close")
 		end
 		S.binding = listening
 		capture = {}
@@ -11448,7 +11521,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			return
 		end
 		if sounds then
-			sounds.play("select")
+			win._play_sound("select")
 		end
 		active_option = option
 		paint_active()
@@ -11501,7 +11574,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				return
 			end
 			if sounds then
-				sounds.play("select")
+				win._play_sound("select")
 			end
 			refresh()
 			local picked = current()
@@ -11525,7 +11598,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				return
 			end
 			if sounds then
-				sounds.play("select")
+				win._play_sound("select")
 			end
 			picks = {}
 			refresh()
@@ -11558,7 +11631,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		open = state
 		if open then
 			if sounds then
-				sounds.play("open")
+				win._play_sound("open")
 			end
 			modal.claim(close)
 			local view = env.viewport()
@@ -12412,7 +12485,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 					return
 				end
 				if sounds then
-					sounds.play("select")
+					win._play_sound("select")
 				end
 				hue, sat, val = Color3.toHSV(preset)
 				refresh(true)
@@ -12452,7 +12525,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 					return
 				end
 				if sounds then
-					sounds.play("select")
+					win._play_sound("select")
 				end
 				hue, sat, val = Color3.toHSV(Color3.fromHex("#" .. value))
 				refresh(true)
@@ -12533,7 +12606,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 			return
 		end
 		if sounds then
-			sounds.play("select")
+			win._play_sound("select")
 		end
 		hue = math.random()
 		sat = 0.45 + math.random() * 0.55
@@ -12664,7 +12737,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		open = state
 		if open then
 			if sounds then
-				sounds.play("open")
+				win._play_sound("open")
 			end
 			modal.claim(close)
 			local view = env.viewport()
@@ -13038,7 +13111,7 @@ function text.section(win, title, icon, opts)
 		end
 		win._toggle_section(record, state)
 		if animate and sounds then
-			sounds.play(state and "open" or "close")
+			win._play_sound(state and "open" or "close")
 		end
 		if animate then
 			util.tween(chevron, 0.15, { Rotation = state and 180 or 0 })
@@ -13442,7 +13515,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.1.1"
+Library.Build = "1.2.0"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then

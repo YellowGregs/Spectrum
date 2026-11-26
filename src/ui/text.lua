@@ -153,7 +153,7 @@ function text.section(win, title, icon, opts)
 		end
 		win._toggle_section(record, state)
 		if animate and sounds then
-			sounds.play(state and "open" or "close")
+			win._play_sound(state and "open" or "close")
 		end
 		if animate then
 			util.tween(chevron, 0.15, { Rotation = state and 180 or 0 })
