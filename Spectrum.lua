@@ -1,6 +1,8 @@
 local S = {}
 
 do
+local S = ...
+
 local cloneref = cloneref or function(obj)
 	return obj
 end
@@ -198,7 +200,10 @@ end
 
 S.env = env
 end
+
 do
+local S = ...
+
 local env = S.env
 local style = {}
 
@@ -560,7 +565,10 @@ end
 style.values = values
 S.style = style
 end
+
 do
+local S = ...
+
 local env = S.env
 local style = S.style
 local white = Color3.new(1, 1, 1)
@@ -1019,7 +1027,10 @@ util.viewport = env.viewport
 util.mobile = env.mobile
 S.util = util
 end
+
 do
+local S = ...
+
 local util = S.util
 local style = S.style
 local icons = {}
@@ -2390,7 +2401,10 @@ end
 
 S.icons = icons
 end
+
 do
+local S = ...
+
 local brand = {}
 local DATA = table.concat({
 	"iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABTGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8kZOcW8wkwMCQm1dSFOTu",
@@ -2927,7 +2941,10 @@ end
 
 S.brand = brand
 end
+
 do
+local S = ...
+
 local background = {}
 
 local state = {
@@ -3249,7 +3266,10 @@ end
 
 S.background = background
 end
+
 do
+local S = ...
+
 local env = S.env
 local util = S.util
 local modal = {}
@@ -3298,7 +3318,10 @@ end
 blocker.Activated:Connect(modal.dismiss)
 S.modal = modal
 end
+
 do
+local S = ...
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -3604,7 +3627,10 @@ end)
 
 S.options = options
 end
+
 do
+local S = ...
+
 local config = {}
 
 local ROOT = "spectrum/configs"
@@ -4014,7 +4040,10 @@ end
 
 S.config = config
 end
+
 do
+local S = ...
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -4233,7 +4262,10 @@ end
 
 S.launcher = launcher
 end
+
 do
+local S = ...
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -4250,7 +4282,7 @@ local holder = util.new("Frame", {
 	Name = "notifications",
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.new(1, -12, 1, -12),
+	Position = UDim2.new(1, 0, 1, 0),
 	Size = UDim2.fromOffset(env.mobile and 316 or 340, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	Parent = env.notes,
@@ -4391,7 +4423,7 @@ local function notify(title, body, duration, kind)
 	util.stroke(chip, tint, 0.4)
 	local chip_scale = util.new("UIScale", { Scale = 0.7, Parent = chip })
 
-	local badge = icons.bell(chip, icon_size, tint)
+	local badge = icons.kind(kind, chip, icon_size, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
 	badge.Position = UDim2.fromScale(0.5, 0.5)
 	icons.layer(badge, 5)
@@ -4474,7 +4506,7 @@ local function notify(title, body, duration, kind)
 		BackgroundColor3 = style.values.line,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Position = UDim2.new(0, 0, 1, -4),
+		Position = UDim2.new(0, 0, 1, -2),
 		Size = UDim2.new(1, 0, 0, 2),
 		ZIndex = 4,
 		Parent = content,
@@ -4568,7 +4600,10 @@ end
 
 S.notify = notify
 end
+
 do
+local S = ...
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -4856,7 +4891,10 @@ end)
 
 S.tooltip = tooltip
 end
+
 do
+local S = ...
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -4948,7 +4986,10 @@ paint()
 
 S.watermark = watermark
 end
+
 do
+local S = ...
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -4971,6 +5012,9 @@ local sort_dirty = true
 local last_order = {}
 local visual_height = 0
 local animation_time = 0.2
+local dragging = false
+local drag_from
+local drag_at
 
 local function values()
 	return style.values
@@ -5031,6 +5075,71 @@ local rail = util.new("Frame", {
 	Parent = card,
 })
 util.corner(rail, 2)
+
+local function card_height()
+	return math.max(card.Size.Y.Offset, visual_height)
+end
+
+local function clamp_position(width, height)
+	local view = env.viewport()
+	width = width or card.Size.X.Offset
+	height = height or card_height()
+	local x = math.clamp(card.Position.X.Offset, math.min(0, width - view.X), 0)
+	local y = math.clamp(card.Position.Y.Offset, 0, math.max(0, view.Y - height))
+	if x ~= card.Position.X.Offset or y ~= card.Position.Y.Offset then
+		card.Position = UDim2.new(1, x, 0, y)
+	end
+end
+
+local drag = util.new("TextButton", {
+	Name = "drag",
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	Size = UDim2.fromScale(1, 1),
+	Text = "",
+	AutoButtonColor = false,
+	Active = true,
+	Selectable = false,
+	ZIndex = 7,
+	Parent = card,
+})
+
+local drag_begin = drag.InputBegan:Connect(function(input)
+	local kind = input.UserInputType
+	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+		dragging = true
+		drag_from = input.Position
+		drag_at = Vector2.new(card.Position.X.Offset, card.Position.Y.Offset)
+	end
+end)
+
+local drag_move = env.uis.InputChanged:Connect(function(input)
+	if not dragging then
+		return
+	end
+	local kind = input.UserInputType
+	if kind ~= Enum.UserInputType.MouseMovement and kind ~= Enum.UserInputType.Touch then
+		return
+	end
+	local delta = input.Position - drag_from
+	if delta.Magnitude < 1 then
+		return
+	end
+	local view = env.viewport()
+	local width = card.Size.X.Offset
+	local height = card_height()
+	local x = math.clamp(drag_at.X + delta.X, math.min(0, width - view.X), 0)
+	local y = math.clamp(drag_at.Y + delta.Y, 0, math.max(0, view.Y - height))
+	card.Position = UDim2.new(1, x, 0, y)
+end)
+
+local drag_end = env.uis.InputEnded:Connect(function(input)
+	local kind = input.UserInputType
+	if dragging and (kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch) then
+		dragging = false
+		clamp_position()
+	end
+end)
 
 local function shorten(value)
 	local text = tostring(value):gsub("%s+", " ")
@@ -5205,6 +5314,7 @@ local function resize(hold, animate)
 	end
 	content.Size = UDim2.new(1, -(rail_width + rail_gap), 1, 0)
 	card.Visible = shown and total > 0
+	clamp_position(width, total)
 end
 
 local function remove_exiting(row)
@@ -5715,15 +5825,31 @@ local function watch_viewport()
 end
 watch_viewport()
 card.Destroying:Connect(function()
+	dragging = false
 	if camera_link then
 		camera_link:Disconnect()
 		camera_link = nil
+	end
+	if drag_begin then
+		drag_begin:Disconnect()
+		drag_begin = nil
+	end
+	if drag_move then
+		drag_move:Disconnect()
+		drag_move = nil
+	end
+	if drag_end then
+		drag_end:Disconnect()
+		drag_end = nil
 	end
 end)
 
 S.featurelist = featurelist
 end
+
 do
+local S = ...
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -5956,7 +6082,10 @@ end
 
 S.splash = splash
 end
+
 do
+local S = ...
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -7485,7 +7614,10 @@ end
 
 S.window = Window
 end
+
 do
+local S = ...
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -8796,7 +8928,10 @@ end
 
 S.inputs = inputs
 end
+
 do
+local S = ...
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -10777,7 +10912,10 @@ end
 
 S.selects = selects
 end
+
 do
+local S = ...
+
 local env = S.env
 local util = S.util
 local style = S.style
@@ -11324,13 +11462,16 @@ end
 
 S.text = text
 end
+
 do
+local S = ...
+
 local env = S.env
 local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-26.featurelist10"
+Library.Build = "2026-11-26.featurelist11"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -11824,5 +11965,4 @@ end
 shared.Spectrum = Library
 S.library = Library
 end
-
 return S.library

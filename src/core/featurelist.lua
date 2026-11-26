@@ -22,6 +22,9 @@ local sort_dirty = true
 local last_order = {}
 local visual_height = 0
 local animation_time = 0.2
+local dragging = false
+local drag_from
+local drag_at
 
 local function values()
 	return style.values
@@ -82,6 +85,71 @@ local rail = util.new("Frame", {
 	Parent = card,
 })
 util.corner(rail, 2)
+
+local function card_height()
+	return math.max(card.Size.Y.Offset, visual_height)
+end
+
+local function clamp_position(width, height)
+	local view = env.viewport()
+	width = width or card.Size.X.Offset
+	height = height or card_height()
+	local x = math.clamp(card.Position.X.Offset, math.min(0, width - view.X), 0)
+	local y = math.clamp(card.Position.Y.Offset, 0, math.max(0, view.Y - height))
+	if x ~= card.Position.X.Offset or y ~= card.Position.Y.Offset then
+		card.Position = UDim2.new(1, x, 0, y)
+	end
+end
+
+local drag = util.new("TextButton", {
+	Name = "drag",
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	Size = UDim2.fromScale(1, 1),
+	Text = "",
+	AutoButtonColor = false,
+	Active = true,
+	Selectable = false,
+	ZIndex = 7,
+	Parent = card,
+})
+
+local drag_begin = drag.InputBegan:Connect(function(input)
+	local kind = input.UserInputType
+	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+		dragging = true
+		drag_from = input.Position
+		drag_at = Vector2.new(card.Position.X.Offset, card.Position.Y.Offset)
+	end
+end)
+
+local drag_move = env.uis.InputChanged:Connect(function(input)
+	if not dragging then
+		return
+	end
+	local kind = input.UserInputType
+	if kind ~= Enum.UserInputType.MouseMovement and kind ~= Enum.UserInputType.Touch then
+		return
+	end
+	local delta = input.Position - drag_from
+	if delta.Magnitude < 1 then
+		return
+	end
+	local view = env.viewport()
+	local width = card.Size.X.Offset
+	local height = card_height()
+	local x = math.clamp(drag_at.X + delta.X, math.min(0, width - view.X), 0)
+	local y = math.clamp(drag_at.Y + delta.Y, 0, math.max(0, view.Y - height))
+	card.Position = UDim2.new(1, x, 0, y)
+end)
+
+local drag_end = env.uis.InputEnded:Connect(function(input)
+	local kind = input.UserInputType
+	if dragging and (kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch) then
+		dragging = false
+		clamp_position()
+	end
+end)
 
 local function shorten(value)
 	local text = tostring(value):gsub("%s+", " ")
@@ -256,6 +324,7 @@ local function resize(hold, animate)
 	end
 	content.Size = UDim2.new(1, -(rail_width + rail_gap), 1, 0)
 	card.Visible = shown and total > 0
+	clamp_position(width, total)
 end
 
 local function remove_exiting(row)
@@ -766,9 +835,22 @@ local function watch_viewport()
 end
 watch_viewport()
 card.Destroying:Connect(function()
+	dragging = false
 	if camera_link then
 		camera_link:Disconnect()
 		camera_link = nil
+	end
+	if drag_begin then
+		drag_begin:Disconnect()
+		drag_begin = nil
+	end
+	if drag_move then
+		drag_move:Disconnect()
+		drag_move = nil
+	end
+	if drag_end then
+		drag_end:Disconnect()
+		drag_end = nil
 	end
 end)
 

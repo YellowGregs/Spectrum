@@ -16,7 +16,7 @@ local holder = util.new("Frame", {
 	Name = "notifications",
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.new(1, -12, 1, -12),
+	Position = UDim2.new(1, 0, 1, 0),
 	Size = UDim2.fromOffset(env.mobile and 316 or 340, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	Parent = env.notes,
@@ -157,7 +157,7 @@ local function notify(title, body, duration, kind)
 	util.stroke(chip, tint, 0.4)
 	local chip_scale = util.new("UIScale", { Scale = 0.7, Parent = chip })
 
-	local badge = icons.bell(chip, icon_size, tint)
+	local badge = icons.kind(kind, chip, icon_size, tint)
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
 	badge.Position = UDim2.fromScale(0.5, 0.5)
 	icons.layer(badge, 5)
@@ -240,7 +240,7 @@ local function notify(title, body, duration, kind)
 		BackgroundColor3 = style.values.line,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Position = UDim2.new(0, 0, 1, -4),
+		Position = UDim2.new(0, 0, 1, -2),
 		Size = UDim2.new(1, 0, 0, 2),
 		ZIndex = 4,
 		Parent = content,
