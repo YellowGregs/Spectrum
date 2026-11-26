@@ -12,11 +12,14 @@ local function font()
 end
 local TextService = game:GetService("TextService")
 
+local right_bleed = 8
+local bottom_gap = 24
+
 local holder = util.new("Frame", {
 	Name = "notifications",
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.new(1, 0, 1, 0),
+	Position = UDim2.new(1, right_bleed, 1, -bottom_gap),
 	Size = UDim2.fromOffset(env.mobile and 316 or 340, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	Parent = env.notes,

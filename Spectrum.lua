@@ -4256,11 +4256,14 @@ local function font()
 end
 local TextService = game:GetService("TextService")
 
+local right_bleed = 8
+local bottom_gap = 24
+
 local holder = util.new("Frame", {
 	Name = "notifications",
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.new(1, 0, 1, 0),
+	Position = UDim2.new(1, right_bleed, 1, -bottom_gap),
 	Size = UDim2.fromOffset(env.mobile and 316 or 340, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	Parent = env.notes,
@@ -11431,7 +11434,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-26.featurelist11"
+Library.Build = "2026-11-26.featurelist12"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
