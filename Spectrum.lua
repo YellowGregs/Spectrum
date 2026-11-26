@@ -4973,6 +4973,7 @@ local entries = {}
 local rows = {}
 local exiting = {}
 local shown = true
+local all_mode = false
 local scheduled = false
 local sort_dirty = true
 local last_order = {}
@@ -5585,6 +5586,14 @@ function featurelist.set(list)
 	return featurelist.get()
 end
 
+function featurelist.enabled(opts, auto)
+	local spec = type(opts) == "table" and opts.feature
+	if spec == false then
+		return false
+	end
+	return auto == true or spec ~= nil or all_mode
+end
+
 function featurelist.bind(id, label, getter, opts)
 	if type(id) ~= "string" or id == "" or type(getter) ~= "function" then
 		return nil
@@ -5616,7 +5625,7 @@ end
 
 function featurelist.attach(win, kind, label, opts, getter, auto)
 	local spec = type(opts) == "table" and opts.feature
-	if spec == false or (not spec and not auto) then
+	if spec == false then
 		return nil
 	end
 	local settings = type(spec) == "table" and spec or {}
@@ -5629,7 +5638,12 @@ function featurelist.attach(win, kind, label, opts, getter, auto)
 		.. tostring(label)
 		.. "/"
 		.. attach_seq
-	return featurelist.bind(id, name, getter, {
+	return featurelist.bind(id, name, function()
+		if not featurelist.enabled(opts, auto) then
+			return nil
+		end
+		return getter()
+	end, {
 		order = settings.order,
 		kind = kind,
 	})
@@ -5654,6 +5668,21 @@ function featurelist.touch()
 			build()
 		end
 	end)
+end
+
+function featurelist.touch_if(opts, auto)
+	if featurelist.enabled(opts, auto) then
+		featurelist.touch()
+	end
+end
+
+function featurelist.all(state)
+	if state ~= nil then
+		all_mode = state == true
+		sort_dirty = true
+		build()
+	end
+	return all_mode
 end
 
 function featurelist.visible(state)
@@ -8032,6 +8061,7 @@ end
 function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
+	local feature_enabled = opts.feature ~= false
 	local mobile = win._mobile
 	local compact = opts.compact == true
 	local suffix = type(opts.suffix) == "string" and opts.suffix or ""
@@ -8141,8 +8171,8 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		readout.Text = shown
 		feature_value = string.format("%." .. decimals .. "f", value)
 		readout.TextColor3 = disabled and values().muted or (dragging and values().accent or values().muted)
-		if opts.feature and S.featurelist then
-			S.featurelist.touch()
+		if feature_enabled and S.featurelist then
+			S.featurelist.touch_if(opts, false)
 		end
 		if fire then
 			win._store(key, value)
@@ -8285,7 +8315,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	end
 	win._fit(true)
 
-	if opts.feature and S.featurelist then
+	if feature_enabled and S.featurelist then
 		local binder = S.featurelist.attach(win, "slider", text, opts, function()
 			if disabled then
 				return nil
@@ -8320,6 +8350,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		icon = opts.icon
 	end
 	opts = type(opts) == "table" and opts or {}
+	local feature_enabled = opts.feature ~= false
 	local on_change = type(opts.onChange) == "function" and opts.onChange or nil
 	local on_press = type(opts.onPress) == "function" and opts.onPress or nil
 	local on_release = type(opts.onRelease) == "function" and opts.onRelease or nil
@@ -8428,8 +8459,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		pill.BackgroundColor3 = fill
 		edge.Color = border
 		edge.Transparency = border_alpha
-		if opts.feature and S.featurelist then
-			S.featurelist.touch()
+		if feature_enabled and S.featurelist then
+			S.featurelist.touch_if(opts, false)
 		end
 	end
 
@@ -8737,7 +8768,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	})
 	win._fit(true)
 
-	if opts.feature and S.featurelist then
+	if feature_enabled and S.featurelist then
 		local binder = S.featurelist.attach(win, "keybind", text, opts, function()
 			if disabled then
 				return nil
@@ -8826,6 +8857,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 	opts = type(opts) == "table" and opts or {}
 	local mobile = win._mobile
+	local feature_enabled = opts.feature ~= false
 	local clearable = opts.clearable ~= false
 	local choices = {}
 	for _, option in ipairs(options or {}) do
@@ -9324,8 +9356,8 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		if active_option and items[active_option] then
 			items[active_option].BackgroundTransparency = 0
 		end
-		if opts.feature and S.featurelist then
-			S.featurelist.touch()
+		if feature_enabled and S.featurelist then
+			S.featurelist.touch_if(opts, false)
 		end
 	end
 
@@ -9846,7 +9878,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 	win._fit(true)
 
-	if opts.feature and S.featurelist then
+	if feature_enabled and S.featurelist then
 		local binder = S.featurelist.attach(win, "dropdown", title, opts, function()
 			if disabled then
 				return nil
@@ -9904,6 +9936,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	end
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
+	local feature_enabled = opts.feature ~= false
 	local mobile = win._mobile
 	local hue, sat, val = 0.58, 0.68, 1
 	if typeof(default) == "Color3" then
@@ -10362,8 +10395,8 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				callback(picked)
 			end
 		end
-		if opts.feature and S.featurelist then
-			S.featurelist.touch()
+		if feature_enabled and S.featurelist then
+			S.featurelist.touch_if(opts, false)
 		end
 	end
 
@@ -10712,7 +10745,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 	end
 	win._fit(true)
 
-	if opts.feature and S.featurelist then
+	if feature_enabled and S.featurelist then
 		local binder = S.featurelist.attach(win, "colorpicker", title, opts, function()
 			if disabled then
 				return nil
@@ -11022,6 +11055,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 	end
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
+	local feature_enabled = opts.feature ~= false
 	local placeholder = type(opts.placeholder) == "string" and opts.placeholder ~= "" and opts.placeholder or "Enter text"
 	local numeric = opts.numericOnly == true or opts.numbersOnly == true
 	local max_length = tonumber(opts.maxLength)
@@ -11139,9 +11173,9 @@ function text.textbox(win, title, default, callback, icon, opts)
 			fixing = false
 		end
 	end)
-	if opts.feature and S.featurelist then
+	if feature_enabled and S.featurelist then
 		box:GetPropertyChangedSignal("Text"):Connect(function()
-			S.featurelist.touch()
+			S.featurelist.touch_if(opts, false)
 		end)
 	end
 
@@ -11201,8 +11235,8 @@ function text.textbox(win, title, default, callback, icon, opts)
 		if emblem then
 			icons.tint(emblem, disabled and values().line or values().muted)
 		end
-		if opts.feature and S.featurelist then
-			S.featurelist.touch()
+		if feature_enabled and S.featurelist then
+			S.featurelist.touch_if(opts, false)
 		end
 		if win._nav_refresh then
 			win._nav_refresh()
@@ -11264,7 +11298,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 	end
 	win._fit(true)
 
-	if opts.feature and S.featurelist then
+	if feature_enabled and S.featurelist then
 		local binder = S.featurelist.attach(win, "textbox", title, opts, function()
 			if disabled then
 				return nil
@@ -11310,7 +11344,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "2026-11-26.featurelist8"
+Library.Build = "2026-11-26.featurelist9"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -11514,6 +11548,14 @@ end
 
 function Library:GetFeatureList()
 	return S.featurelist.get()
+end
+
+function Library:SetFeatureListAll(state)
+	return S.featurelist.all(state)
+end
+
+function Library:GetFeatureListAll()
+	return S.featurelist.all()
 end
 
 function Library:Window(title, opts)

@@ -567,6 +567,7 @@ end
 function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	opts = type(opts) == "table" and opts or {}
 	local disabled = opts.disabled == true
+	local feature_enabled = opts.feature ~= false
 	local mobile = win._mobile
 	local compact = opts.compact == true
 	local suffix = type(opts.suffix) == "string" and opts.suffix or ""
@@ -676,8 +677,8 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		readout.Text = shown
 		feature_value = string.format("%." .. decimals .. "f", value)
 		readout.TextColor3 = disabled and values().muted or (dragging and values().accent or values().muted)
-		if opts.feature and S.featurelist then
-			S.featurelist.touch()
+		if feature_enabled and S.featurelist then
+			S.featurelist.touch_if(opts, false)
 		end
 		if fire then
 			win._store(key, value)
@@ -820,7 +821,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	end
 	win._fit(true)
 
-	if opts.feature and S.featurelist then
+	if feature_enabled and S.featurelist then
 		local binder = S.featurelist.attach(win, "slider", text, opts, function()
 			if disabled then
 				return nil
@@ -855,6 +856,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		icon = opts.icon
 	end
 	opts = type(opts) == "table" and opts or {}
+	local feature_enabled = opts.feature ~= false
 	local on_change = type(opts.onChange) == "function" and opts.onChange or nil
 	local on_press = type(opts.onPress) == "function" and opts.onPress or nil
 	local on_release = type(opts.onRelease) == "function" and opts.onRelease or nil
@@ -963,8 +965,8 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		pill.BackgroundColor3 = fill
 		edge.Color = border
 		edge.Transparency = border_alpha
-		if opts.feature and S.featurelist then
-			S.featurelist.touch()
+		if feature_enabled and S.featurelist then
+			S.featurelist.touch_if(opts, false)
 		end
 	end
 
@@ -1272,7 +1274,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 	})
 	win._fit(true)
 
-	if opts.feature and S.featurelist then
+	if feature_enabled and S.featurelist then
 		local binder = S.featurelist.attach(win, "keybind", text, opts, function()
 			if disabled then
 				return nil

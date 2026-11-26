@@ -16,6 +16,7 @@ local entries = {}
 local rows = {}
 local exiting = {}
 local shown = true
+local all_mode = false
 local scheduled = false
 local sort_dirty = true
 local last_order = {}
@@ -628,6 +629,14 @@ function featurelist.set(list)
 	return featurelist.get()
 end
 
+function featurelist.enabled(opts, auto)
+	local spec = type(opts) == "table" and opts.feature
+	if spec == false then
+		return false
+	end
+	return auto == true or spec ~= nil or all_mode
+end
+
 function featurelist.bind(id, label, getter, opts)
 	if type(id) ~= "string" or id == "" or type(getter) ~= "function" then
 		return nil
@@ -659,7 +668,7 @@ end
 
 function featurelist.attach(win, kind, label, opts, getter, auto)
 	local spec = type(opts) == "table" and opts.feature
-	if spec == false or (not spec and not auto) then
+	if spec == false then
 		return nil
 	end
 	local settings = type(spec) == "table" and spec or {}
@@ -672,7 +681,12 @@ function featurelist.attach(win, kind, label, opts, getter, auto)
 		.. tostring(label)
 		.. "/"
 		.. attach_seq
-	return featurelist.bind(id, name, getter, {
+	return featurelist.bind(id, name, function()
+		if not featurelist.enabled(opts, auto) then
+			return nil
+		end
+		return getter()
+	end, {
 		order = settings.order,
 		kind = kind,
 	})
@@ -697,6 +711,21 @@ function featurelist.touch()
 			build()
 		end
 	end)
+end
+
+function featurelist.touch_if(opts, auto)
+	if featurelist.enabled(opts, auto) then
+		featurelist.touch()
+	end
+end
+
+function featurelist.all(state)
+	if state ~= nil then
+		all_mode = state == true
+		sort_dirty = true
+		build()
+	end
+	return all_mode
 end
 
 function featurelist.visible(state)
