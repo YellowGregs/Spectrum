@@ -293,6 +293,7 @@ function inputs.toggle(win, text, a, b, opts)
 	local kind = tostring(opts.style or "switch"):lower()
 	local checkbox = kind == "checkbox" or kind == "check"
 	local disabled = opts.disabled == true
+	local feature_enabled = opts.feature ~= false
 	local row = win._row()
 	local initial = state
 	local heading = label(row, text, 0)
@@ -438,6 +439,9 @@ function inputs.toggle(win, text, a, b, opts)
 		for _, listener in ipairs(listeners) do
 			pcall(listener, state)
 		end
+		if feature_enabled and S.featurelist then
+			S.featurelist.touch()
+		end
 	end
 
 	hit.Activated:Connect(function()
@@ -455,6 +459,9 @@ function inputs.toggle(win, text, a, b, opts)
 			icons.tint(emblem, disabled and values().line or values().muted)
 		end
 		sync()
+		if feature_enabled and S.featurelist then
+			S.featurelist.touch()
+		end
 		if win._nav_refresh then
 			win._nav_refresh()
 		end
@@ -511,6 +518,18 @@ function inputs.toggle(win, text, a, b, opts)
 	end
 	win._fit(true)
 
+	if feature_enabled and S.featurelist then
+		local binder = S.featurelist.attach(win, "toggle", text, opts, function()
+			if disabled then
+				return nil
+			end
+			return state or nil
+		end, true)
+		if binder then
+			row.Destroying:Connect(binder.Remove)
+		end
+	end
+
 	return {
 		Set = function(_, value, save)
 			set(value, save == true)
@@ -564,6 +583,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	end
 	local initial = math.clamp(tonumber(default) or low, low, high)
 	local value = initial
+	local feature_value = ""
 	local precision = tonumber(opts.decimals)
 	local decimals = math.clamp(
 		math.floor(precision ~= nil and precision or (notch >= 1 and 0 or (notch >= 0.1 and 1 or 2))),
@@ -654,7 +674,11 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 			shown = shown .. " / " .. string.format("%." .. decimals .. "f", high) .. suffix
 		end
 		readout.Text = shown
+		feature_value = string.format("%." .. decimals .. "f", value)
 		readout.TextColor3 = disabled and values().muted or (dragging and values().accent or values().muted)
+		if opts.feature and S.featurelist then
+			S.featurelist.touch()
+		end
 		if fire then
 			win._store(key, value)
 			if callback then
@@ -796,6 +820,18 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	end
 	win._fit(true)
 
+	if opts.feature and S.featurelist then
+		local binder = S.featurelist.attach(win, "slider", text, opts, function()
+			if disabled then
+				return nil
+			end
+			return feature_value
+		end)
+		if binder then
+			row.Destroying:Connect(binder.Remove)
+		end
+	end
+
 	return {
 		Set = function(_, next)
 			apply(next, false)
@@ -927,6 +963,9 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		pill.BackgroundColor3 = fill
 		edge.Color = border
 		edge.Transparency = border_alpha
+		if opts.feature and S.featurelist then
+			S.featurelist.touch()
+		end
 	end
 
 	local function release_action()
@@ -1232,6 +1271,18 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		activate = toggle_capture,
 	})
 	win._fit(true)
+
+	if opts.feature and S.featurelist then
+		local binder = S.featurelist.attach(win, "keybind", text, opts, function()
+			if disabled then
+				return nil
+			end
+			return key
+		end)
+		if binder then
+			row.Destroying:Connect(binder.Remove)
+		end
+	end
 
 	return {
 		Set = function(_, next)

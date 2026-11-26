@@ -381,6 +381,11 @@ function text.textbox(win, title, default, callback, icon, opts)
 			fixing = false
 		end
 	end)
+	if opts.feature and S.featurelist then
+		box:GetPropertyChangedSignal("Text"):Connect(function()
+			S.featurelist.touch()
+		end)
+	end
 
 	box.Focused:Connect(function()
 		edge.Color = values().accent
@@ -437,6 +442,9 @@ function text.textbox(win, title, default, callback, icon, opts)
 		name.TextColor3 = disabled and values().muted or values().text
 		if emblem then
 			icons.tint(emblem, disabled and values().line or values().muted)
+		end
+		if opts.feature and S.featurelist then
+			S.featurelist.touch()
 		end
 		if win._nav_refresh then
 			win._nav_refresh()
@@ -497,6 +505,22 @@ function text.textbox(win, title, default, callback, icon, opts)
 		tooltip.attach(row, opts.tooltip)
 	end
 	win._fit(true)
+
+	if opts.feature and S.featurelist then
+		local binder = S.featurelist.attach(win, "textbox", title, opts, function()
+			if disabled then
+				return nil
+			end
+			local value = box.Text
+			if value == "" then
+				return nil
+			end
+			return value
+		end)
+		if binder then
+			row.Destroying:Connect(binder.Remove)
+		end
+	end
 
 	return {
 		Set = function(_, value)

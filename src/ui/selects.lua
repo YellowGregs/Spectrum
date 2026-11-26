@@ -547,6 +547,9 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		if active_option and items[active_option] then
 			items[active_option].BackgroundTransparency = 0
 		end
+		if opts.feature and S.featurelist then
+			S.featurelist.touch()
+		end
 	end
 
 	local function apply(value)
@@ -1066,6 +1069,25 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 	end
 	win._fit(true)
 
+	if opts.feature and S.featurelist then
+		local binder = S.featurelist.attach(win, "dropdown", title, opts, function()
+			if disabled then
+				return nil
+			end
+			if multi then
+				local picked = current()
+				if #picked == 0 then
+					return nil
+				end
+				return table.concat(picked, ", ")
+			end
+			return single
+		end)
+		if binder then
+			row.Destroying:Connect(binder.Remove)
+		end
+	end
+
 	return {
 		Set = function(_, value)
 			apply(value)
@@ -1563,6 +1585,9 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 				callback(picked)
 			end
 		end
+		if opts.feature and S.featurelist then
+			S.featurelist.touch()
+		end
 	end
 
 	local function commit_rgb()
@@ -1909,6 +1934,18 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		tooltip.attach(row, opts.tooltip)
 	end
 	win._fit(true)
+
+	if opts.feature and S.featurelist then
+		local binder = S.featurelist.attach(win, "colorpicker", title, opts, function()
+			if disabled then
+				return nil
+			end
+			return "#" .. string.upper(color():ToHex())
+		end)
+		if binder then
+			row.Destroying:Connect(binder.Remove)
+		end
+	end
 
 	return {
 		Set = function(_, value, save)
