@@ -5567,6 +5567,7 @@ local custom_supported
 local asset_cache = {}
 local voices = {}
 local voice_sources = {}
+local watchers = {}
 local enabled = true
 local master = 0.4
 
@@ -5671,8 +5672,35 @@ local function persist()
 	end
 end
 
+local function announce()
+	for index = #watchers, 1, -1 do
+		local watcher = watchers[index]
+		local ok = pcall(watcher, enabled, master)
+		if not ok then
+			table.remove(watchers, index)
+		end
+	end
+end
+
+function sounds.watch(fn)
+	if type(fn) ~= "function" then
+		return function() end
+	end
+	watchers[#watchers + 1] = fn
+	pcall(fn, enabled, master)
+	return function()
+		for index, watcher in ipairs(watchers) do
+			if watcher == fn then
+				table.remove(watchers, index)
+				break
+			end
+		end
+	end
+end
+
 function sounds.play(name, opts)
-	if not enabled or master <= 0 or type(name) ~= "string" then
+	opts = type(opts) == "table" and opts or {}
+	if master <= 0 or type(name) ~= "string" or (not enabled and opts.force ~= true) then
 		return false
 	end
 	local cue = CUES[name]
@@ -5684,7 +5712,6 @@ function sounds.play(name, opts)
 	if not sound then
 		return false
 	end
-	opts = type(opts) == "table" and opts or {}
 	local level = tonumber(opts.volume) or cue.volume or 0.5
 	local volume = math.clamp(level * master, 0, 1)
 	if volume <= 0 then
@@ -5721,6 +5748,7 @@ function sounds.set_enabled(state, save)
 	if save ~= false then
 		persist()
 	end
+	announce()
 	return enabled
 end
 
@@ -5733,6 +5761,7 @@ function sounds.set_volume(value, save)
 	if save ~= false then
 		persist()
 	end
+	announce()
 	return master
 end
 
@@ -5746,6 +5775,7 @@ function sounds.restore()
 		enabled = state.enabled
 		master = state.volume
 	end
+	announce()
 	return enabled, master
 end
 
@@ -5759,6 +5789,7 @@ function sounds.destroy()
 	end
 	table.clear(voices)
 	table.clear(voice_sources)
+	table.clear(watchers)
 	if folder and folder.Parent then
 		folder:Destroy()
 	end
@@ -8176,7 +8207,7 @@ function Window.new(title, opts)
 	local caption = util.new("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(19, 0),
-		Size = UDim2.new(1, -62, 1, 0),
+		Size = UDim2.new(1, mobile and -148 or -112, 1, 0),
 		Font = bold(),
 		Text = string.upper(tostring(title or "Window")),
 		TextColor3 = values().text,
@@ -8193,7 +8224,7 @@ function Window.new(title, opts)
 			emblem.Position = UDim2.fromOffset(10, head / 2 - 7)
 			emblem.ZIndex = 4
 			caption.Position = UDim2.fromOffset(31, 0)
-			caption.Size = UDim2.new(1, -74, 1, 0)
+			caption.Size = UDim2.new(1, mobile and -160 or -124, 1, 0)
 			style.paint(function()
 				icons.tint(emblem, values().accent)
 			end)
@@ -8232,8 +8263,55 @@ function Window.new(title, opts)
 		return hit
 	end
 
+	local sound_hit = ghost(mobile and -82 or -60)
 	local fold_hit = ghost(mobile and -44 or -33)
 	local close_hit = ghost(-6)
+	local sound_icon = icons.image(sound_hit, "volume", mobile and 16 or 14, values().muted)
+	if sound_icon then
+		sound_icon.AnchorPoint = Vector2.new(0.5, 0.5)
+		sound_icon.Position = UDim2.fromScale(0.5, 0.5)
+		icons.layer(sound_icon, 6)
+	end
+	local sound_slash = util.new("Frame", {
+		BackgroundColor3 = values().bad,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Rotation = 45,
+		Size = UDim2.fromOffset(mobile and 18 or 15, 1),
+		Visible = false,
+		ZIndex = 7,
+		Parent = sound_hit,
+	})
+	local function paint_sound(on)
+		if sound_icon then
+			icons.tint(sound_icon, on and values().accent or values().muted)
+		end
+		sound_slash.BackgroundColor3 = values().bad
+		sound_slash.Visible = not on
+	end
+	local stop_sound_watch
+	if sounds and sounds.watch then
+		stop_sound_watch = sounds.watch(paint_sound)
+		root.Destroying:Connect(stop_sound_watch)
+	else
+		paint_sound(true)
+	end
+	sound_hit.Activated:Connect(function()
+		if not sounds then
+			return
+		end
+		if sounds.get_enabled() then
+			sounds.set_enabled(false)
+			sounds.play("toggle_off", { force = true })
+		else
+			sounds.set_enabled(true)
+			sounds.play("toggle_on")
+		end
+	end)
+	if tooltip then
+		tooltip.attach(sound_hit, "Toggle interface sound effects")
+	end
 	local fold_bar_h = util.new("Frame", {
 		BackgroundColor3 = values().muted,
 		BorderSizePixel = 0,
@@ -9452,6 +9530,7 @@ function Window.new(title, opts)
 		fold_bar_v.BackgroundColor3 = values().muted
 		close_a.BackgroundColor3 = values().muted
 		close_b.BackgroundColor3 = values().muted
+		paint_sound(not sounds or sounds.get_enabled())
 		scroll.ScrollBarImageColor3 = values().muted
 		for _, pip in ipairs(pips) do
 			pip.BackgroundColor3 = values().muted
@@ -13363,7 +13442,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.1.0"
+Library.Build = "1.1.1"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -13561,6 +13640,10 @@ end
 
 function Library:PlaySound(name)
 	return S.sounds.play(name)
+end
+
+function Library:OnSoundsChanged(callback)
+	return S.sounds.watch(callback)
 end
 
 function Library:SetBackground(asset, opts, callback)

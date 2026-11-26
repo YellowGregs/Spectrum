@@ -5,7 +5,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.1.0"
+Library.Build = "1.1.1"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -203,6 +203,10 @@ end
 
 function Library:PlaySound(name)
 	return S.sounds.play(name)
+end
+
+function Library:OnSoundsChanged(callback)
+	return S.sounds.watch(callback)
 end
 
 function Library:SetBackground(asset, opts, callback)

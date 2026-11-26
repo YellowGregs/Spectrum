@@ -62,6 +62,7 @@ local custom_supported
 local asset_cache = {}
 local voices = {}
 local voice_sources = {}
+local watchers = {}
 local enabled = true
 local master = 0.4
 
@@ -166,8 +167,35 @@ local function persist()
 	end
 end
 
+local function announce()
+	for index = #watchers, 1, -1 do
+		local watcher = watchers[index]
+		local ok = pcall(watcher, enabled, master)
+		if not ok then
+			table.remove(watchers, index)
+		end
+	end
+end
+
+function sounds.watch(fn)
+	if type(fn) ~= "function" then
+		return function() end
+	end
+	watchers[#watchers + 1] = fn
+	pcall(fn, enabled, master)
+	return function()
+		for index, watcher in ipairs(watchers) do
+			if watcher == fn then
+				table.remove(watchers, index)
+				break
+			end
+		end
+	end
+end
+
 function sounds.play(name, opts)
-	if not enabled or master <= 0 or type(name) ~= "string" then
+	opts = type(opts) == "table" and opts or {}
+	if master <= 0 or type(name) ~= "string" or (not enabled and opts.force ~= true) then
 		return false
 	end
 	local cue = CUES[name]
@@ -179,7 +207,6 @@ function sounds.play(name, opts)
 	if not sound then
 		return false
 	end
-	opts = type(opts) == "table" and opts or {}
 	local level = tonumber(opts.volume) or cue.volume or 0.5
 	local volume = math.clamp(level * master, 0, 1)
 	if volume <= 0 then
@@ -216,6 +243,7 @@ function sounds.set_enabled(state, save)
 	if save ~= false then
 		persist()
 	end
+	announce()
 	return enabled
 end
 
@@ -228,6 +256,7 @@ function sounds.set_volume(value, save)
 	if save ~= false then
 		persist()
 	end
+	announce()
 	return master
 end
 
@@ -241,6 +270,7 @@ function sounds.restore()
 		enabled = state.enabled
 		master = state.volume
 	end
+	announce()
 	return enabled, master
 end
 
@@ -254,6 +284,7 @@ function sounds.destroy()
 	end
 	table.clear(voices)
 	table.clear(voice_sources)
+	table.clear(watchers)
 	if folder and folder.Parent then
 		folder:Destroy()
 	end
