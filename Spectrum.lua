@@ -6678,9 +6678,14 @@ local label_gap = base_label_gap
 local text_size = base_text_size
 local value_size = base_value_size
 
-local min_row_height = 13
-local min_text_size = mobile and 11 or 10
-local compact_after = mobile and 12 or 16
+local min_row_height = mobile and 9 or 13
+local min_text_size = mobile and 8 or 10
+local compact_after = mobile and 10 or 16
+local density_step = mobile and 0.035 or 0.02
+local min_scale = mobile and 0.38 or 0.58
+local min_pad_left = mobile and 4 or 6
+local min_pad_right = mobile and 3 or 5
+local min_label_gap = mobile and 3 or 4
 
 local function card_width()
 	local view = env.viewport()
@@ -6690,7 +6695,7 @@ end
 local function apply_density(count)
 	local scale = 1
 	if count > compact_after then
-		scale = 1 - (count - compact_after) * 0.02
+		scale = 1 - (count - compact_after) * density_step
 	end
 	if count > 0 then
 		local view = env.viewport()
@@ -6698,13 +6703,13 @@ local function apply_density(count)
 		local fit = (available - (count - 1) * row_gap) / (count * base_row_height)
 		scale = math.min(scale, fit)
 	end
-	scale = math.clamp(scale, 0.58, 1)
+	scale = math.clamp(scale, min_scale, 1)
 	row_height = math.max(min_row_height, math.floor(base_row_height * scale + 0.5))
 	text_size = math.max(min_text_size, math.floor(base_text_size * scale + 0.5))
 	value_size = math.max(min_text_size, math.floor(base_value_size * scale + 0.5))
-	pad_left = math.max(6, math.floor(base_pad_left * scale + 0.5))
-	pad_right = math.max(5, math.floor(base_pad_right * scale + 0.5))
-	label_gap = math.max(4, math.floor(base_label_gap * scale + 0.5))
+	pad_left = math.max(min_pad_left, math.floor(base_pad_left * scale + 0.5))
+	pad_right = math.max(min_pad_right, math.floor(base_pad_right * scale + 0.5))
+	label_gap = math.max(min_label_gap, math.floor(base_label_gap * scale + 0.5))
 end
 
 local function max_row_width()
@@ -13704,7 +13709,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.2.3"
+Library.Build = "1.2.4"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
