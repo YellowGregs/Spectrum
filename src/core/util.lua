@@ -351,6 +351,58 @@ function util.hover(row, enter, leave)
 	end)
 end
 
+local tap_slop = 8
+
+function util.tap(object, callback)
+	local start
+	local tracking = false
+	local moved = false
+	local changed_link = env.uis.InputChanged:Connect(function(input)
+		if not tracking or not start then
+			return
+		end
+		local kind = input.UserInputType
+		if kind ~= Enum.UserInputType.Touch and kind ~= Enum.UserInputType.MouseMovement then
+			return
+		end
+		if (input.Position - start).Magnitude > tap_slop then
+			moved = true
+		end
+	end)
+	local ended_link = env.uis.InputEnded:Connect(function(input)
+		if not tracking then
+			return
+		end
+		local kind = input.UserInputType
+		if kind ~= Enum.UserInputType.Touch and kind ~= Enum.UserInputType.MouseButton1 then
+			return
+		end
+		tracking = false
+		if moved or not callback then
+			return
+		end
+		local position = input.Position
+		local origin = object.AbsolutePosition
+		local size = object.AbsoluteSize
+		if position.X >= origin.X and position.X <= origin.X + size.X
+			and position.Y >= origin.Y and position.Y <= origin.Y + size.Y then
+			callback(input)
+		end
+	end)
+	object.Destroying:Connect(function()
+		changed_link:Disconnect()
+		ended_link:Disconnect()
+	end)
+	object.InputBegan:Connect(function(input)
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.Touch or kind == Enum.UserInputType.MouseButton1 then
+			start = input.Position
+			tracking = true
+			moved = false
+		end
+	end)
+end
+
 function util.divider(parent)
 	return util.new("Frame", {
 		BackgroundColor3 = style.values.line,

@@ -302,7 +302,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			clear_icon.Position = UDim2.fromScale(0.5, 0.5)
 			icons.layer(clear_icon, 15)
 		end
-		search_clear.Activated:Connect(function()
+		util.tap(search_clear, function()
 			if not disabled then
 				search.Text = ""
 			end
@@ -656,13 +656,13 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				callback(current())
 			end
 		end
-		select_all_action.Activated:Connect(select_all)
-		clear_action.Activated:Connect(clear_all)
+		util.tap(select_all_action, select_all)
+		util.tap(clear_action, clear_all)
 		if select_all_hit then
-			select_all_hit.Activated:Connect(select_all)
+			util.tap(select_all_hit, select_all)
 		end
 		if clear_hit then
-			clear_hit.Activated:Connect(clear_all)
+			util.tap(clear_hit, clear_all)
 		end
 	end
 
@@ -820,7 +820,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		checks[option] = check
 		items[option] = item
 
-		item.Activated:Connect(function()
+		util.tap(item, function()
 			choose(option)
 		end)
 	end
@@ -883,7 +883,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		Parent = row,
 	})
 	util.hover(hit)
-	hit.Activated:Connect(function()
+	util.tap(hit, function()
 		if disabled then
 			return
 		end
@@ -1529,7 +1529,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 			util.corner(swatch, 0)
 			util.depth(swatch, 0.2)
 			util.stroke(swatch, values().line, 0.2)
-			swatch.Activated:Connect(function()
+			util.tap(swatch, function()
 				if disabled then
 					return
 				end
@@ -1565,7 +1565,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 			util.depth(slot, 0.2)
 			util.stroke(slot, values().line, 0.2)
 			recent_slots[index] = slot
-			slot.Activated:Connect(function()
+			util.tap(slot, function()
 				if disabled then
 					return
 				end
@@ -1638,7 +1638,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		end
 	end)
 
-	copy_btn.Activated:Connect(function()
+	util.tap(copy_btn, function()
 		if disabled or type(setclipboard) ~= "function" then
 			return
 		end
@@ -1650,7 +1650,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		end
 	end)
 
-	random_btn.Activated:Connect(function()
+	util.tap(random_btn, function()
 		if disabled then
 			return
 		end
@@ -1827,7 +1827,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = row,
 	})
 	util.hover(hit)
-	hit.Activated:Connect(function()
+	util.tap(hit, function()
 		if disabled then
 			return
 		end

@@ -5,7 +5,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.2.1"
+Library.Build = "1.2.2"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -275,6 +275,9 @@ function Library:ToggleUI(state)
 end
 
 function Library:SetMobileButton(enabled)
+	if env.mobile then
+		enabled = true
+	end
 	if enabled == nil then
 		enabled = not mobile_launcher
 	end

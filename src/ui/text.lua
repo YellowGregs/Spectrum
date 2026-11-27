@@ -162,7 +162,7 @@ function text.section(win, title, icon, opts)
 		end
 	end
 
-	hit.Activated:Connect(function()
+	util.tap(hit, function()
 		set_open(nil, true)
 	end)
 

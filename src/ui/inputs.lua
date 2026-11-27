@@ -221,7 +221,7 @@ function inputs.button(win, text, callback, icon, opts)
 		end
 		paint_edge()
 	end)
-	btn.Activated:Connect(run)
+	util.tap(btn, run)
 	btn.MouseButton1Down:Connect(function()
 		if disabled then
 			return
@@ -453,7 +453,7 @@ function inputs.toggle(win, text, a, b, opts)
 		end
 	end
 
-	hit.Activated:Connect(function()
+	util.tap(hit, function()
 		if disabled then
 			return
 		end
@@ -673,6 +673,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	})
 
 	local dragging = false
+	local pending
 	local key
 	local function paint_value(fire)
 		local alpha = (value - low) / (high - low)
@@ -708,41 +709,73 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		return math.clamp(math.floor(stepped * 1000 + 0.5) / 1000, low, high)
 	end
 
-	local function begin(input)
-		if disabled then
-			return
-		end
+	local function start_drag(x)
 		if sounds then
 			win._play_sound("slider")
 		end
 		dragging = true
 		win._scroll.ScrollingEnabled = false
 		thumb.Size = UDim2.fromOffset(6, mobile and 16 or 13)
-		value = snap(input.Position.X)
+		value = snap(x)
 		paint_value(true)
 	end
 
 	hit.InputBegan:Connect(function(input)
+		if disabled then
+			return
+		end
 		local kind = input.UserInputType
-		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
-			begin(input)
+		if kind == Enum.UserInputType.Touch then
+			pending = input.Position
+		elseif kind == Enum.UserInputType.MouseButton1 then
+			start_drag(input.Position.X)
 		end
 	end)
 
 	win._link(env.uis.InputChanged, function(input)
-		if disabled or not dragging then
+		if disabled then
 			return
 		end
 		local kind = input.UserInputType
 		if kind == Enum.UserInputType.MouseMovement or kind == Enum.UserInputType.Touch then
-			value = snap(input.Position.X)
-			paint_value(true)
+			if pending then
+				local delta = input.Position - pending
+				local dx = math.abs(delta.X)
+				local dy = math.abs(delta.Y)
+				if dx >= 8 and dx > dy * 1.35 then
+					local origin = pending
+					pending = nil
+					start_drag(origin.X)
+				elseif dy >= 8 then
+					pending = nil
+					return
+				end
+			end
+			if dragging then
+				value = snap(input.Position.X)
+				paint_value(true)
+			end
 		end
 	end)
 
 	win._link(env.uis.InputEnded, function(input)
 		local kind = input.UserInputType
-		if dragging and (kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch) then
+		if kind ~= Enum.UserInputType.MouseButton1 and kind ~= Enum.UserInputType.Touch then
+			return
+		end
+		if pending then
+			local origin = pending
+			pending = nil
+			if not disabled then
+				if sounds then
+					win._play_sound("slider")
+				end
+				value = snap(origin.X)
+				paint_value(true)
+			end
+			return
+		end
+		if dragging then
 			dragging = false
 			win._scroll.ScrollingEnabled = true
 			thumb.Size = UDim2.fromOffset(5, mobile and 15 or 12)
@@ -764,6 +797,9 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	local function set_disabled(value)
 		disabled = value == true
 		hit.Active = not disabled
+		if disabled then
+			pending = nil
+		end
 		if disabled and dragging then
 			dragging = false
 			win._scroll.ScrollingEnabled = true
@@ -1063,7 +1099,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		sync()
 	end
 
-	pill.Activated:Connect(toggle_capture)
+	util.tap(pill, toggle_capture)
 
 	row.Destroying:Connect(function()
 		if listening then

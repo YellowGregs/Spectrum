@@ -216,7 +216,7 @@ function options.open(title, actions, anchor)
 			end
 		end
 
-		row.Activated:Connect(function()
+		util.tap(row, function()
 			if active_play_sound then
 				active_play_sound("click")
 			elseif sounds then

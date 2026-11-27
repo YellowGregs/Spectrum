@@ -38,19 +38,20 @@ local function values()
 	return style.values
 end
 
-local base_width = env.mobile and 220 or 260
-local top_offset = env.mobile and 90 or 12
+local mobile = env.mobile
+local base_width = mobile and 200 or 260
+local top_offset = mobile and 90 or 12
 local right_margin = 12
-local rail_width = 4
+local rail_width = mobile and 3 or 4
 local rail_gap = 0
 local row_gap = 0
 local row_transparency = 0.26
 
-local base_row_height = util.size(20)
-local base_text_size = util.size(13)
-local base_value_size = util.size(13)
-local base_pad_left = env.mobile and 9 or 10
-local base_pad_right = env.mobile and 8 or 10
+local base_row_height = util.size(mobile and 18 or 20)
+local base_text_size = util.size(mobile and 12 or 13)
+local base_value_size = util.size(mobile and 12 or 13)
+local base_pad_left = mobile and 8 or 10
+local base_pad_right = mobile and 7 or 10
 local base_label_gap = 6
 
 local row_height = base_row_height
@@ -60,9 +61,9 @@ local label_gap = base_label_gap
 local text_size = base_text_size
 local value_size = base_value_size
 
-local min_row_height = env.mobile and 14 or 13
-local min_text_size = env.mobile and 11 or 10
-local compact_after = env.mobile and 14 or 16
+local min_row_height = 13
+local min_text_size = mobile and 11 or 10
+local compact_after = mobile and 12 or 16
 
 local function card_width()
 	local view = env.viewport()
@@ -142,6 +143,8 @@ local rail = util.new("Frame", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, 0, 0, 0),
 	Size = UDim2.new(0, rail_width, 1, 0),
+	Active = true,
+	Selectable = false,
 	ZIndex = 4,
 	Parent = card,
 })
@@ -218,20 +221,7 @@ local function remember()
 	})
 end
 
-local drag = util.new("TextButton", {
-	Name = "drag",
-	BackgroundTransparency = 1,
-	BorderSizePixel = 0,
-	Size = UDim2.fromScale(1, 1),
-	Text = "",
-	AutoButtonColor = false,
-	Active = true,
-	Selectable = false,
-	ZIndex = 7,
-	Parent = card,
-})
-
-local drag_begin = drag.InputBegan:Connect(function(input)
+local function begin_drag(input)
 	local kind = input.UserInputType
 	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 		dragging = true
@@ -239,7 +229,9 @@ local drag_begin = drag.InputBegan:Connect(function(input)
 		drag_from = input.Position
 		drag_at = Vector2.new(card.Position.X.Offset, card.Position.Y.Offset)
 	end
-end)
+end
+
+local rail_drag = rail.InputBegan:Connect(begin_drag)
 
 local drag_move = env.uis.InputChanged:Connect(function(input)
 	if not dragging then
@@ -515,6 +507,10 @@ local function start_exit(row)
 		end
 		row.removing = false
 		remove_exiting(row)
+		if row.drag_link then
+			row.drag_link:Disconnect()
+			row.drag_link = nil
+		end
 		if row.root.Parent then
 			row.root:Destroy()
 		end
@@ -848,6 +844,8 @@ local function create_row(entry)
 		BackgroundColor3 = values().panel,
 		BackgroundTransparency = row_transparency,
 		BorderSizePixel = 0,
+		Active = true,
+		Selectable = false,
 		AnchorPoint = left_mode and Vector2.new(0, 0) or Vector2.new(1, 0),
 		Position = left_mode and UDim2.fromOffset(0, 0) or UDim2.new(1, 0, 0, 0),
 		Size = UDim2.fromOffset(0, row_height),
@@ -913,6 +911,7 @@ local function create_row(entry)
 		removing = false,
 		exit_token = 0,
 		grow_token = 0,
+		drag_link = strip.InputBegan:Connect(begin_drag),
 	}
 end
 
@@ -1178,9 +1177,21 @@ card.Destroying:Connect(function()
 		camera_link:Disconnect()
 		camera_link = nil
 	end
-	if drag_begin then
-		drag_begin:Disconnect()
-		drag_begin = nil
+	if rail_drag then
+		rail_drag:Disconnect()
+		rail_drag = nil
+	end
+	for _, row in ipairs(rows) do
+		if row.drag_link then
+			row.drag_link:Disconnect()
+			row.drag_link = nil
+		end
+	end
+	for _, row in ipairs(exiting) do
+		if row.drag_link then
+			row.drag_link:Disconnect()
+			row.drag_link = nil
+		end
 	end
 	if drag_move then
 		drag_move:Disconnect()

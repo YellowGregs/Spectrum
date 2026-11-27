@@ -914,6 +914,58 @@ function util.hover(row, enter, leave)
 	end)
 end
 
+local tap_slop = 8
+
+function util.tap(object, callback)
+	local start
+	local tracking = false
+	local moved = false
+	local changed_link = env.uis.InputChanged:Connect(function(input)
+		if not tracking or not start then
+			return
+		end
+		local kind = input.UserInputType
+		if kind ~= Enum.UserInputType.Touch and kind ~= Enum.UserInputType.MouseMovement then
+			return
+		end
+		if (input.Position - start).Magnitude > tap_slop then
+			moved = true
+		end
+	end)
+	local ended_link = env.uis.InputEnded:Connect(function(input)
+		if not tracking then
+			return
+		end
+		local kind = input.UserInputType
+		if kind ~= Enum.UserInputType.Touch and kind ~= Enum.UserInputType.MouseButton1 then
+			return
+		end
+		tracking = false
+		if moved or not callback then
+			return
+		end
+		local position = input.Position
+		local origin = object.AbsolutePosition
+		local size = object.AbsoluteSize
+		if position.X >= origin.X and position.X <= origin.X + size.X
+			and position.Y >= origin.Y and position.Y <= origin.Y + size.Y then
+			callback(input)
+		end
+	end)
+	object.Destroying:Connect(function()
+		changed_link:Disconnect()
+		ended_link:Disconnect()
+	end)
+	object.InputBegan:Connect(function(input)
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.Touch or kind == Enum.UserInputType.MouseButton1 then
+			start = input.Position
+			tracking = true
+			moved = false
+		end
+	end)
+end
+
 function util.divider(parent)
 	return util.new("Frame", {
 		BackgroundColor3 = style.values.line,
@@ -3522,7 +3574,7 @@ function options.open(title, actions, anchor)
 			end
 		end
 
-		row.Activated:Connect(function()
+		util.tap(row, function()
 			if active_play_sound then
 				active_play_sound("click")
 			elseif sounds then
@@ -6603,19 +6655,20 @@ local function values()
 	return style.values
 end
 
-local base_width = env.mobile and 220 or 260
-local top_offset = env.mobile and 90 or 12
+local mobile = env.mobile
+local base_width = mobile and 200 or 260
+local top_offset = mobile and 90 or 12
 local right_margin = 12
-local rail_width = 4
+local rail_width = mobile and 3 or 4
 local rail_gap = 0
 local row_gap = 0
 local row_transparency = 0.26
 
-local base_row_height = util.size(20)
-local base_text_size = util.size(13)
-local base_value_size = util.size(13)
-local base_pad_left = env.mobile and 9 or 10
-local base_pad_right = env.mobile and 8 or 10
+local base_row_height = util.size(mobile and 18 or 20)
+local base_text_size = util.size(mobile and 12 or 13)
+local base_value_size = util.size(mobile and 12 or 13)
+local base_pad_left = mobile and 8 or 10
+local base_pad_right = mobile and 7 or 10
 local base_label_gap = 6
 
 local row_height = base_row_height
@@ -6625,9 +6678,9 @@ local label_gap = base_label_gap
 local text_size = base_text_size
 local value_size = base_value_size
 
-local min_row_height = env.mobile and 14 or 13
-local min_text_size = env.mobile and 11 or 10
-local compact_after = env.mobile and 14 or 16
+local min_row_height = 13
+local min_text_size = mobile and 11 or 10
+local compact_after = mobile and 12 or 16
 
 local function card_width()
 	local view = env.viewport()
@@ -6707,6 +6760,8 @@ local rail = util.new("Frame", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, 0, 0, 0),
 	Size = UDim2.new(0, rail_width, 1, 0),
+	Active = true,
+	Selectable = false,
 	ZIndex = 4,
 	Parent = card,
 })
@@ -6783,20 +6838,7 @@ local function remember()
 	})
 end
 
-local drag = util.new("TextButton", {
-	Name = "drag",
-	BackgroundTransparency = 1,
-	BorderSizePixel = 0,
-	Size = UDim2.fromScale(1, 1),
-	Text = "",
-	AutoButtonColor = false,
-	Active = true,
-	Selectable = false,
-	ZIndex = 7,
-	Parent = card,
-})
-
-local drag_begin = drag.InputBegan:Connect(function(input)
+local function begin_drag(input)
 	local kind = input.UserInputType
 	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 		dragging = true
@@ -6804,7 +6846,9 @@ local drag_begin = drag.InputBegan:Connect(function(input)
 		drag_from = input.Position
 		drag_at = Vector2.new(card.Position.X.Offset, card.Position.Y.Offset)
 	end
-end)
+end
+
+local rail_drag = rail.InputBegan:Connect(begin_drag)
 
 local drag_move = env.uis.InputChanged:Connect(function(input)
 	if not dragging then
@@ -7080,6 +7124,10 @@ local function start_exit(row)
 		end
 		row.removing = false
 		remove_exiting(row)
+		if row.drag_link then
+			row.drag_link:Disconnect()
+			row.drag_link = nil
+		end
 		if row.root.Parent then
 			row.root:Destroy()
 		end
@@ -7413,6 +7461,8 @@ local function create_row(entry)
 		BackgroundColor3 = values().panel,
 		BackgroundTransparency = row_transparency,
 		BorderSizePixel = 0,
+		Active = true,
+		Selectable = false,
 		AnchorPoint = left_mode and Vector2.new(0, 0) or Vector2.new(1, 0),
 		Position = left_mode and UDim2.fromOffset(0, 0) or UDim2.new(1, 0, 0, 0),
 		Size = UDim2.fromOffset(0, row_height),
@@ -7478,6 +7528,7 @@ local function create_row(entry)
 		removing = false,
 		exit_token = 0,
 		grow_token = 0,
+		drag_link = strip.InputBegan:Connect(begin_drag),
 	}
 end
 
@@ -7743,9 +7794,21 @@ card.Destroying:Connect(function()
 		camera_link:Disconnect()
 		camera_link = nil
 	end
-	if drag_begin then
-		drag_begin:Disconnect()
-		drag_begin = nil
+	if rail_drag then
+		rail_drag:Disconnect()
+		rail_drag = nil
+	end
+	for _, row in ipairs(rows) do
+		if row.drag_link then
+			row.drag_link:Disconnect()
+			row.drag_link = nil
+		end
+	end
+	for _, row in ipairs(exiting) do
+		if row.drag_link then
+			row.drag_link:Disconnect()
+			row.drag_link = nil
+		end
 	end
 	if drag_move then
 		drag_move:Disconnect()
@@ -8706,7 +8769,7 @@ function Window.new(title, opts)
 				util.tween(chip, 0.12, { BackgroundTransparency = 1 })
 			end
 		end)
-		chip.Activated:Connect(function()
+		util.tap(chip, function()
 			if tab ~= active_tab then
 				w._play_sound("tab")
 			end
@@ -8814,11 +8877,11 @@ function Window.new(title, opts)
 		root:Destroy()
 	end
 
-	fold_hit.Activated:Connect(function()
+	util.tap(fold_hit, function()
 		w._play_sound("click")
 		fold()
 	end)
-	close_hit.Activated:Connect(function()
+	util.tap(close_hit, function()
 		w._play_sound("close")
 		close()
 	end)
@@ -9873,7 +9936,7 @@ function inputs.button(win, text, callback, icon, opts)
 		end
 		paint_edge()
 	end)
-	btn.Activated:Connect(run)
+	util.tap(btn, run)
 	btn.MouseButton1Down:Connect(function()
 		if disabled then
 			return
@@ -10105,7 +10168,7 @@ function inputs.toggle(win, text, a, b, opts)
 		end
 	end
 
-	hit.Activated:Connect(function()
+	util.tap(hit, function()
 		if disabled then
 			return
 		end
@@ -10325,6 +10388,7 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	})
 
 	local dragging = false
+	local pending
 	local key
 	local function paint_value(fire)
 		local alpha = (value - low) / (high - low)
@@ -10360,41 +10424,73 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 		return math.clamp(math.floor(stepped * 1000 + 0.5) / 1000, low, high)
 	end
 
-	local function begin(input)
-		if disabled then
-			return
-		end
+	local function start_drag(x)
 		if sounds then
 			win._play_sound("slider")
 		end
 		dragging = true
 		win._scroll.ScrollingEnabled = false
 		thumb.Size = UDim2.fromOffset(6, mobile and 16 or 13)
-		value = snap(input.Position.X)
+		value = snap(x)
 		paint_value(true)
 	end
 
 	hit.InputBegan:Connect(function(input)
+		if disabled then
+			return
+		end
 		local kind = input.UserInputType
-		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
-			begin(input)
+		if kind == Enum.UserInputType.Touch then
+			pending = input.Position
+		elseif kind == Enum.UserInputType.MouseButton1 then
+			start_drag(input.Position.X)
 		end
 	end)
 
 	win._link(env.uis.InputChanged, function(input)
-		if disabled or not dragging then
+		if disabled then
 			return
 		end
 		local kind = input.UserInputType
 		if kind == Enum.UserInputType.MouseMovement or kind == Enum.UserInputType.Touch then
-			value = snap(input.Position.X)
-			paint_value(true)
+			if pending then
+				local delta = input.Position - pending
+				local dx = math.abs(delta.X)
+				local dy = math.abs(delta.Y)
+				if dx >= 8 and dx > dy * 1.35 then
+					local origin = pending
+					pending = nil
+					start_drag(origin.X)
+				elseif dy >= 8 then
+					pending = nil
+					return
+				end
+			end
+			if dragging then
+				value = snap(input.Position.X)
+				paint_value(true)
+			end
 		end
 	end)
 
 	win._link(env.uis.InputEnded, function(input)
 		local kind = input.UserInputType
-		if dragging and (kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch) then
+		if kind ~= Enum.UserInputType.MouseButton1 and kind ~= Enum.UserInputType.Touch then
+			return
+		end
+		if pending then
+			local origin = pending
+			pending = nil
+			if not disabled then
+				if sounds then
+					win._play_sound("slider")
+				end
+				value = snap(origin.X)
+				paint_value(true)
+			end
+			return
+		end
+		if dragging then
 			dragging = false
 			win._scroll.ScrollingEnabled = true
 			thumb.Size = UDim2.fromOffset(5, mobile and 15 or 12)
@@ -10416,6 +10512,9 @@ function inputs.slider(win, text, min, max, default, callback, step, icon, opts)
 	local function set_disabled(value)
 		disabled = value == true
 		hit.Active = not disabled
+		if disabled then
+			pending = nil
+		end
 		if disabled and dragging then
 			dragging = false
 			win._scroll.ScrollingEnabled = true
@@ -10715,7 +10814,7 @@ function inputs.keybind(win, text, default, callback, icon, opts)
 		sync()
 	end
 
-	pill.Activated:Connect(toggle_capture)
+	util.tap(pill, toggle_capture)
 
 	row.Destroying:Connect(function()
 		if listening then
@@ -11282,7 +11381,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 			clear_icon.Position = UDim2.fromScale(0.5, 0.5)
 			icons.layer(clear_icon, 15)
 		end
-		search_clear.Activated:Connect(function()
+		util.tap(search_clear, function()
 			if not disabled then
 				search.Text = ""
 			end
@@ -11636,13 +11735,13 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 				callback(current())
 			end
 		end
-		select_all_action.Activated:Connect(select_all)
-		clear_action.Activated:Connect(clear_all)
+		util.tap(select_all_action, select_all)
+		util.tap(clear_action, clear_all)
 		if select_all_hit then
-			select_all_hit.Activated:Connect(select_all)
+			util.tap(select_all_hit, select_all)
 		end
 		if clear_hit then
-			clear_hit.Activated:Connect(clear_all)
+			util.tap(clear_hit, clear_all)
 		end
 	end
 
@@ -11800,7 +11899,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		checks[option] = check
 		items[option] = item
 
-		item.Activated:Connect(function()
+		util.tap(item, function()
 			choose(option)
 		end)
 	end
@@ -11863,7 +11962,7 @@ function selects.dropdown(win, title, options, default, callback, multi, icon, o
 		Parent = row,
 	})
 	util.hover(hit)
-	hit.Activated:Connect(function()
+	util.tap(hit, function()
 		if disabled then
 			return
 		end
@@ -12509,7 +12608,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 			util.corner(swatch, 0)
 			util.depth(swatch, 0.2)
 			util.stroke(swatch, values().line, 0.2)
-			swatch.Activated:Connect(function()
+			util.tap(swatch, function()
 				if disabled then
 					return
 				end
@@ -12545,7 +12644,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 			util.depth(slot, 0.2)
 			util.stroke(slot, values().line, 0.2)
 			recent_slots[index] = slot
-			slot.Activated:Connect(function()
+			util.tap(slot, function()
 				if disabled then
 					return
 				end
@@ -12618,7 +12717,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		end
 	end)
 
-	copy_btn.Activated:Connect(function()
+	util.tap(copy_btn, function()
 		if disabled or type(setclipboard) ~= "function" then
 			return
 		end
@@ -12630,7 +12729,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		end
 	end)
 
-	random_btn.Activated:Connect(function()
+	util.tap(random_btn, function()
 		if disabled then
 			return
 		end
@@ -12807,7 +12906,7 @@ function selects.colorpicker(win, title, default, callback, icon, opts)
 		Parent = row,
 	})
 	util.hover(hit)
-	hit.Activated:Connect(function()
+	util.tap(hit, function()
 		if disabled then
 			return
 		end
@@ -13149,7 +13248,7 @@ function text.section(win, title, icon, opts)
 		end
 	end
 
-	hit.Activated:Connect(function()
+	util.tap(hit, function()
 		set_open(nil, true)
 	end)
 
@@ -13544,7 +13643,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.2.1"
+Library.Build = "1.2.2"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -13814,6 +13913,9 @@ function Library:ToggleUI(state)
 end
 
 function Library:SetMobileButton(enabled)
+	if env.mobile then
+		enabled = true
+	end
 	if enabled == nil then
 		enabled = not mobile_launcher
 	end

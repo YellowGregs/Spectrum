@@ -711,7 +711,7 @@ function Window.new(title, opts)
 				util.tween(chip, 0.12, { BackgroundTransparency = 1 })
 			end
 		end)
-		chip.Activated:Connect(function()
+		util.tap(chip, function()
 			if tab ~= active_tab then
 				w._play_sound("tab")
 			end
@@ -819,11 +819,11 @@ function Window.new(title, opts)
 		root:Destroy()
 	end
 
-	fold_hit.Activated:Connect(function()
+	util.tap(fold_hit, function()
 		w._play_sound("click")
 		fold()
 	end)
-	close_hit.Activated:Connect(function()
+	util.tap(close_hit, function()
 		w._play_sound("close")
 		close()
 	end)
