@@ -6527,7 +6527,7 @@ local card = util.new("Frame", {
 	Size = UDim2.fromOffset(0, 24),
 	Visible = false,
 	ZIndex = 2,
-	Parent = env.notes,
+	Parent = env.overlay,
 })
 util.corner(card, 0)
 util.depth(card, 0.6)
@@ -13697,7 +13697,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.2.6"
+Library.Build = "1.2.8"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then

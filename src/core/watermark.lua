@@ -26,7 +26,7 @@ local card = util.new("Frame", {
 	Size = UDim2.fromOffset(0, 24),
 	Visible = false,
 	ZIndex = 2,
-	Parent = env.notes,
+	Parent = env.overlay,
 })
 util.corner(card, 0)
 util.depth(card, 0.6)
