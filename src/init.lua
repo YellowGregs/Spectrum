@@ -5,7 +5,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.2.5"
+Library.Build = "1.2.6"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -509,7 +509,7 @@ function Library:Destroy()
 		end)
 	end
 	if S.env then
-		for _, layer in ipairs({ S.env.windows, S.env.modal, S.env.notes, S.env.launcher, S.env.splash }) do
+		for _, layer in ipairs({ S.env.windows, S.env.modal, S.env.notes, S.env.overlay, S.env.launcher, S.env.splash }) do
 			if layer then
 				pcall(function()
 					layer:Destroy()

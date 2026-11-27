@@ -160,6 +160,7 @@ end
 
 env.windows = layer("windows", 10)
 env.notes = layer("notes", 15)
+env.overlay = layer("overlay", 16)
 env.modal = layer("modal", 20)
 env.launcher = layer("launcher", 30)
 env.splash = layer("splash", 40)

@@ -204,7 +204,7 @@ function style.font_role(font)
 end
 
 local function refresh_fonts()
-	local layers = { env and env.windows, env and env.notes, env and env.modal, env and env.launcher, env and env.splash }
+	local layers = { env and env.windows, env and env.notes, env and env.overlay, env and env.modal, env and env.launcher, env and env.splash }
 	for _, layer in ipairs(layers) do
 		if layer and layer.Parent then
 			local ok, list = pcall(function()

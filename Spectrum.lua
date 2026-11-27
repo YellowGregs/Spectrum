@@ -161,6 +161,7 @@ end
 
 env.windows = layer("windows", 10)
 env.notes = layer("notes", 15)
+env.overlay = layer("overlay", 16)
 env.modal = layer("modal", 20)
 env.launcher = layer("launcher", 30)
 env.splash = layer("splash", 40)
@@ -404,7 +405,7 @@ function style.font_role(font)
 end
 
 local function refresh_fonts()
-	local layers = { env and env.windows, env and env.notes, env and env.modal, env and env.launcher, env and env.splash }
+	local layers = { env and env.windows, env and env.notes, env and env.overlay, env and env.modal, env and env.launcher, env and env.splash }
 	for _, layer in ipairs(layers) do
 		if layer and layer.Parent then
 			local ok, list = pcall(function()
@@ -6703,7 +6704,7 @@ local card = util.new("Frame", {
 	Visible = false,
 	ClipsDescendants = true,
 	ZIndex = 2,
-	Parent = env.notes,
+	Parent = env.overlay,
 })
 
 local input_guard = util.new("TextButton", {
@@ -13696,7 +13697,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.2.5"
+Library.Build = "1.2.6"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -14200,7 +14201,7 @@ function Library:Destroy()
 		end)
 	end
 	if S.env then
-		for _, layer in ipairs({ S.env.windows, S.env.modal, S.env.notes, S.env.launcher, S.env.splash }) do
+		for _, layer in ipairs({ S.env.windows, S.env.modal, S.env.notes, S.env.overlay, S.env.launcher, S.env.splash }) do
 			if layer then
 				pcall(function()
 					layer:Destroy()

@@ -110,7 +110,7 @@ local card = util.new("Frame", {
 	Visible = false,
 	ClipsDescendants = true,
 	ZIndex = 2,
-	Parent = env.notes,
+	Parent = env.overlay,
 })
 
 local input_guard = util.new("TextButton", {
