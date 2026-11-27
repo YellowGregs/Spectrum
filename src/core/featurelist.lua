@@ -107,6 +107,19 @@ local card = util.new("Frame", {
 	Parent = env.notes,
 })
 
+local input_guard = util.new("TextButton", {
+	Name = "input_guard",
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	AutoButtonColor = false,
+	Active = true,
+	Selectable = false,
+	Size = UDim2.fromScale(1, 1),
+	Text = "",
+	ZIndex = 1,
+	Parent = card,
+})
+
 local content = util.new("Frame", {
 	Name = "content",
 	BackgroundTransparency = 1,

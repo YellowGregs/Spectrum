@@ -240,7 +240,7 @@ function options.open(title, actions, anchor)
 end
 
 local function hook(object, open)
-	if not object or not object:IsA("GuiObject") then
+	if env.mobile or not object or not object:IsA("GuiObject") then
 		return
 	end
 	local start

@@ -303,6 +303,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 		name.Size = UDim2.new(0.4, emblem and -34 or -16, 1, 0)
 	end
 	local box
+	local focus_guard
 	if mobile then
 		box = util.new("TextBox", {
 			Name = "textbox",
@@ -347,6 +348,29 @@ function text.textbox(win, title, default, callback, icon, opts)
 			Parent = row,
 		})
 	end
+	if mobile then
+		focus_guard = util.new("TextButton", {
+			Name = "focus_guard",
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			AutoButtonColor = false,
+			Active = not disabled,
+			Visible = not disabled,
+			Selectable = false,
+			AnchorPoint = box.AnchorPoint,
+			Position = box.Position,
+			Size = box.Size,
+			Text = "",
+			ZIndex = 4,
+			Parent = row,
+		})
+		util.tap(focus_guard, function()
+			if not disabled then
+				box:CaptureFocus()
+			end
+		end)
+	end
+
 	util.corner(box)
 	util.inset(box, 0.62)
 	util.shadow(box, 8, 0.52)
@@ -394,10 +418,16 @@ function text.textbox(win, title, default, callback, icon, opts)
 	box.Focused:Connect(function()
 		edge.Color = values().accent
 		edge.Transparency = 0.2
+		if focus_guard then
+			focus_guard.Visible = false
+		end
 	end)
 	box.FocusLost:Connect(function(enter_pressed)
 		edge.Color = values().line
 		edge.Transparency = 0.2
+		if focus_guard then
+			focus_guard.Visible = not disabled
+		end
 		if disabled then
 			return
 		end
@@ -439,6 +469,10 @@ function text.textbox(win, title, default, callback, icon, opts)
 		disabled = value == true
 		box.TextEditable = not disabled
 		box.Active = not disabled
+		if focus_guard then
+			focus_guard.Active = not disabled
+			focus_guard.Visible = not disabled and not box:IsFocused()
+		end
 		if disabled and box:IsFocused() then
 			box:ReleaseFocus()
 		end

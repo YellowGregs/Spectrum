@@ -5,7 +5,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.2.2"
+Library.Build = "1.2.3"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then

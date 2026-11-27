@@ -174,6 +174,18 @@ function Window.new(title, opts)
 	local edge = util.stroke(body, values().line, 0.12)
 	util.shadow(body, 30, 0.22)
 	util.depth(body, 0.65)
+	local input_guard = util.new("TextButton", {
+		Name = "input_guard",
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Active = true,
+		Selectable = false,
+		Size = UDim2.fromScale(1, 1),
+		Text = "",
+		ZIndex = 2,
+		Parent = body,
+	})
 
 	local backdrop = util.new("Frame", {
 		Name = "backdrop",
@@ -477,6 +489,7 @@ function Window.new(title, opts)
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.None,
 		ClipsDescendants = true,
+		Active = true,
 		ScrollingDirection = Enum.ScrollingDirection.Y,
 		ScrollBarThickness = mobile and 4 or 3,
 		ScrollBarImageColor3 = values().muted,
@@ -785,6 +798,7 @@ function Window.new(title, opts)
 		nav_claim(w)
 	end
 	w._front = front
+	input_guard.InputBegan:Connect(front)
 
 	local function fold(state, save)
 		if state == nil then
