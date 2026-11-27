@@ -5,7 +5,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.2.4"
+Library.Build = "1.2.5"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -275,7 +275,7 @@ function Library:ToggleUI(state)
 end
 
 function Library:SetMobileButton(enabled)
-	if env.mobile then
+	if env.mobile or (env.uis and env.uis.TouchEnabled) then
 		enabled = true
 	end
 	if enabled == nil then
@@ -303,6 +303,10 @@ end
 
 function Library:IsMobile()
 	return env.mobile == true
+end
+
+function Library:IsTouch()
+	return env.uis ~= nil and env.uis.TouchEnabled == true
 end
 
 function Library:SetToggleKey(key)
@@ -533,7 +537,7 @@ pcall(function()
 	end)
 end)
 
-if env.mobile then
+if (env.mobile or (env.uis and env.uis.TouchEnabled)) then
 	mobile_launcher = S.launcher.mount(function()
 		Library:ToggleUI()
 	end)

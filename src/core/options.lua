@@ -240,36 +240,12 @@ function options.open(title, actions, anchor)
 end
 
 local function hook(object, open)
-	if env.mobile or not object or not object:IsA("GuiObject") then
+	if not object or not object:IsA("GuiObject") then
 		return
 	end
-	local start
-	local active = false
 	object.InputBegan:Connect(function(input)
-		local kind = input.UserInputType
-		if kind == Enum.UserInputType.MouseButton2 then
+		if input.UserInputType == Enum.UserInputType.MouseButton2 and not env.uis.TouchEnabled then
 			open()
-			return
-		end
-		if kind ~= Enum.UserInputType.Touch then
-			return
-		end
-		start = input.Position
-		active = true
-		task.delay(0.42, function()
-			if active and object.Parent then
-				open()
-			end
-		end)
-	end)
-	object.InputEnded:Connect(function(done)
-		if done.UserInputType == Enum.UserInputType.Touch then
-			active = false
-		end
-	end)
-	object.InputChanged:Connect(function(move)
-		if active and start and move.UserInputType == Enum.UserInputType.Touch and (move.Position - start).Magnitude > 8 then
-			active = false
 		end
 	end)
 end

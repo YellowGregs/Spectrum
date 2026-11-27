@@ -3598,36 +3598,12 @@ function options.open(title, actions, anchor)
 end
 
 local function hook(object, open)
-	if env.mobile or not object or not object:IsA("GuiObject") then
+	if not object or not object:IsA("GuiObject") then
 		return
 	end
-	local start
-	local active = false
 	object.InputBegan:Connect(function(input)
-		local kind = input.UserInputType
-		if kind == Enum.UserInputType.MouseButton2 then
+		if input.UserInputType == Enum.UserInputType.MouseButton2 and not env.uis.TouchEnabled then
 			open()
-			return
-		end
-		if kind ~= Enum.UserInputType.Touch then
-			return
-		end
-		start = input.Position
-		active = true
-		task.delay(0.42, function()
-			if active and object.Parent then
-				open()
-			end
-		end)
-	end)
-	object.InputEnded:Connect(function(done)
-		if done.UserInputType == Enum.UserInputType.Touch then
-			active = false
-		end
-	end)
-	object.InputChanged:Connect(function(move)
-		if active and start and move.UserInputType == Enum.UserInputType.Touch and (move.Position - start).Magnitude > 8 then
-			active = false
 		end
 	end)
 end
@@ -6655,8 +6631,9 @@ local function values()
 	return style.values
 end
 
-local mobile = env.mobile
-local base_width = mobile and 200 or 260
+local touch = env.uis and env.uis.TouchEnabled == true
+local mobile = env.mobile or touch
+local base_width = mobile and 190 or 260
 local top_offset = mobile and 90 or 12
 local right_margin = 12
 local rail_width = mobile and 3 or 4
@@ -6680,12 +6657,12 @@ local value_size = base_value_size
 
 local min_row_height = mobile and 9 or 13
 local min_text_size = mobile and 8 or 10
-local compact_after = mobile and 10 or 16
-local density_step = mobile and 0.035 or 0.02
-local min_scale = mobile and 0.38 or 0.58
-local min_pad_left = mobile and 4 or 6
+local compact_after = mobile and 8 or 16
+local density_step = mobile and 0.045 or 0.02
+local min_scale = mobile and 0.32 or 0.58
+local min_pad_left = mobile and 3 or 6
 local min_pad_right = mobile and 3 or 5
-local min_label_gap = mobile and 3 or 4
+local min_label_gap = mobile and 2 or 4
 
 local function card_width()
 	local view = env.viewport()
@@ -7014,13 +6991,19 @@ end
 
 local function place_row(row, index, animate)
 	local target = UDim2.fromOffset(0, (index - 1) * (row_height + row_gap))
-	if row.slot ~= index then
-		row.slot = index
-		if animate and row.root.Parent then
-			util.tween(row.root, animation_time, { Position = target }, Enum.EasingStyle.Quint)
-		else
-			row.root.Position = target
-		end
+	local density_changed = row.layout_height ~= nil and row.layout_height ~= row_height
+	local changed = row.slot ~= index or density_changed or row.layout_gap ~= row_gap
+	row.slot = index
+	row.layout_height = row_height
+	row.layout_gap = row_gap
+	if not changed then
+		return
+	end
+	if density_changed or mobile or not animate or not row.root.Parent then
+		util.cancel(row.root)
+		row.root.Position = target
+	else
+		util.tween(row.root, animation_time, { Position = target }, Enum.EasingStyle.Quint)
 	end
 end
 
@@ -7102,6 +7085,7 @@ local function cancel_exit(row)
 	util.cancel(row.strip)
 	util.cancel(row.label)
 	util.cancel(row.value)
+	row.root.Visible = true
 	row.root.ZIndex = 3
 	row.strip.ZIndex = 3
 	row.label.ZIndex = 3
@@ -7120,6 +7104,9 @@ local function start_exit(row)
 	row.appearing = false
 	row.grow_token = (row.grow_token or 0) + 1
 	row.exit_token = (row.exit_token or 0) + 1
+	if mobile then
+		row.root.Visible = false
+	end
 	row.root.ZIndex = 2
 	row.strip.ZIndex = 2
 	row.label.ZIndex = 2
@@ -13466,7 +13453,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 			Parent = row,
 		})
 	end
-	if mobile then
+	if mobile or env.uis.TouchEnabled then
 		focus_guard = util.new("TextButton", {
 			Name = "focus_guard",
 			BackgroundTransparency = 1,
@@ -13709,7 +13696,7 @@ local config = S.config
 local util = S.util
 local Library = {}
 Library.Version = "1.0"
-Library.Build = "1.2.4"
+Library.Build = "1.2.5"
 
 local previous = shared.Spectrum
 if type(previous) == "table" and previous ~= Library and type(previous.Destroy) == "function" then
@@ -13979,7 +13966,7 @@ function Library:ToggleUI(state)
 end
 
 function Library:SetMobileButton(enabled)
-	if env.mobile then
+	if env.mobile or (env.uis and env.uis.TouchEnabled) then
 		enabled = true
 	end
 	if enabled == nil then
@@ -14007,6 +13994,10 @@ end
 
 function Library:IsMobile()
 	return env.mobile == true
+end
+
+function Library:IsTouch()
+	return env.uis ~= nil and env.uis.TouchEnabled == true
 end
 
 function Library:SetToggleKey(key)
@@ -14237,7 +14228,7 @@ pcall(function()
 	end)
 end)
 
-if env.mobile then
+if (env.mobile or (env.uis and env.uis.TouchEnabled)) then
 	mobile_launcher = S.launcher.mount(function()
 		Library:ToggleUI()
 	end)

@@ -348,7 +348,7 @@ function text.textbox(win, title, default, callback, icon, opts)
 			Parent = row,
 		})
 	end
-	if mobile then
+	if mobile or env.uis.TouchEnabled then
 		focus_guard = util.new("TextButton", {
 			Name = "focus_guard",
 			BackgroundTransparency = 1,
